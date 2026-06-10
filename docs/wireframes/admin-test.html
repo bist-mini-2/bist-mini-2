@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist Validation Console - ChatGPT Paper Agent</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-card: #2f2f2f;
+            --border-light: #3f3f3f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent-green: #10a37f;
+            --accent-orange: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Header */
+        .admin-header {
+            height: 56px;
+            background-color: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-badge {
+            background-color: var(--accent-green);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        /* Workspace Grid */
+        .workspace {
+            flex-grow: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .admin-sidebar {
+            width: 240px;
+            background-color: var(--bg-sidebar);
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .sidebar-item:hover, .sidebar-item.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .sidebar-item.active {
+            font-weight: 600;
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Test Console Grid */
+        .test-grid {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .test-card {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .text-input {
+            width: 100%;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            resize: vertical;
+        }
+
+        .text-input:focus {
+            border-color: var(--accent-green);
+        }
+
+        .btn-test {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            text-align: center;
+        }
+
+        .btn-test:hover {
+            opacity: 0.9;
+        }
+
+        /* Logger console */
+        .output-box {
+            background-color: #0b0b0b;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.72rem;
+            color: var(--accent-green);
+            flex-grow: 1;
+            min-height: 120px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .file-dropzone {
+            border: 2px dashed var(--border-light);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .file-dropzone:hover {
+            border-color: var(--accent-green);
+        }
+
+        .dropzone-text {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-title">
+            <span>Paper Agent Testing Console</span>
+            <span class="admin-badge">Checklist Dev</span>
+        </div>
+        <button class="back-btn" style="background: none; border: 1px solid var(--border-light); color: var(--text-main); padding: 6px 12px; border-radius: 16px; font-size: 0.8rem; cursor: pointer;" onclick="location.href='user-main-chat.html'">
+            Go to App
+        </button>
+    </header>
+
+    <!-- Workspace -->
+    <div class="workspace">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-item active">📋 Validation Dashboard</div>
+            <div class="sidebar-item" onclick="alert('데이터 파이프라인 관리 화면으로 전환합니다.')">🗄️ Database MTEB Loader</div>
+        </aside>
+
+        <!-- Test Console Grid -->
+        <main class="test-grid">
+            
+            <!-- Structured Output Test -->
+            <div class="test-card">
+                <div class="card-header">
+                    <div class="card-title">🧩 Structured Output Validation</div>
+                    <span style="font-size: 0.72rem; color: var(--accent-green);">POST /validation/structure</span>
+                </div>
+                
+                <div class="input-group">
+                    <span class="input-label">Raw Input Text</span>
+                    <textarea class="text-input" rows="4" placeholder="예: '내 이름은 홍길동이고, 이메일은 gildong@example.com이야. 페퍼로니 피자 한 판 배달해줘.'"></textarea>
+                </div>
+                
+                <button class="btn-test" onclick="alert('Pydantic Structured Output을 추출합니다.')">
+                    Extract Schema (JSON)
+                </button>
+                
+                <div class="input-group" style="flex-grow: 1;">
+                    <span class="input-label">Pydantic DTO Output</span>
+                    <div class="output-box">{
+  "status": "success",
+  "data": {
+    "user_info": {
+      "name": "홍길동",
+      "email": "gildong@example.com"
+    },
+    "order": {
+      "item": "Pepperoni Pizza",
+      "quantity": 1
+    }
+  }
+}</div>
+                </div>
+            </div>
+
+            <!-- Agent Tools Calling Test -->
+            <div class="test-card">
+                <div class="card-header">
+                    <div class="card-title">⚙️ Agent Tools Execution</div>
+                    <span style="font-size: 0.72rem; color: var(--accent-green);">POST /validation/tools</span>
+                </div>
+                
+                <div class="input-group">
+                    <span class="input-label">Select Mock Tool</span>
+                    <select class="text-input" style="height: 34px;">
+                        <option value="alarm">알람 설정 도구 (Mock Alarm Trigger)</option>
+                        <option value="license_plate">차량 번호판 이미지 파서 (License Plate Reader)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <span class="input-label">Tool Input Argument</span>
+                    <input type="text" class="text-input" value='{"time": "07:30 AM", "message": "Wake Up Lab Meeting"}'>
+                </div>
+                
+                <button class="btn-test" onclick="alert('에이전트 도구를 트리거합니다.')">
+                    Trigger Tool
+                </button>
+                
+                <div class="input-group" style="flex-grow: 1;">
+                    <span class="input-label">Execution Trace Log (return_direct=True)</span>
+                    <div class="output-box" style="color: var(--accent-orange); font-size: 0.68rem;">[SYSTEM LOG] Dispatching custom tool: 'set_alarm'
+[ARGUMENTS] time="07:30 AM", msg="Wake Up Lab Meeting"
+[SECURITY] Checked context_schema -> API key masked.
+[RETURN DIRECT] True -> Skipping agent summarization middleware.
+[RESULT] Success: Alarm set for 07:30 AM. Message dispatched to console.</div>
+                </div>
+            </div>
+
+            <!-- Secure PDF Sandbox -->
+            <div class="test-card" style="grid-column: span 2;">
+                <div class="card-header">
+                    <div class="card-title">🛡️ Secure Document Upload & Wipeout Simulation</div>
+                    <span style="font-size: 0.72rem; color: var(--accent-orange);">POST /pdf-embedding</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="input-group">
+                            <span class="input-label">Target Thread ID</span>
+                            <input type="text" class="text-input" value="session-xyz-9876">
+                        </div>
+                        
+                        <div class="file-dropzone">
+                            <div style="font-size: 1.5rem;">📄</div>
+                            <div class="dropzone-text">Click or Drag PDF to Upload</div>
+                        </div>
+                        
+                        <button class="btn-test" style="background-color: var(--accent-green);" onclick="alert('PDF 파싱 및 임시 임베딩을 시작합니다.')">
+                            Upload & Embed PDF
+                        </button>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="input-group" style="flex-grow: 1;">
+                            <span class="input-label">Data Privacy Sandbox Status Monitor</span>
+                            <div class="output-box" style="color: #60a5fa; font-size: 0.68rem; max-height: 140px;">[SANDBOX STATUS - Thread: session-xyz-9876]
+- Uploaded File: confidential_research.pdf (4.2MB)
+- Storage Location: ./docs/sandbox/session-xyz-9876/
+- Vector Index: session-xyz-9876_chunks_idx (28 passages)
+- Status: Securely Isolated</div>
+                        </div>
+                        
+                        <button class="btn-test" style="background-color: #ef4444;" onclick="alert('물리적 파일 및 벡터 인덱스를 완전 영구 파기합니다.')">
+                            Wipe & Purge Session Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Literature Report - ChatGPT Paper Agent</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-sheet: #1e1e1e;
+            --border-light: #2f2f2f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent-green: #10a37f;
+            --accent-orange: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Header - ChatGPT style */
+        .nav-header {
+            height: 56px;
+            background-color: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .left-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .back-btn {
+            background: none;
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .report-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .export-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-export {
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-pdf {
+            background-color: #ef4444;
+        }
+
+        .btn-markdown {
+            background-color: var(--accent-green);
+        }
+
+        .btn-export:hover {
+            opacity: 0.9;
+        }
+
+        /* Workspace Grid */
+        .workspace {
+            flex-grow: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Center Document View */
+        .document-area {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .paper-sheet {
+            max-width: 768px;
+            width: 100%;
+            background-color: var(--bg-sheet);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 40px 48px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            height: fit-content;
+            line-height: 1.65;
+        }
+
+        /* Typography */
+        .sheet-header {
+            border-bottom: 2px solid var(--accent-green);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+
+        .doc-type-badge {
+            background-color: rgba(16, 163, 127, 0.15);
+            color: var(--accent-green);
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 10px;
+            letter-spacing: 0.03em;
+        }
+
+        .doc-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            line-height: 1.35;
+        }
+
+        .doc-meta {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 16px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent-green);
+            margin-top: 28px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--accent-green);
+            padding-left: 8px;
+        }
+
+        .paragraph {
+            font-size: 0.92rem;
+            color: var(--text-main);
+            margin-bottom: 14px;
+            text-align: justify;
+        }
+
+        .bullet-list {
+            margin-left: 18px;
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.92rem;
+            color: var(--text-main);
+        }
+
+        .bib-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .bib-item {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .bib-num {
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        /* Right Panel */
+        .outline-panel {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            border-left: 1px solid var(--border-light);
+            padding: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .outline-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .outline-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .outline-item {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .outline-item:hover {
+            color: var(--accent-green);
+        }
+
+        .outline-item.active {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .summary-stats {
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="nav-header">
+        <div class="left-group">
+            <button class="back-btn" onclick="location.href='user-main-chat.html'">
+                ← Back to Chat
+            </button>
+            <span class="report-title">문헌 조사 요약 리포트 (CS-2026-0610)</span>
+        </div>
+        
+        <div class="export-group">
+            <button class="btn-export btn-pdf" onclick="alert('PDF 형식으로 리포트를 다운로드합니다.')">
+                Export PDF
+            </button>
+            <button class="btn-export btn-markdown" onclick="alert('Markdown 형식으로 리포트를 다운로드합니다.')">
+                Export Markdown
+            </button>
+        </div>
+    </header>
+
+    <!-- Workspace Grid -->
+    <div class="workspace">
+        <main class="document-area">
+            <article class="paper-sheet">
+                <div class="sheet-header">
+                    <span class="doc-type-badge">LITERATURE SURVEY NOTE</span>
+                    <h1 class="doc-title">RAG 청크 크기 및 유사도 검색 아키텍처 분석</h1>
+                    <div class="doc-meta">
+                        <span><strong>작성일</strong>: 2026. 06. 10</span>
+                        <span><strong>담당 도메인</strong>: Computer Science</span>
+                    </div>
+                </div>
+
+                <!-- Section 1 -->
+                <h2 class="section-title">1. 연구 배경 및 필요성</h2>
+                <p class="paragraph">
+                    대규모 학술 및 전문 문헌 대상 RAG(Retrieval-Augmented Generation) 시스템 설계에서 적절한 청크 분할(Chunking) 모델의 선정과 고속 유사도 검색 성능 간의 상관관계는 전체 시스템의 품질을 결정하는 가장 핵심적인 파라미터이다. 
+                    정보 유실을 방지하고 질의 맥락의 정확도를 개선하기 위해 3대 학술 도메인(의학, 컴퓨터과학, 자연과학) DB를 기반으로 실시간 인라인 인용이 가능한 지식 에이전트 구축 방안에 대해 분석한다.
+                </p>
+
+                <!-- Section 2 -->
+                <h2 class="section-title">2. 핵심 요약 및 연구 성과</h2>
+                <ul class="bullet-list">
+                    <li>
+                        <strong>500자 단위 청크 최적화</strong>: 텍스트 분할 시 500자(50자 중첩) 스키마를 적용하는 것이 단어의 의미적 결합 및 맥락 유실 방지에 최적의 밸런스를 보인다.
+                    </li>
+                    <li>
+                        <strong>유사도 매트릭스 활용</strong>: pgvector DB에서 코사인 유사도 점수와 유클리드 거리를 적용하여 청크 간의 유사도 행렬을 고속 추출한다.
+                    </li>
+                    <li>
+                        <strong>실시간 스크래핑 보강</strong>: 로컬 지식의 시간적 한계를 극복하기 위해, Tavily API 및 BeautifulSoup을 활용하여 ArXiv/PubMed 등의 최신 외부 논문 abstracts를 실시간 크롤링하여 컨텍스트에 보완한다.
+                    </li>
+                </ul>
+
+                <!-- Section 3 -->
+                <h2 class="section-title">3. 연구 한계점 및 제언</h2>
+                <p class="paragraph">
+                    본 리포트 분석에서 사용한 SCIDOCS 데이터셋은 정적인 학술 초록 위주이므로, 테이블(Table) 정보나 복잡한 수식이 포함된 완전 PDF 문서(Full Text) 파싱 시 일부 정밀도가 하락할 여지가 존재한다. 
+                    이를 해결하기 위해 향후 Pydantic Structured Output 모델 설계를 고도화하여 수식 및 표 구조 데이터를 정형 JSON 스키마로 분리 래핑하여 적재 및 검색하는 2단계 파이프라인 개발을 적극 권장한다.
+                </p>
+
+                <!-- Section 4 -->
+                <h2 class="section-title">4. 참고 문헌 (References)</h2>
+                <ul class="bib-list">
+                    <li class="bib-item">
+                        <span class="bib-num">[1]</span>
+                        J. Smith, K. Adams. "Evaluating Chunk Size in Academic Document Retrieval." Journal of Computer Science, 2024.
+                    </li>
+                    <li class="bib-item">
+                        <span class="bib-num">[2]</span>
+                        H. Chen, S. Patel. "pgvector vs Hybrid RAG in Computer Science Literature." Proceedings of the RAG Workshop, 2023.
+                    </li>
+                    <li class="bib-item">
+                        <span class="bib-num">[3]</span>
+                        D. Miller. "Real-time Web Grounding for Academic AI Agents." arXiv preprint arXiv:2401.0312, 2024.
+                    </li>
+                </ul>
+            </article>
+        </main>
+
+        <!-- Outline Panel -->
+        <aside class="outline-panel">
+            <h3 class="outline-title">Outline</h3>
+            <ul class="outline-list">
+                <li class="outline-item active">▪ 1. 연구 배경 및 필요성</li>
+                <li class="outline-item">▪ 2. 핵심 요약 및 연구 성과</li>
+                <li class="outline-item">▪ 3. 연구 한계점 및 제언</li>
+                <li class="outline-item">▪ 4. 참고 문헌 (References)</li>
+            </ul>
+            
+            <div class="summary-stats">
+                <h3 class="outline-title" style="margin-bottom: 10px;">Report Details</h3>
+                <div class="stat-row">
+                    <span>Total Words</span>
+                    <span class="stat-value">312 words</span>
+                </div>
+                <div class="stat-row">
+                    <span>Cited Sources</span>
+                    <span class="stat-value">3 Articles</span>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+</body>
+</html>

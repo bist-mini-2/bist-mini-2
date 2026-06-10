@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Sandbox - ChatGPT Paper Agent</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-card: #2f2f2f;
+            --bg-user-msg: #2f2f2f;
+            --bg-input: #2f2f2f;
+            --border-light: #3f3f3f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent-green: #10a37f;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --accent-blue: #3b82f6;
+            --card-hover: #2a2a2a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Sidebar Menu */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 4px 8px;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .menu-section {
+            margin-top: 24px;
+            flex-grow: 1;
+        }
+
+        .sidebar-menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-menu-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu-item:hover,
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .sidebar-top {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .new-chat-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+        }
+
+        .new-chat-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .history-section {
+            margin-top: 16px;
+            overflow-y: auto;
+            max-height: calc(100vh - 220px);
+        }
+
+        .history-group-title {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 8px;
+            margin-top: 12px;
+        }
+
+        .history-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .history-item {
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .history-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .history-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+        }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Submenu and secure thread styling */
+        .sidebar-menu-sublist {
+            list-style: none;
+            padding-left: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: -2px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-menu-subitem {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: #f87171;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-menu-subitem:hover {
+            background-color: rgba(239, 68, 68, 0.08);
+        }
+
+        .sidebar-menu-subitem.active {
+            background-color: rgba(239, 68, 68, 0.12);
+            font-weight: 600;
+        }
+
+        .history-item.secure-thread {
+            color: #f87171 !important;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-item.secure-thread:hover {
+            background-color: rgba(239, 68, 68, 0.05) !important;
+        }
+
+        .history-item.secure-thread.active {
+            background-color: rgba(239, 68, 68, 0.1) !important;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Sidebar Quick Actions */
+        .sidebar-actions-section {
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 14px;
+        }
+
+        .sidebar-action-btn {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            font-family: inherit;
+        }
+
+        .sidebar-action-btn.primary-action {
+            background-color: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .sidebar-action-btn.primary-action:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .sidebar-action-btn.secure-action {
+            background-color: rgba(239, 68, 68, 0.06);
+            border-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .sidebar-action-btn.secure-action:hover {
+            background-color: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Workspace Layout */
+        .workspace-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workspace-header {
+            height: 56px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .shield-icon {
+            color: var(--accent-green);
+        }
+
+        .workspace-body {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 24px;
+            background-color: var(--bg-main);
+        }
+
+        .workspace-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sandbox-card {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* File Dropzone */
+        .file-dropzone {
+            border: 2px dashed var(--border-light);
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .file-dropzone:hover {
+            border-color: var(--accent-green);
+        }
+
+        .dropzone-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .dropzone-text {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        /* Files Table */
+        .files-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+
+        .files-table th,
+        .files-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-light);
+            text-align: left;
+        }
+
+        .files-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+
+        /* Security Switch Options */
+        .switch-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .switch-option:last-child {
+            border-bottom: none;
+        }
+
+        .switch-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 80%;
+        }
+
+        .switch-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .switch-desc {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            line-height: 1.35;
+        }
+
+        /* Custom Toggle Switch CSS */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #555;
+            transition: .3s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent-green);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Hypothesis Validator Styles */
+        .hypothesis-textarea {
+            width: 100%;
+            height: 110px;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .hypothesis-textarea:focus {
+            border-color: var(--accent-green);
+        }
+
+        .validator-settings {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+        }
+
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-grow: 1;
+        }
+
+        .settings-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .settings-select {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-main);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .settings-select:focus {
+            border-color: var(--accent-green);
+        }
+
+        .settings-slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-slider {
+            flex-grow: 1;
+            accent-color: var(--accent-green);
+            cursor: pointer;
+        }
+
+        .btn-run-validation {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(16, 163, 127, 0.2);
+        }
+
+        .btn-run-validation:hover {
+            opacity: 0.9;
+        }
+
+        .btn-run-validation:active {
+            transform: scale(0.98);
+        }
+
+        /* Progress tracker */
+        .progress-tracker {
+            background-color: #0c0c0c;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.75rem;
+            color: var(--accent-green);
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            background-color: #222;
+            border-radius: 4px;
+            height: 6px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .progress-bar {
+            width: 0%;
+            background-color: var(--accent-green);
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .log-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .log-icon-spinner {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border: 2px solid var(--accent-orange);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Verdict Scorecard */
+        .scorecard-container {
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 16px;
+        }
+
+        .scorecard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .scorecard-item {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .scorecard-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scorecard-val.verdict-support {
+            color: var(--accent-green);
+        }
+
+        .scorecard-val.verdict-refute {
+            color: var(--accent-red);
+        }
+
+        .scorecard-val.verdict-neutral {
+            color: var(--accent-orange);
+        }
+
+        /* Emergency Wipeout Button */
+        .btn-wipeout {
+            background-color: var(--accent-red);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .btn-wipeout:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .session-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .session-row:hover {
+            border-color: var(--text-secondary);
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .session-row.active {
+            background-color: rgba(16, 163, 127, 0.08) !important;
+            border-color: var(--accent-green) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Citation Hover Overlay -->
+    <div id="citation-overlay"
+        style="position: fixed; background-color: var(--bg-card); border: 1px solid var(--border-light); padding: 12px; border-radius: 8px; font-size: 0.8rem; z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); width: 280px; color: var(--text-main); pointer-events: none;">
+    </div>
+
+    <!-- Sidebar Menu -->
+    <aside class="sidebar">
+        <div class="sidebar-top">
+            <div class="logo-group-wrapper" style="padding: 4px 8px;">
+                <div class="logo-group">
+                    <div class="logo-circle">P</div>
+                    <span>Paper Agent</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <ul class="sidebar-menu-list">
+                    <li class="sidebar-menu-item" id="menu-chathub" onclick="location.href='user-main-chat.html'">
+                        <span>💬</span><span>Chat Hub</span>
+                    </li>
+                    <li class="sidebar-menu-item" id="menu-library" onclick="location.href='user-library-archive.html'">
+                        <span>📚</span><span>Library & Reports</span>
+                    </li>
+                    <li class="sidebar-menu-item active" id="menu-sandbox"
+                        onclick="location.href='user-sandbox-control.html'">
+                        <span>🛡️</span><span>Secure Sandbox</span>
+                    </li>
+                    <li class="sidebar-menu-item" id="menu-peerreview" onclick="location.href='user-peer-review.html'">
+                        <span>🎓</span><span>Peer Review Workshop</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Sidebar Quick Actions -->
+            <div class="sidebar-actions-section">
+                <!-- <button class="sidebar-action-btn primary-action" onclick="handleNewChatClick()">
+                    <span>➕</span><span>New Conversation</span>
+                </button> -->
+                <button class="sidebar-action-btn secure-action" onclick="handleNewSandboxClick()">
+                    <span>🔒</span><span>New Secure Sandbox</span>
+                </button>
+            </div>
+
+            <div class="history-section" id="sidebar-bottom-section">
+                <div class="history-group-title">Today (Secure)</div>
+                <ul class="history-list" id="history-list-today">
+                    <!-- Rendered by JS -->
+                </ul>
+
+                <div class="history-group-title">Yesterday (Secure)</div>
+                <ul class="history-list">
+                    <li class="history-item secure-thread" onclick="location.href='user-secure-chat.html'">
+                        <span>🔒</span><span>mRNA 백신 후보물질 유전정보 분석</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="sidebar-bottom">
+            <button class="settings-btn" onclick="alert('시스템 페르소나 설정 모달을 엽니다 (POST /chat-with-system)')">
+                <span>⚙️</span>
+                <span>Persona & Settings</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <div class="workspace-container">
+        <header class="workspace-header">
+            <div class="header-title">
+                <span class="shield-icon">🛡️</span>
+                <span>Private Sandbox & Self-Consistency Validation</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <span id="sess-header-id"
+                    style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 500;">Thread Sandbox ID:
+                    session-xyz-9876</span>
+                <span
+                    style="font-size: 0.75rem; background-color: rgba(16,163,127,0.15); color: var(--accent-green); padding: 4px 8px; border-radius: 4px; font-weight: 700; border: 1px solid var(--accent-green);">SECURE
+                    ENVIRONMENT</span>
+            </div>
+        </header>
+
+        <div class="workspace-body">
+
+            <!-- Left Column: File Management & Settings -->
+            <div class="workspace-column">
+                <!-- File Dropzone -->
+                <div class="sandbox-card">
+                    <h3 class="card-header">Upload Local Papers</h3>
+                    <div class="file-dropzone" onclick="triggerFileInput()">
+                        <div class="dropzone-icon">📄</div>
+                        <div class="dropzone-text">Click or Drag PDF to Sandbox</div>
+                        <div style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px;">Max 10MB.
+                            Session-scoped storage only.</div>
+                    </div>
+                    <input type="file" id="sandbox-file-input" style="display: none;"
+                        onchange="handleFileSelect(event)">
+                </div>
+
+                <!-- Files Table -->
+                <div class="sandbox-card" style="flex-grow: 1;">
+                    <h3 class="card-header" id="files-count-header">Currently Embedded (2)</h3>
+                    <div style="overflow-y: auto; max-height: 220px;">
+                        <table class="files-table">
+                            <thead>
+                                <tr>
+                                    <th>Filename</th>
+                                    <th>Chunks</th>
+                                    <th style="width: 45px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="files-table-body">
+                                <!-- Rendered by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Security Settings Switches -->
+                <div class="sandbox-card">
+                    <h3 class="card-header">Security Rules</h3>
+
+                    <div class="switch-option">
+                        <div class="switch-info">
+                            <span class="switch-title">AES local Encryption</span>
+                            <span class="switch-desc">문서 로컬 암호화</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="rule-aes" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="switch-option">
+                        <div class="switch-info">
+                            <span class="switch-title">Sensitive Masking</span>
+                            <span class="switch-desc">개인정보/특허 정보 필터링</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="rule-masking" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="switch-option">
+                        <div class="switch-info">
+                            <span class="switch-title">Auto Purge (30m)</span>
+                            <span class="switch-desc">30분 미활동 시 자동 삭제</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="rule-timeout" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <button
+                        style="margin-top: 6px; width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--accent-green); background: transparent; color: var(--accent-green); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                        onclick="location.href='user-sandbox-redaction.html'">
+                        🔍 Masking Rules & Preview
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Self-Consistency Runner -->
+            <div class="workspace-column">
+                <div class="sandbox-card" style="flex-grow: 1; gap: 16px;">
+                    <h3 class="card-header">Self-Consistency Hypothesis Validator</h3>
+
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <span class="settings-label">1. Enter Scientific Hypothesis for Verification</span>
+                        <textarea class="hypothesis-textarea" id="hypothesis-input"
+                            placeholder="검증할 과학적 가설이나 이론 초안을 기술하세요..."></textarea>
+                    </div>
+
+                    <div class="validator-settings">
+                        <div class="settings-group">
+                            <span class="settings-label">Majority Voting Turns</span>
+                            <select class="settings-select" id="voting-turns">
+                                <option value="3">3 Turns (Fast)</option>
+                                <option value="5" selected>5 Turns (Standard)</option>
+                                <option value="10">10 Turns (Deep Audit)</option>
+                            </select>
+                        </div>
+                        <div class="settings-group">
+                            <span class="settings-label">Confidence Threshold</span>
+                            <div class="settings-slider-wrapper">
+                                <input class="settings-slider" type="range" id="confidence-threshold" min="50" max="95"
+                                    value="80"
+                                    oninput="document.getElementById('threshold-val').innerText = this.value + '%'">
+                                <span id="threshold-val" style="font-weight: 600; min-width: 30px;">80%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-run-validation" id="btn-run-validation" onclick="runSelfConsistency()">
+                        <span>🚀</span><span>Run Multi-Agent Self-Consistency Validation</span>
+                    </button>
+
+                    <!-- Progress Tracker Logs -->
+                    <div class="progress-tracker" id="progress-tracker">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600;">Validation Progress Trace</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar" id="progress-bar"></div>
+                        </div>
+                        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;"
+                            id="progress-logs">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Evaluation Scorecard Results -->
+                    <div class="scorecard-container" id="scorecard-container">
+                        <div class="settings-label"
+                            style="border-bottom: 1px solid var(--border-light); padding-bottom: 6px;">2. Validation
+                            Scorecard Results</div>
+                        <div class="scorecard-grid">
+                            <div class="scorecard-item">
+                                <span class="settings-label">Verdict (합의 판정)</span>
+                                <span class="scorecard-val" id="scorecard-verdict">SUPPORT</span>
+                            </div>
+                            <div class="scorecard-item">
+                                <span class="settings-label">Confidence (일치 가중치)</span>
+                                <span class="scorecard-val" id="scorecard-confidence">94%</span>
+                            </div>
+                            <div class="scorecard-item">
+                                <span class="settings-label">Consensus Rate</span>
+                                <span class="scorecard-val" id="scorecard-consensus"
+                                    style="font-size: 0.95rem; color: var(--text-main);">5/5 Nodes Agree</span>
+                            </div>
+                            <div class="scorecard-item">
+                                <span class="settings-label">Redacted Tokens</span>
+                                <span class="scorecard-val" id="scorecard-redacted"
+                                    style="font-size: 0.95rem; color: var(--text-main);">14 items masked</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                            <button class="btn-run-validation"
+                                style="background-color: var(--accent-green); box-shadow: none;"
+                                onclick="location.href='user-report-view.html'">
+                                📋 Generate Detailed Literature Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emergency Button -->
+                <button class="btn-wipeout" onclick="triggerWipe()">
+                    ☠ EMERGENCY SESSION WIPE OUT
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const sessions = {
+            'sess-1': {
+                id: 'session-xyz-9876',
+                name: '면역 항암 가설 검증',
+                files: [
+                    { name: 'confidential_formula_v2.pdf', chunks: '12 chunks' },
+                    { name: 'competitor_patent_survey.pdf', chunks: '26 chunks' }
+                ],
+                rules: { aes: true, masking: true, timeout: true },
+                hypothesis: '제시된 신약 화학식 v2와 NFCorpus 논문들을 비교해 볼 때, CXCL10 케모카인 발현 경로 활성화를 유도하는 면역 작용제 기전이 T세포 증식을 유의미하게 향상시키는가?',
+                scorecard: {
+                    hasRun: true,
+                    verdict: 'SUPPORT',
+                    confidence: '94%',
+                    consensus: '5/5 Nodes Agree',
+                    redacted: '14 items masked',
+                    logs: [
+                        'RAG 보안 컨텍스트 초기화 완료.',
+                        'isolated-node-1: 가설 추론 시작... (암호화 토큰 처리)',
+                        'isolated-node-2: 특허 및 논문 DB 대조 완료.',
+                        'isolated-node-3: CXCL10 발현 활성화 확인.',
+                        'isolated-node-4: T세포 증식율 증가 추세 검증.',
+                        'isolated-node-5: 검증 데이터 합의 완료.',
+                        'Self-Consistency 합의 판정: SUPPORT (일치율 100%)'
+                    ]
+                }
+            },
+            'sess-2': {
+                id: 'session-abc-1234',
+                name: '양자 소자 특허 검토',
+                files: [
+                    { name: 'quantum_semiconductor_draft.pdf', chunks: '40 chunks' }
+                ],
+                rules: { aes: true, masking: false, timeout: true },
+                hypothesis: '이중 장벽 헤테로 구조(Double-Barrier Heterostructure)의 밴드갭 엔지니어가 300K 상온 조건에서 양자 소자의 열적 이스케이프(Thermal Escape)를 30% 이상 억제할 수 있는가?',
+                scorecard: {
+                    hasRun: false,
+                    verdict: 'PENDING',
+                    confidence: '-',
+                    consensus: '-',
+                    redacted: '0 items masked',
+                    logs: []
+                }
+            },
+            'sess-yesterday': {
+                id: 'session-mrna-5555',
+                name: 'mRNA 백신 후보물질 유전정보 분석',
+                files: [
+                    { name: 'mrna_sequence_candidate_3.pdf', chunks: '8 chunks' }
+                ],
+                rules: { aes: true, masking: true, timeout: false },
+                hypothesis: 'mRNA 후보물질 서열 3번의 스파이크 단백질 해독 영역에서 인간 선호 코돈(Human-preferred codons)의 최적화 수준이 번역 효율성과 구조적 안정성을 보장하는지 여부 검증.',
+                scorecard: {
+                    hasRun: true,
+                    verdict: 'SUPPORT',
+                    confidence: '88%',
+                    consensus: '4/5 Nodes Agree',
+                    redacted: '8 items masked',
+                    logs: [
+                        'RAG 보안 컨텍스트 초기화 완료.',
+                        'isolated-node-1: mRNA 2차 구조 안정성 검출.',
+                        'isolated-node-2: GC 함량 58% 최적화 매칭 성공.',
+                        'isolated-node-3: 퓨린 절단 부위 보안 규칙 우회 차단 및 마스킹.',
+                        'isolated-node-4: 번역 효율 향상 유의미성 검출.',
+                        'isolated-node-5: 검증 결과 합의 완료.',
+                        'Self-Consistency 합의 판정: SUPPORT (일치율 80%)'
+                    ]
+                }
+            }
+        };
+
+        let activeSessionId = 'sess-1';
+
+        function renderActiveSession() {
+            const sess = sessions[activeSessionId];
+
+            // Header Sandbox ID
+            document.getElementById('sess-header-id').innerText = `Thread Sandbox ID: ${sess.id}`;
+
+            // Files count & table
+            document.getElementById('files-count-header').innerText = `Currently Embedded (${sess.files.length})`;
+
+            const tbody = document.getElementById('files-table-body');
+            tbody.innerHTML = '';
+            sess.files.forEach(file => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.onclick = () => location.href = 'user-sandbox-redaction.html';
+                tr.innerHTML = `
+                    <td><span style="color: var(--accent-green); text-decoration: underline;">${file.name}</span></td>
+                    <td>${file.chunks}</td>
+                    <td><button style="background: none; border: none; color: var(--accent-red); cursor: pointer;" onclick="event.stopPropagation(); deleteFile('${file.name}')">Delete</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Rules
+            document.getElementById('rule-aes').checked = sess.rules.aes;
+            document.getElementById('rule-masking').checked = sess.rules.masking;
+            document.getElementById('rule-timeout').checked = sess.rules.timeout;
+
+            // Hypothesis
+            document.getElementById('hypothesis-input').value = sess.hypothesis || '';
+
+            // Update Rules UI Indicator
+            updateActiveRulesIndicator();
+
+            // Progress log reset
+            const progressTracker = document.getElementById('progress-tracker');
+            progressTracker.style.display = 'none';
+            document.getElementById('progress-logs').innerHTML = '';
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('progress-percent').innerText = '0%';
+
+            // Scorecard Results
+            const scorecardContainer = document.getElementById('scorecard-container');
+            if (sess.scorecard && sess.scorecard.hasRun) {
+                scorecardContainer.style.display = 'flex';
+
+                const verdictEl = document.getElementById('scorecard-verdict');
+                verdictEl.innerText = sess.scorecard.verdict;
+                verdictEl.className = 'scorecard-val'; // reset
+                if (sess.scorecard.verdict === 'SUPPORT') {
+                    verdictEl.classList.add('verdict-support');
+                } else if (sess.scorecard.verdict === 'REFUTE') {
+                    verdictEl.classList.add('verdict-refute');
+                } else {
+                    verdictEl.classList.add('verdict-neutral');
+                }
+
+                document.getElementById('scorecard-confidence').innerText = sess.scorecard.confidence;
+                document.getElementById('scorecard-consensus').innerText = sess.scorecard.consensus;
+                document.getElementById('scorecard-redacted').innerText = sess.scorecard.redacted;
+            } else {
+                scorecardContainer.style.display = 'none';
+            }
+        }
+
+        function switchSession(id) {
+            // Save current hypothesis before switching
+            if (sessions[activeSessionId]) {
+                sessions[activeSessionId].hypothesis = document.getElementById('hypothesis-input').value;
+            }
+            activeSessionId = id;
+            renderActiveSession();
+            renderSidebarSubmenu();
+        }
+
+        function createNewSession() {
+            const name = prompt("새 보안 샌드박스 세션 이름을 입력하세요:");
+            if (!name) return;
+
+            const randomId = 'session-' + Math.random().toString(36).substring(2, 6) + '-' + Math.floor(1000 + Math.random() * 9000);
+            const newKey = 'sess-' + Date.now();
+
+            sessions[newKey] = {
+                id: randomId,
+                name: name,
+                files: [],
+                rules: { aes: true, masking: true, timeout: true },
+                hypothesis: '',
+                scorecard: {
+                    hasRun: false,
+                    verdict: 'PENDING',
+                    confidence: '-',
+                    consensus: '-',
+                    redacted: '0 items masked',
+                    logs: []
+                }
+            };
+
+            activeSessionId = newKey;
+            renderActiveSession();
+            renderSidebarSubmenu();
+        }
+
+        function renderSidebarSubmenu() {
+            const sidebarList = document.getElementById('history-list-today');
+            if (!sidebarList) return;
+            sidebarList.innerHTML = '';
+
+            for (let id in sessions) {
+                if (id === 'sess-yesterday') continue; // render separately under Yesterday
+                const sess = sessions[id];
+                const activeClass = id === activeSessionId ? 'active' : '';
+                const item = document.createElement('li');
+                item.className = `history-item secure-thread ${activeClass}`;
+                item.onclick = () => {
+                    switchSession(id);
+                };
+                item.innerHTML = `<span>🔒</span><span>${sess.name}</span>`;
+                sidebarList.appendChild(item);
+            }
+
+            // Setup Yesterday list to click dynamically
+            const yesterdayItem = document.querySelector('.history-section ul:not(#history-list-today) .history-item');
+            if (yesterdayItem) {
+                yesterdayItem.className = `history-item secure-thread ${activeSessionId === 'sess-yesterday' ? 'active' : ''}`;
+                yesterdayItem.onclick = () => switchSession('sess-yesterday');
+            }
+        }
+
+        function deleteFile(filename) {
+            const sess = sessions[activeSessionId];
+            sess.files = sess.files.filter(f => f.name !== filename);
+            renderActiveSession();
+        }
+
+        function triggerWipe() {
+            const sess = sessions[activeSessionId];
+            if (confirm(`경고! [${sess.name}] 세션에 업로드된 모든 물리 파일과 pgvector 임베딩 데이터가 완전히 파기됩니다. 복구할 수 없습니다. 계속하시겠습니까?`)) {
+                alert("세션 데이터가 완전히 파기되었습니다. 메인 화면으로 리다이렉트합니다.");
+
+                sess.files = [];
+                sess.hypothesis = '';
+                sess.scorecard = {
+                    hasRun: false,
+                    verdict: 'PENDING',
+                    confidence: '-',
+                    consensus: '-',
+                    redacted: '0 items masked',
+                    logs: []
+                };
+
+                location.href = 'user-main-chat.html';
+            }
+        }
+
+        // Mock upload trigger & handle
+        function triggerFileInput() {
+            document.getElementById('sandbox-file-input').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const sess = sessions[activeSessionId];
+            sess.files.push({
+                name: file.name,
+                chunks: `${Math.floor(8 + Math.random() * 20)} chunks`
+            });
+
+            renderActiveSession();
+            alert(`보안 문서 [${file.name}]이(가) 세션 ${sess.id} 내부에 성공적으로 적재 및 임베딩 처리되었습니다.`);
+        }
+
+        // Interactive Self-Consistency Validation Runner
+        function runSelfConsistency() {
+            const hypothesis = document.getElementById('hypothesis-input').value.trim();
+            if (!hypothesis) {
+                alert('검증할 가설을 입력해주세요.');
+                return;
+            }
+
+            const sess = sessions[activeSessionId];
+            sess.hypothesis = hypothesis;
+
+            // UI Elements
+            const runBtn = document.getElementById('btn-run-validation');
+            const progressTracker = document.getElementById('progress-tracker');
+            const progressLogs = document.getElementById('progress-logs');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercent = document.getElementById('progress-percent');
+            const scorecardContainer = document.getElementById('scorecard-container');
+
+            // Disable UI
+            runBtn.disabled = true;
+            runBtn.style.opacity = '0.6';
+            runBtn.style.cursor = 'not-allowed';
+            scorecardContainer.style.display = 'none';
+
+            // Show tracker
+            progressTracker.style.display = 'flex';
+            progressLogs.innerHTML = '';
+            progressBar.style.width = '0%';
+            progressPercent.innerText = '0%';
+
+            const turnsSelect = document.getElementById('voting-turns');
+            const totalTurns = parseInt(turnsSelect.value) || 5;
+            const threshold = document.getElementById('confidence-threshold').value;
+
+            // Setup sequence logs
+            const steps = [
+                { percent: 15, msg: `[시스템] RAG 격리 컨텍스트 초기화 및 보안 샌드박스(${sess.id}) 매핑 중...` },
+                { percent: 35, msg: `[시스템] 민감 정보 필터링 규칙 적용 완료. (AES 암호화 스토리지 활성화)` },
+                { percent: 55, msg: `[에이전트] ${totalTurns}개 노드에 분산 추론 가설 투표 요청 생성 완료.` },
+                { percent: 75, msg: `[에이전트] 분산 노드 교차 검증 중: ${Array.from({ length: totalTurns }, (_, i) => `Node ${i + 1}`).join(', ')}...` },
+                { percent: 90, msg: `[합의 모듈] 다수결(Majority Voting) 결과 분석 및 합의 신뢰성 검증 중...` },
+                { percent: 100, msg: `[완료] 자가 일관성(Self-Consistency) 판정 도출이 성공적으로 완료되었습니다.` }
+            ];
+
+            let stepIdx = 0;
+
+            function runNextStep() {
+                if (stepIdx < steps.length) {
+                    const step = steps[stepIdx];
+
+                    // Add log item
+                    const logItem = document.createElement('div');
+                    logItem.className = 'log-item';
+
+                    if (stepIdx < steps.length - 1) {
+                        logItem.innerHTML = `<span class="log-icon-spinner"></span><span>${step.msg}</span>`;
+                    } else {
+                        logItem.innerHTML = `<span style="color: var(--accent-green)">✔</span><span>${step.msg}</span>`;
+                    }
+
+                    // Remove spinner from previous log
+                    if (progressLogs.lastChild && stepIdx > 0) {
+                        const prevSpinner = progressLogs.lastChild.querySelector('.log-icon-spinner');
+                        if (prevSpinner) {
+                            prevSpinner.outerHTML = '<span style="color: var(--accent-green)">✔</span>';
+                        }
+                    }
+
+                    progressLogs.appendChild(logItem);
+
+                    // Auto-scroll progress logs
+                    progressTracker.scrollTop = progressTracker.scrollHeight;
+
+                    // Update progress bar
+                    progressBar.style.width = `${step.percent}%`;
+                    progressPercent.innerText = `${step.percent}%`;
+
+                    stepIdx++;
+                    setTimeout(runNextStep, 600);
+                } else {
+                    // Finalize and show scorecard
+                    finalizeValidation(hypothesis, totalTurns, threshold);
+                }
+            }
+
+            setTimeout(runNextStep, 200);
+        }
+
+        function finalizeValidation(hypothesis, totalTurns, threshold) {
+            const sess = sessions[activeSessionId];
+            const runBtn = document.getElementById('btn-run-validation');
+            const scorecardContainer = document.getElementById('scorecard-container');
+
+            // Generate mock but context-aware verdict
+            // If hypothesis has negative keywords, let's refute it, otherwise support
+            let verdict = 'SUPPORT';
+            let confidenceVal = Math.floor(82 + Math.random() * 14); // 82% ~ 95%
+
+            const lowerHyp = hypothesis.toLowerCase();
+            if (lowerHyp.includes('실패') || lowerHyp.includes('부작용') || lowerHyp.includes('오류') || lowerHyp.includes('불가능') || lowerHyp.includes('위험')) {
+                verdict = 'REFUTE';
+            } else if (lowerHyp.includes('중립') || lowerHyp.includes('모호') || lowerHyp.includes('차이 없다')) {
+                verdict = 'NEUTRAL';
+                confidenceVal = Math.floor(55 + Math.random() * 20); // 55% ~ 75%
+            }
+
+            // Calculate consensus count based on totalTurns & confidence
+            let agreeCount = Math.ceil(totalTurns * (confidenceVal / 100));
+            if (agreeCount < Math.ceil(totalTurns / 2)) {
+                agreeCount = Math.ceil(totalTurns / 2) + 1;
+            }
+            if (agreeCount > totalTurns) agreeCount = totalTurns;
+
+            const consensusText = `${agreeCount}/${totalTurns} Nodes Agree`;
+            const redactedText = sess.rules.masking ? `${Math.floor(4 + Math.random() * 15)} items masked` : '0 items masked';
+
+            sess.scorecard = {
+                hasRun: true,
+                verdict: verdict,
+                confidence: `${confidenceVal}%`,
+                consensus: consensusText,
+                redacted: redactedText,
+                logs: Array.from(document.querySelectorAll('#progress-logs .log-item')).map(el => el.innerText)
+            };
+
+            // Update UI
+            const verdictEl = document.getElementById('scorecard-verdict');
+            verdictEl.innerText = verdict;
+            verdictEl.className = 'scorecard-val'; // reset
+            if (verdict === 'SUPPORT') {
+                verdictEl.classList.add('verdict-support');
+            } else if (verdict === 'REFUTE') {
+                verdictEl.classList.add('verdict-refute');
+            } else {
+                verdictEl.classList.add('verdict-neutral');
+            }
+
+            document.getElementById('scorecard-confidence').innerText = `${confidenceVal}%`;
+            document.getElementById('scorecard-consensus').innerText = consensusText;
+            document.getElementById('scorecard-redacted').innerText = redactedText;
+
+            // Show scorecard
+            scorecardContainer.style.display = 'flex';
+
+            // Re-enable run button
+            runBtn.disabled = false;
+            runBtn.style.opacity = '1';
+            runBtn.style.cursor = 'pointer';
+        }
+
+        // Setup Rule change listeners to update session data in-place
+        document.getElementById('rule-aes').addEventListener('change', (e) => {
+            if (sessions[activeSessionId]) {
+                sessions[activeSessionId].rules.aes = e.target.checked;
+                updateActiveRulesIndicator();
+            }
+        });
+        document.getElementById('rule-masking').addEventListener('change', (e) => {
+            if (sessions[activeSessionId]) {
+                sessions[activeSessionId].rules.masking = e.target.checked;
+                updateActiveRulesIndicator();
+            }
+        });
+        document.getElementById('rule-timeout').addEventListener('change', (e) => {
+            if (sessions[activeSessionId]) {
+                sessions[activeSessionId].rules.timeout = e.target.checked;
+                updateActiveRulesIndicator();
+            }
+        });
+
+        function updateActiveRulesIndicator() {
+            const aes = document.getElementById('rule-aes').checked;
+            const masking = document.getElementById('rule-masking').checked;
+
+            const indicator = document.getElementById('active-rules-indicator');
+            if (indicator) {
+                if (aes && masking) {
+                    indicator.innerText = "🛡️ Masking & Encrypt Active";
+                    indicator.style.color = "var(--accent-green)";
+                } else if (aes) {
+                    indicator.innerText = "🔒 Encrypt Active (Masking Off)";
+                    indicator.style.color = "var(--accent-orange)";
+                } else if (masking) {
+                    indicator.innerText = "👁️ Masking Active (Unencrypted)";
+                    indicator.style.color = "var(--accent-orange)";
+                } else {
+                    indicator.innerText = "⚠️ Security Rules Inactive";
+                    indicator.style.color = "var(--accent-red)";
+                }
+            }
+        }
+
+        // Citation tooltips hover
+        const tooltip = document.getElementById('citation-overlay');
+
+        function showTooltip(sourceId, element) {
+            if (!tooltip) return;
+            const rect = element.getBoundingClientRect();
+
+            if (sourceId === 1) {
+                tooltip.innerHTML = `
+                    <strong>confidential_formula_v2.pdf (Session Sandbox)</strong><br>
+                    <span style="color: var(--accent-orange); font-weight:600; font-size: 0.72rem;">🔒 Secure Sandbox Source - Page 1</span>
+                    <p style="margin-top: 8px; font-size: 0.73rem; border-top: 1px solid var(--border-light); padding-top: 6px; line-height: 1.45;">
+                        "...The core optimization model is built on an adaptive vector reranking metric using isolated session structures..."
+                    </p>
+                `;
+            } else if (sourceId === 2) {
+                tooltip.innerHTML = `
+                    <strong>Mechanisms of Immune Activation in Immunotherapy</strong><br>
+                    <span style="color: var(--text-secondary); font-size: 0.75rem;">NFCorpus DB - Article Abstract</span>
+                    <p style="margin-top: 8px; font-size: 0.73rem; border-top: 1px solid var(--border-light); padding-top: 6px; line-height: 1.45;">
+                        "...we show that CXCL10 activation significantly improves T-cell proliferation rates and mediates therapeutic immune activation..."
+                    </p>
+                `;
+            }
+
+            tooltip.style.left = `${rect.left}px`;
+            tooltip.style.top = `${rect.top - tooltip.offsetHeight - 10}px`;
+            tooltip.style.display = 'block';
+            tooltip.style.opacity = '1';
+        }
+
+        function hideTooltip() {
+            if (tooltip) {
+                tooltip.style.display = 'none';
+                tooltip.style.opacity = '0';
+            }
+        }
+
+        // Init
+        renderActiveSession();
+        renderSidebarSubmenu();
+
+        // Handle action=new_session query parameter on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('action') === 'new_session') {
+                createNewSession();
+            }
+        });
+
+        function handleNewChatClick() {
+            location.href = 'user-main-chat.html?action=new';
+        }
+
+        function handleNewSandboxClick() {
+            createNewSession();
+        }
+    </script>
+</body>
+
+</html>

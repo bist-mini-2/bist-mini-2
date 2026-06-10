@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citation Graph - ChatGPT Paper Agent</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-canvas: #1e1e1e;
+            --border-light: #3f3f3f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent-green: #10a37f;
+            --accent-blue: #3b82f6;
+            --accent-orange: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Nav */
+        .top-navbar {
+            height: 56px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background-color: var(--bg-sidebar);
+            width: 100%;
+            position: absolute;
+            top: 0;
+            z-index: 10;
+        }
+
+        .left-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-back {
+            background: none;
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-back:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        /* Content Workspace */
+        .workspace {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            padding-top: 56px;
+            overflow: hidden;
+        }
+
+        /* Visual Graph Canvas */
+        .graph-area {
+            flex-grow: 1;
+            background-color: var(--bg-canvas);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Simulated Node & Link Elements */
+        .graph-svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .paper-node {
+            position: absolute;
+            background-color: var(--bg-main);
+            border: 2px solid var(--border-light);
+            border-radius: 50%;
+            width: 110px;
+            height: 110px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 2;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+        }
+
+        .paper-node:hover, .paper-node.active {
+            border-color: var(--accent-green);
+            transform: scale(1.05);
+            box-shadow: 0 0 16px rgba(16, 163, 127, 0.3);
+        }
+
+        .paper-node.main {
+            border-color: var(--accent-green);
+            background-color: rgba(16, 163, 127, 0.1);
+            width: 130px;
+            height: 130px;
+        }
+
+        .node-num {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+
+        .node-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-main);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Positions for Mock Nodes */
+        .node-1 { left: 45%; top: 38%; } /* Main central node */
+        .node-2 { left: 18%; top: 22%; }
+        .node-3 { left: 22%; top: 62%; }
+        .node-4 { left: 72%; top: 20%; }
+        .node-5 { left: 68%; top: 60%; }
+
+        /* Detail Sidebar Panel */
+        .details-panel {
+            width: 340px;
+            background-color: var(--bg-sidebar);
+            border-left: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 5;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+        }
+
+        .btn-star {
+            background: none;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-star.starred {
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+            background-color: rgba(16, 163, 127, 0.08);
+        }
+
+        .paper-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .paper-authors {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .meta-item {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-label {
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .meta-val {
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .abstract-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .abstract-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .abstract-text {
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: var(--text-main);
+            text-align: justify;
+        }
+
+        .action-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .panel-action-btn {
+            width: 100%;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-align: center;
+            transition: opacity 0.2s;
+        }
+
+        .btn-green {
+            background-color: var(--accent-green);
+            color: white;
+        }
+
+        .btn-outline {
+            background: none;
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(255,255,255,0.04);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navbar Navigation -->
+    <header class="top-navbar">
+        <div class="left-group">
+            <button class="btn-back" onclick="location.href='user-main-chat.html'">
+                ← Back to Chat
+            </button>
+            <span class="nav-title">RAG 참고문헌 인용 관계 시각화</span>
+        </div>
+        <div>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);">MTEB: Computer Science Domain</span>
+        </div>
+    </header>
+
+    <!-- Workspace Grid -->
+    <div class="workspace">
+        
+        <!-- Left Side: Interactive Citation Network -->
+        <main class="graph-area">
+            <!-- Simulated Citation Links -->
+            <svg class="graph-svg">
+                <!-- Lines linking nodes -->
+                <line x1="23%" y1="27%" x2="50%" y2="45%" stroke="#3f3f3f" stroke-width="2" />
+                <line x1="28%" y1="65%" x2="50%" y2="48%" stroke="#3f3f3f" stroke-width="2" />
+                <line x1="72%" y1="27%" x2="50%" y2="45%" stroke="#3f3f3f" stroke-width="2" />
+                <line x1="68%" y1="65%" x2="50%" y2="48%" stroke="#3f3f3f" stroke-width="2" />
+                
+                <!-- Direction arrows simulation -->
+                <polygon points="36,36 39,32 42,39" fill="#10a37f" transform="translate(180, 150) rotate(35)" />
+                <polygon points="36,36 39,32 42,39" fill="#10a37f" transform="translate(480, 150) rotate(-45)" />
+            </svg>
+
+            <!-- Main Central Node -->
+            <div class="paper-node node-1 main active" onclick="selectNode(1)">
+                <span class="node-num" style="background-color: var(--accent-green);">Source [1]</span>
+                <span class="node-label">Evaluating Chunk Size in Academic Document Retrieval</span>
+            </div>
+
+            <!-- Surrounding Starred Nodes -->
+            <div class="paper-node node-2" onclick="selectNode(2)">
+                <span class="node-num">Source [2]</span>
+                <span class="node-label">pgvector vs Hybrid RAG in Computer Science</span>
+            </div>
+
+            <div class="paper-node node-3" onclick="selectNode(3)">
+                <span class="node-num">Source [3]</span>
+                <span class="node-label">Real-time Web Grounding for Academic AI Agents</span>
+            </div>
+
+            <div class="paper-node node-4" onclick="selectNode(4)">
+                <span class="node-num">Ref [A]</span>
+                <span class="node-label">Attention Is All You Need</span>
+            </div>
+
+            <div class="paper-node node-5" onclick="selectNode(5)">
+                <span class="node-num">Ref [B]</span>
+                <span class="node-label">Retrieval-Augmented Generation for Knowledge-Intensive Tasks</span>
+            </div>
+        </main>
+
+        <!-- Right Side: Selected Source Details -->
+        <aside class="details-panel">
+            <div class="panel-header">
+                <span class="panel-title">Selected Article</span>
+                <button id="star-btn" class="btn-star starred" onclick="toggleStar()">★ Starred</button>
+            </div>
+
+            <h2 id="paper-title" class="paper-title">Evaluating Chunk Size in Academic Document Retrieval</h2>
+            <div id="paper-authors" class="paper-authors">J. Smith, K. Adams | 2024</div>
+
+            <!-- Meta Details Grid -->
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <span class="meta-label">MTEB Dataset</span>
+                    <span id="meta-dataset" class="meta-val">SCIDOCS</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Similarity</span>
+                    <span id="meta-similarity" class="meta-val" style="color: var(--accent-green);">0.892 (Cosine)</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Citations</span>
+                    <span id="meta-citations" class="meta-val">42 times</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Category</span>
+                    <span id="meta-category" class="meta-val">Information Retrieval</span>
+                </div>
+            </div>
+
+            <!-- Abstract Paragraph -->
+            <div class="abstract-section">
+                <span class="abstract-title">Abstract</span>
+                <p id="paper-abstract" class="abstract-text">
+                    "We investigate the effect of text chunk size on semantic search accuracy within academic paper archives. In this work, we demonstrate that a 500-character chunk size with a 50-character overlap yields the optimal trade-off between semantic integrity and retrieval speed for dense retrievers, outperforming larger structural paragraphs."
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-group">
+                <button class="panel-action-btn btn-green" onclick="alert('로컬에 저장된 원본 PDF 논문을 다운로드합니다.')">
+                    Download Full Text PDF
+                </button>
+                <button class="panel-action-btn btn-outline" onclick="alert('이 논문을 컨텍스트로 활용해 에이전트 대화를 이어갑니다.')">
+                    Ask About This Paper
+                </button>
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        function selectNode(id) {
+            // Remove active classes
+            document.querySelectorAll('.paper-node').forEach(node => node.classList.remove('active'));
+            // Add active class to clicked node
+            event.currentTarget.classList.add('active');
+
+            const title = document.getElementById('paper-title');
+            const authors = document.getElementById('paper-authors');
+            const dataset = document.getElementById('meta-dataset');
+            const similarity = document.getElementById('meta-similarity');
+            const citations = document.getElementById('meta-citations');
+            const category = document.getElementById('meta-category');
+            const abstract = document.getElementById('paper-abstract');
+            const starBtn = document.getElementById('star-btn');
+
+            if (id === 1) {
+                title.innerText = "Evaluating Chunk Size in Academic Document Retrieval";
+                authors.innerText = "J. Smith, K. Adams | 2024";
+                dataset.innerText = "SCIDOCS";
+                similarity.innerText = "0.892 (Cosine)";
+                citations.innerText = "42 times";
+                category.innerText = "Information Retrieval";
+                abstract.innerText = '"We investigate the effect of text chunk size on semantic search accuracy within academic paper archives. In this work, we demonstrate that a 500-character chunk size with a 50-character overlap yields the optimal trade-off between semantic integrity and retrieval speed for dense retrievers, outperforming larger structural paragraphs."';
+                starBtn.className = "btn-star starred";
+                starBtn.innerText = "★ Starred";
+            } else if (id === 2) {
+                title.innerText = "pgvector vs Hybrid RAG in Computer Science Literature";
+                authors.innerText = "H. Chen, S. Patel | 2023";
+                dataset.innerText = "SCIDOCS";
+                similarity.innerText = "0.865 (Cosine)";
+                citations.innerText = "18 times";
+                category.innerText = "NLP / Vector DB";
+                abstract.innerText = '"Vector-only search using cosine similarity via pgvector remains computationally efficient and highly precise for CS abstracts. In this study, we compare pgvector L2 and Cosine similarity metrics against BM25 hybrid architectures under academic workloads..."';
+                starBtn.className = "btn-star starred";
+                starBtn.innerText = "★ Starred";
+            } else if (id === 3) {
+                title.innerText = "Real-time Web Grounding for Academic AI Agents";
+                authors.innerText = "D. Miller | 2024";
+                dataset.innerText = "Tavily Web / arXiv";
+                similarity.innerText = "0.841 (Cosine)";
+                citations.innerText = "5 times";
+                category.innerText = "AI Agent / Search";
+                abstract.innerText = '"Academic search queries demand high accuracy and up-to-date sources. We introduce a mechanism that bridges static vector DB indexes by incorporating a Tavily web browsing agent loop that scrapess abstract-level text using BeautifulSoup to prevent outdated hallucinations."';
+                starBtn.className = "btn-star starred";
+                starBtn.innerText = "★ Starred";
+            } else if (id === 4) {
+                title.innerText = "Attention Is All You Need";
+                authors.innerText = "Vaswani et al. | 2017";
+                dataset.innerText = "External Link";
+                similarity.innerText = "N/A (Reference)";
+                citations.innerText = "112,059 times";
+                category.innerText = "Deep Learning / Transformer";
+                abstract.innerText = '"We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality..."';
+                starBtn.className = "btn-star";
+                starBtn.innerText = "☆ Star";
+            } else if (id === 5) {
+                title.innerText = "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks";
+                authors.innerText = "Lewis et al. | 2020";
+                dataset.innerText = "External Link";
+                similarity.innerText = "N/A (Reference)";
+                citations.innerText = "4,204 times";
+                category.innerText = "NLP / RAG Framework";
+                abstract.innerText = '"We build Retrieval-Augmented Generation (RAG) models, combining a pre-trained retriever (dense passage retriever) with a generator (sequence-to-sequence model). We demonstrate that our framework achieves state-of-the-art results on multiple knowledge tasks..."';
+                starBtn.className = "btn-star";
+                starBtn.innerText = "☆ Star";
+            }
+        }
+
+        function toggleStar() {
+            const btn = document.getElementById('star-btn');
+            if (btn.classList.contains('starred')) {
+                btn.className = "btn-star";
+                btn.innerText = "☆ Star";
+            } else {
+                btn.className = "btn-star starred";
+                btn.innerText = "★ Starred";
+            }
+        }
+    </script>
+</body>
+</html>

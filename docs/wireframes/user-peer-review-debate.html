@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consensus Debate Arena - ChatGPT Paper Agent</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-card: #2f2f2f;
+            --border-light: #3f3f3f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent-green: #10a37f;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Sidebar Menu */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 4px 8px;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .menu-section {
+            margin-top: 24px;
+            flex-grow: 1;
+        }
+
+        .sidebar-menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-menu-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu-item:hover, .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+            color: var(--accent-purple);
+        }
+
+        /* Workspace Grid */
+        .workspace-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workspace-header {
+            height: 56px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .workshop-icon {
+            color: var(--accent-purple);
+        }
+
+        .workspace-body {
+            flex-grow: 1;
+            padding: 20px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 2.2fr 1fr;
+            gap: 20px;
+        }
+
+        /* Columns layout */
+        .workspace-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .debate-card {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .debate-card.fill-space {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .card-header {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Stage Stepper */
+        .stepper {
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid var(--border-light);
+            background-color: #121212;
+            border-radius: 8px;
+            padding: 12px 24px;
+            margin-bottom: 4px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            position: relative;
+        }
+
+        .step.active {
+            color: var(--accent-purple);
+            font-weight: 700;
+        }
+
+        .step.completed {
+            color: var(--accent-green);
+        }
+
+        .step-num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .step.active .step-num {
+            background-color: var(--accent-purple);
+            color: white;
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+        }
+
+        .step.completed .step-num {
+            background-color: var(--accent-green);
+            color: white;
+        }
+
+        /* Chat Timeline */
+        .chat-timeline {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            background-color: #121212;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-bubble {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            max-width: 90%;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: bubbleIn 0.4s ease forwards;
+        }
+
+        @keyframes bubbleIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .agent-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .agent-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .agent-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.72rem;
+        }
+
+        .agent-name {
+            font-weight: 700;
+        }
+
+        .agent-role {
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+            background-color: rgba(255,255,255,0.05);
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .agent-body {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            padding: 12px;
+            border-radius: 0 12px 12px 12px;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            color: var(--text-main);
+        }
+
+        /* Agent Specific Styling */
+        .bubble-method .agent-avatar { background-color: var(--accent-blue); }
+        .bubble-method .agent-name { color: var(--accent-blue); }
+        .bubble-novelty .agent-avatar { background-color: var(--accent-orange); }
+        .bubble-novelty .agent-name { color: var(--accent-orange); }
+        .bubble-style .agent-avatar { background-color: var(--accent-purple); }
+        .bubble-style .agent-name { color: var(--accent-purple); }
+        .bubble-synthesis .agent-avatar { background-color: var(--accent-green); }
+        .bubble-synthesis .agent-name { color: var(--accent-green); }
+
+        .bubble-user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .bubble-user .agent-avatar { background-color: #6b7280; }
+        .bubble-user .agent-name { color: #9ca3af; }
+        .bubble-user .agent-body {
+            border-radius: 12px 0 12px 12px;
+            background-color: #374151;
+            border-color: #4b5563;
+        }
+
+        /* Human Intervention Panel */
+        .intervention-box {
+            display: flex;
+            gap: 10px;
+            background-color: #1a1a1a;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 8px 12px;
+            align-items: center;
+        }
+
+        .intervention-input {
+            flex-grow: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text-main);
+            font-size: 0.82rem;
+        }
+
+        .btn-send {
+            background-color: var(--accent-purple);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-send:hover {
+            background-color: #7c3aed;
+        }
+
+        /* Consensus Score Panel */
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-light);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .score-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .score-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-purple);
+        }
+
+        .score-value.overall {
+            color: var(--accent-green);
+        }
+
+        /* Live State Schema Panel */
+        .state-monitor-box {
+            background-color: #0b0b0b;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.72rem;
+            color: var(--accent-purple);
+            height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Sidebar Logo & Bottom Settings Uniformity */
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 4px 8px;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Menu -->
+    <aside class="sidebar">
+        <div class="logo-group-wrapper" style="padding: 4px 8px;">
+            <div class="logo-group">
+                <div class="logo-circle">P</div>
+                <span>Paper Agent</span>
+            </div>
+        </div>
+        
+        <div class="menu-section">
+            <ul class="sidebar-menu-list">
+                <li class="sidebar-menu-item" onclick="location.href='user-main-chat.html'">
+                    <span>💬</span><span>Chat Hub</span>
+                </li>
+                <li class="sidebar-menu-item" onclick="location.href='user-library-archive.html'">
+                    <span>📚</span><span>Library & Reports</span>
+                </li>
+                <li class="sidebar-menu-item" onclick="location.href='user-sandbox-control.html'">
+                    <span>🛡️</span><span>Secure Sandbox</span>
+                </li>
+                <li class="sidebar-menu-item active" onclick="location.href='user-peer-review.html'">
+                    <span>🎓</span><span>Peer Review Workshop</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-bottom">
+            <button class="settings-btn" onclick="alert('시스템 페르소나 설정 모달을 엽니다 (POST /chat-with-system)')">
+                <span>⚙️</span>
+                <span>Persona & Settings</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <div class="workspace-container">
+        <header class="workspace-header">
+            <div class="header-title">
+                <span class="workshop-icon">🎓</span>
+                <span>Multi-Agent Consensus Debate Arena</span>
+            </div>
+            <div>
+                <button class="btn-send" style="background-color: var(--accent-green);" onclick="location.href='user-peer-review.html'">
+                    💾 Finish & Export Report
+                </button>
+            </div>
+        </header>
+
+        <div class="workspace-body">
+            <!-- Left Column: Debate timeline & control -->
+            <div class="workspace-column">
+                <!-- Stepper Stages -->
+                <div class="stepper">
+                    <div class="step completed" id="step-1">
+                        <div class="step-num">1</div>
+                        <span>Initial pitches</span>
+                    </div>
+                    <div class="step active" id="step-2">
+                        <div class="step-num">2</div>
+                        <span>Cross-examination debate</span>
+                    </div>
+                    <div class="step" id="step-3">
+                        <div class="step-num">3</div>
+                        <span>Consensus Synthesis</span>
+                    </div>
+                </div>
+
+                <!-- Chat timeline -->
+                <div class="debate-card fill-space">
+                    <div class="card-header">
+                        <span>Debate Log Feed</span>
+                        <button class="btn-send" id="btn-next" onclick="nextTurn()">Run Next Turn ⚡</button>
+                    </div>
+
+                    <div id="timeline" class="chat-timeline">
+                        <!-- Simulated messages will inject here -->
+                    </div>
+
+                    <!-- Intervention Panel -->
+                    <div class="intervention-box">
+                        <span style="font-size: 1.1rem; cursor: default;">💡</span>
+                        <input type="text" id="user-input" class="intervention-input" placeholder="Inject author clarification to steer the agents' debate..." onkeydown="if(event.key === 'Enter') injectUserFeedback()">
+                        <button class="btn-send" onclick="injectUserFeedback()">Inject Feedback</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Scores & LangGraph State -->
+            <div class="workspace-column">
+                <!-- Consensus Score Dashboard -->
+                <div class="debate-card">
+                    <h3 class="card-header">Live Consensus Scores</h3>
+                    
+                    <div class="score-row">
+                        <span class="score-label">Methodology</span>
+                        <span id="score-meth" class="score-value">8.0</span>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-label">Novelty & Impact</span>
+                        <span id="score-nov" class="score-value">8.5</span>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-label">Style & Format</span>
+                        <span id="score-sty" class="score-value">7.0</span>
+                    </div>
+                    <div class="score-row" style="background-color: rgba(16, 163, 127, 0.04); border-color: var(--accent-green);">
+                        <span class="score-label" style="color: var(--accent-green);">Overall Consensus</span>
+                        <span id="score-over" class="score-value overall">7.8</span>
+                    </div>
+                </div>
+
+                <!-- LangGraph State Monitor -->
+                <div class="debate-card fill-space">
+                    <h3 class="card-header">LangGraph Live Node State</h3>
+                    <div id="state-log" class="state-monitor-box">Loading schema monitor...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const debateScript = [
+            {
+                agent: 'method',
+                avatar: '📊',
+                name: 'Methodology Agent',
+                role: 'Methodology Evaluator',
+                text: '이 논문 초안의 RAG 평가는 SCIDOCS 셋을 활용하여 진행되었습니다. 하지만 재현 가능성을 보장하기 위해 토큰 크기에 따른 파라미터 변화 민감도 분석(Sensitivity Analysis) 테이블이 추가로 제공되어야 한다고 판단됩니다. 현재 방법론적 신뢰 점수는 7.5점입니다.',
+                scores: { meth: 7.5, nov: 8.5, sty: 7.0, over: 7.7 },
+                step: 2,
+                status: 'debate_running'
+            },
+            {
+                agent: 'novelty',
+                avatar: '💡',
+                name: 'Novelty Agent',
+                role: 'Novelty Checker',
+                text: 'Methodology 에이전트의 의견에 동의합니다. 다만, 핵심 가치인 "Step-Back 추론 노드와 자기 일관성(Self-Consistency) 결합 방식"은 기존 RAG 아키텍처들과 비교했을 때 확실한 학술적 신규성을 가집니다. 관련 유관 연구 논문 3개와 교차검증을 마쳤으며, 신규성 점수는 9.0점으로 상향 조정할 여지가 충분합니다.',
+                scores: { meth: 7.5, nov: 9.0, sty: 7.0, over: 7.8 },
+                step: 2,
+                status: 'debate_running'
+            },
+            {
+                agent: 'style',
+                avatar: '✍️',
+                name: 'Style Agent',
+                role: 'English Editor',
+                text: '초안 텍스트에 비학술적인 일상 영어 표현이 포함되어 있습니다. "We think our RAG model is really super fast and good" 부분은 학술적인 용어("The proposed RAG model exhibits high computational efficiency")로 교정이 필요합니다. 문체 점수는 7.0점을 유지합니다.',
+                scores: { meth: 7.5, nov: 9.0, sty: 7.0, over: 7.8 },
+                step: 2,
+                status: 'debate_running'
+            },
+            {
+                agent: 'method',
+                avatar: '📊',
+                name: 'Methodology Agent',
+                role: 'Methodology Evaluator',
+                text: '그렇군요. 만약 저자가 민감도 분석 수치 표를 본문에 추가하겠다고 수정 조치한다면 방법론 점수를 8.8점까지 상향할 의사가 있습니다. 저자의 해명이 필요합니다.',
+                scores: { meth: 8.5, nov: 9.0, sty: 7.0, over: 8.1 },
+                step: 2,
+                status: 'debate_running'
+            }
+        ];
+
+        let turnIndex = 0;
+
+        function updateStateLog(status, activeNode, extra = {}) {
+            const box = document.getElementById('state-log');
+            const stateObj = {
+                "status": status,
+                "current_active_node": activeNode,
+                "shared_state": {
+                    "debate_round": turnIndex,
+                    "last_agent_turn": activeNode,
+                    "consensus_achieved": turnIndex >= debateScript.length,
+                    ...extra
+                }
+            };
+            box.innerText = JSON.stringify(stateObj, null, 2);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function renderScores(scores) {
+            document.getElementById('score-meth').innerText = scores.meth.toFixed(1);
+            document.getElementById('score-nov').innerText = scores.nov.toFixed(1);
+            document.getElementById('score-sty').innerText = scores.sty.toFixed(1);
+            document.getElementById('score-over').innerText = scores.over.toFixed(1);
+        }
+
+        function createBubble(data) {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble bubble-${data.agent}`;
+            
+            bubble.innerHTML = `
+                <div class="agent-avatar">${data.avatar}</div>
+                <div class="agent-info">
+                    <div class="agent-meta">
+                        <span class="agent-name">${data.name}</span>
+                        <span class="agent-role">${data.role}</span>
+                    </div>
+                    <div class="agent-body">${data.text}</div>
+                </div>
+            `;
+            return bubble;
+        }
+
+        function nextTurn() {
+            if (turnIndex >= debateScript.length) {
+                // Synthesize final report
+                const bubble = createBubble({
+                    agent: 'synthesis',
+                    avatar: '📥',
+                    name: 'Synthesis Agent',
+                    role: 'Review Synthesizer',
+                    text: '에이전트 토론 결과 및 저자 추가 해명에 근거하여 최종 피어 리뷰 평가서를 합성합니다. 방법론(8.8), 신규성(9.2), 스타일(7.8)을 취합하여 종합 추천 점수 8.6점으로 투고를 승인(Accept)합니다. 수정 권고사항을 정리한 리포트를 발급합니다.'
+                });
+                
+                const timeline = document.getElementById('timeline');
+                timeline.appendChild(bubble);
+                timeline.scrollTop = timeline.scrollHeight;
+
+                renderScores({ meth: 8.8, nov: 9.2, sty: 7.8, over: 8.6 });
+                
+                document.getElementById('step-2').className = 'step completed';
+                document.getElementById('step-3').className = 'step active';
+                document.getElementById('btn-next').style.display = 'none';
+
+                updateStateLog("completed", "Synthesis Node", {
+                    "consensus_scores": { methodology: 8.8, novelty: 9.2, style: 7.8, overall: 8.6 },
+                    "message": "Consensus reached. Final review report is ready for export."
+                });
+
+                alert("토론 합의 완료! Synthesis 에이전트의 종합 보고서가 도출되었습니다. 상단 'Finish & Export' 버튼으로 결과를 확정하세요.");
+                return;
+            }
+
+            const stepData = debateScript[turnIndex];
+            const timeline = document.getElementById('timeline');
+            const bubble = createBubble(stepData);
+            
+            timeline.appendChild(bubble);
+            timeline.scrollTop = timeline.scrollHeight;
+
+            renderScores(stepData.scores);
+            updateStateLog(stepData.status, stepData.name, {
+                "logs": `${stepData.name} updated score and argument details...`,
+                "current_scores": stepData.scores
+            });
+
+            turnIndex++;
+        }
+
+        function injectUserFeedback() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const timeline = document.getElementById('timeline');
+            
+            // Add user bubble
+            const userBubble = createBubble({
+                agent: 'user',
+                avatar: '👨‍💻',
+                name: 'Author (You)',
+                role: 'Human-in-the-Loop',
+                text: text
+            });
+            timeline.appendChild(userBubble);
+            input.value = '';
+            
+            // System responds / updates state
+            setTimeout(() => {
+                const sysBubble = createBubble({
+                    agent: 'synthesis',
+                    avatar: '⚙️',
+                    name: 'Orchestrator System',
+                    role: 'State Manager',
+                    text: '저자 피드백을 수령하여 에이전트 대화 컨텍스트에 추가 배포하였습니다. 에이전트들이 평가 조정을 위한 토론을 계속합니다.'
+                });
+                timeline.appendChild(sysBubble);
+                timeline.scrollTop = timeline.scrollHeight;
+
+                updateStateLog("running", "State Manager", {
+                    "user_input_received": true,
+                    "last_feedback_text": text,
+                    "logs": "Author response loaded into working memory of review agents."
+                });
+            }, 1000);
+        }
+
+        // Init
+        nextTurn();
+    </script>
+</body>
+</html>

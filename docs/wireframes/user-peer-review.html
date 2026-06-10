@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peer Review Workshop - ChatGPT Paper Agent</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-card: #2f2f2f;
+            --border-light: #3f3f3f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent-green: #10a37f;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Sidebar Menu */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 4px 8px;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .menu-section {
+            margin-top: 24px;
+            flex-grow: 1;
+        }
+
+        .sidebar-menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-menu-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu-item:hover,
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .sidebar-top {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .new-chat-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+        }
+
+        .new-chat-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .history-section {
+            margin-top: 16px;
+            overflow-y: auto;
+            max-height: calc(100vh - 220px);
+        }
+
+        .history-group-title {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 8px;
+            margin-top: 12px;
+        }
+
+        .history-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .history-item {
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .history-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .history-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+        }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Submenu and secure thread styling */
+        .sidebar-menu-sublist {
+            list-style: none;
+            padding-left: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: -2px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-menu-subitem {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: #f87171;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-menu-subitem:hover {
+            background-color: rgba(239, 68, 68, 0.08);
+        }
+
+        .sidebar-menu-subitem.active {
+            background-color: rgba(239, 68, 68, 0.12);
+            font-weight: 600;
+        }
+
+        .history-item.secure-thread {
+            color: #f87171 !important;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-item.secure-thread:hover {
+            background-color: rgba(239, 68, 68, 0.05) !important;
+        }
+
+        .history-item.secure-thread.active {
+            background-color: rgba(239, 68, 68, 0.1) !important;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Sidebar Quick Actions */
+        .sidebar-actions-section {
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 14px;
+        }
+
+        .sidebar-action-btn {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            font-family: inherit;
+        }
+
+        .sidebar-action-btn.primary-action {
+            background-color: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .sidebar-action-btn.primary-action:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .sidebar-action-btn.secure-action {
+            background-color: rgba(239, 68, 68, 0.06);
+            border-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .sidebar-action-btn.secure-action:hover {
+            background-color: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Workspace Grid */
+        .workspace-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workspace-header {
+            height: 56px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .workshop-icon {
+            color: var(--accent-purple);
+        }
+
+        .workspace-body {
+            flex-grow: 1;
+            padding: 20px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.2fr;
+            gap: 20px;
+            background-color: var(--bg-main);
+        }
+
+        /* Columns layout */
+        .workspace-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            height: 100%;
+            padding-right: 4px;
+        }
+
+        /* Customize Scrollbar */
+        .workspace-column::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .workspace-column::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 3px;
+        }
+
+        .workshop-card {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            text-transform: none;
+            color: var(--text-secondary);
+        }
+
+        /* Inputs */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .textarea-input {
+            width: 100%;
+            height: 160px;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 12px;
+            font-family: inherit;
+            font-size: 0.82rem;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .textarea-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .select-input {
+            width: 100%;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 10px;
+            font-size: 0.82rem;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .select-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        /* Sliders */
+        .slider-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+        }
+
+        .slider-bar {
+            width: 100%;
+            accent-color: var(--accent-purple);
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-purple);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            text-align: center;
+        }
+
+        .btn-primary:hover {
+            background-color: #7c3aed;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        /* Middle Column: Visual Agent Graph */
+        .graph-area {
+            flex-grow: 1;
+            border: 1px solid var(--border-light);
+            background-color: #121212;
+            border-radius: 8px;
+            position: relative;
+            min-height: 320px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* SVG Network Graph mock styling */
+        .graph-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .node {
+            position: absolute;
+            background-color: var(--bg-card);
+            border: 2px solid var(--border-light);
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .node.active {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
+            background-color: #3b2e59;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .node.completed {
+            border-color: var(--accent-green);
+            background-color: #1d3c30;
+            color: white;
+            box-shadow: 0 0 10px rgba(16, 163, 127, 0.4);
+        }
+
+        .node-emoji {
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+
+        /* Node absolute placements */
+        #node-analysis {
+            top: 20px;
+            left: calc(50% - 35px);
+        }
+
+        #node-methodology {
+            top: 140px;
+            left: 20px;
+        }
+
+        #node-novelty {
+            top: 140px;
+            left: calc(50% - 35px);
+        }
+
+        #node-style {
+            top: 140px;
+            right: 20px;
+        }
+
+        #node-synthesis {
+            bottom: 20px;
+            left: calc(50% - 35px);
+        }
+
+        /* Shared State Monitor Panel */
+        .state-monitor-box {
+            background-color: #0b0b0b;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.72rem;
+            color: var(--accent-purple);
+            height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Right Column: Review Report / Output */
+        .report-section {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Scorecard circles */
+        .scorecard-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .score-box {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 10px 4px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .score-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-purple);
+        }
+
+        .score-val.overall {
+            color: var(--accent-green);
+        }
+
+        .score-label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        /* Text Diff Box */
+        .diff-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            margin-top: 8px;
+        }
+
+        .diff-table th,
+        .diff-table td {
+            border: 1px solid var(--border-light);
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .diff-table th {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+        }
+
+        .diff-del {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            text-decoration: line-through;
+        }
+
+        .diff-add {
+            background-color: rgba(16, 163, 127, 0.15);
+            color: #a7f3d0;
+        }
+
+        .report-content {
+            font-size: 0.82rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .report-header {
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-left: 3px solid var(--accent-purple);
+            padding-left: 8px;
+            margin-top: 8px;
+            color: var(--text-main);
+        }
+
+        /* Hidden initially, shown after run */
+        .review-results {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .review-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+            gap: 12px;
+        }
+
+        .review-placeholder-icon {
+            font-size: 3rem;
+            color: var(--border-light);
+        }
+
+        /* Glowing active links in SVG graph */
+        .graph-line {
+            stroke: var(--border-light);
+            stroke-width: 2;
+            transition: stroke 0.3s, stroke-width 0.3s;
+        }
+
+        .graph-line.active {
+            stroke: var(--accent-purple);
+            stroke-width: 3;
+            stroke-dasharray: 5;
+            animation: dash 1s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+
+        /* Sidebar Logo & Bottom Settings Uniformity */
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 4px 8px;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Menu -->
+    <aside class="sidebar">
+        <div class="sidebar-top">
+            <div class="logo-group-wrapper" style="padding: 4px 8px;">
+                <div class="logo-group">
+                    <div class="logo-circle">P</div>
+                    <span>Paper Agent</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <ul class="sidebar-menu-list">
+                    <li class="sidebar-menu-item" id="menu-chathub" onclick="location.href='user-main-chat.html'">
+                        <span>💬</span><span>Chat Hub</span>
+                    </li>
+                    <li class="sidebar-menu-item" id="menu-library" onclick="location.href='user-library-archive.html'">
+                        <span>📚</span><span>Library & Reports</span>
+                    </li>
+                    <li class="sidebar-menu-item" id="menu-sandbox" onclick="location.href='user-sandbox-control.html'">
+                        <span>🛡️</span><span>Secure Sandbox</span>
+                    </li>
+                    <li class="sidebar-menu-item active" id="menu-peerreview"
+                        onclick="location.href='user-peer-review.html'">
+                        <span>🎓</span><span>Peer Review Workshop</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Sidebar Quick Actions -->
+            <!-- <div class="sidebar-actions-section">
+                <button class="sidebar-action-btn primary-action" onclick="handleNewChatClick()">
+                    <span>➕</span><span>New Conversation</span>
+                </button>
+                <button class="sidebar-action-btn secure-action" onclick="handleNewSandboxClick()">
+                    <span>🔒</span><span>New Secure Sandbox</span>
+                </button>
+            </div> -->
+
+            <!-- <div class="history-section" id="sidebar-bottom-section">
+                <div class="history-group-title">Today</div>
+                <ul class="history-list" id="history-list-today">
+                    <li class="history-item" onclick="location.href='user-main-chat.html'">LLM RAG 성능 최적화 논문 비교</li>
+                </ul>
+ 
+                <div class="history-group-title">Yesterday</div>
+                <ul class="history-list">
+                    <li class="history-item" onclick="location.href='user-main-chat.html'">COVID-19 백신 면역 작용 조사</li>
+                    <li class="history-item" onclick="location.href='user-main-chat.html'">양자 역학적 가설 타당성 검토</li>
+                </ul>
+            </div> -->
+        </div>
+
+        <div class="sidebar-bottom">
+            <button class="settings-btn" onclick="alert('시스템 페르소나 설정 모달을 엽니다 (POST /chat-with-system)')">
+                <span>⚙️</span>
+                <span>Persona & Settings</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <div class="workspace-container">
+        <header class="workspace-header">
+            <div class="header-title">
+                <span class="workshop-icon">🎓</span>
+                <span>Multi-Agent Academic Peer Review Workshop</span>
+            </div>
+            <div>
+                <span class="card-header-badge">GET /graph-structure ready</span>
+            </div>
+        </header>
+
+        <div class="workspace-body">
+
+            <!-- Left Column: Input Settings -->
+            <div class="workspace-column">
+                <div class="workshop-card">
+                    <h3 class="card-header">1. Manuscript Details</h3>
+
+                    <div class="input-group">
+                        <label class="input-label">Manuscript Abstract / Draft Text</label>
+                        <textarea id="draft-text" class="textarea-input"
+                            placeholder="Paste your research abstract or draft paragraph here..."></textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">Target Journal / Conf</label>
+                        <select id="target-journal" class="select-input">
+                            <option value="nature">Nature / Science (General Science)</option>
+                            <option value="ieee">IEEE Transactions (Computer Science & Engineering)</option>
+                            <option value="acm">ACM CHI (Human-Computer Interaction)</option>
+                            <option value="biorxiv">bioRxiv (Biology & Medical preprints)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="workshop-card">
+                    <h3 class="card-header">2. Evaluation Focus Weight</h3>
+
+                    <div class="slider-row">
+                        <div class="slider-header">
+                            <span>Methodology & Design</span>
+                            <span id="val-method">70%</span>
+                        </div>
+                        <input type="range" class="slider-bar" id="slide-method" min="0" max="100" value="70"
+                            oninput="document.getElementById('val-method').innerText = this.value + '%'">
+                    </div>
+
+                    <div class="slider-row">
+                        <div class="slider-header">
+                            <span>Novelty & Impact</span>
+                            <span id="val-novelty">90%</span>
+                        </div>
+                        <input type="range" class="slider-bar" id="slide-novelty" min="0" max="100" value="90"
+                            oninput="document.getElementById('val-novelty').innerText = this.value + '%'">
+                    </div>
+
+                    <div class="slider-row">
+                        <div class="slider-header">
+                            <span>Academic English & Style</span>
+                            <span id="val-style">50%</span>
+                        </div>
+                        <input type="range" class="slider-bar" id="slide-style" min="0" max="100" value="50"
+                            oninput="document.getElementById('val-style').innerText = this.value + '%'">
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn-primary" onclick="startWorkshop()">
+                            🚀 Start Peer Review Workshop
+                        </button>
+                        <button class="btn-primary"
+                            style="background-color: transparent; border: 1px solid var(--accent-purple); color: var(--accent-purple);"
+                            onclick="location.href='user-peer-review-debate.html'">
+                            💬 Enter Consensus Debate Arena
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column: Graph Visualization & Shared State -->
+            <div class="workspace-column">
+                <div class="workshop-card"
+                    style="flex-grow: 1; min-height: 380px; display: flex; flex-direction: column;">
+                    <h3 class="card-header">
+                        Active Orchestration Graph
+                        <span class="card-header-badge"
+                            style="color: var(--accent-purple); border: 1px solid var(--accent-purple);">LangGraph Live
+                            State</span>
+                    </h3>
+
+                    <!-- Network Graph Area -->
+                    <div class="graph-area">
+                        <!-- Connecting SVG lines -->
+                        <svg class="graph-svg">
+                            <!-- Analysis to Specialists -->
+                            <line id="line-an-meth" class="graph-line" x1="50%" y1="55" x2="55px" y2="175" />
+                            <line id="line-an-nov" class="graph-line" x1="50%" y1="55" x2="50%" y2="175" />
+                            <line id="line-an-sty" class="graph-line" x1="50%" y1="55" x2="calc(100% - 55px)"
+                                y2="175" />
+                            <!-- Specialists to Synthesis -->
+                            <line id="line-meth-syn" class="graph-line" x1="55px" y1="175" x2="50%" y2="295" />
+                            <line id="line-nov-syn" class="graph-line" x1="50%" y1="175" x2="50%" y2="295" />
+                            <line id="line-sty-syn" class="graph-line" x1="calc(100% - 55px)" y1="175" x2="50%"
+                                y2="295" />
+                        </svg>
+
+                        <!-- Nodes -->
+                        <div id="node-analysis" class="node">
+                            <span class="node-emoji">🔍</span>
+                            <span>Analysis</span>
+                        </div>
+
+                        <div id="node-methodology" class="node">
+                            <span class="node-emoji">📊</span>
+                            <span>Method</span>
+                        </div>
+
+                        <div id="node-novelty" class="node">
+                            <span class="node-emoji">💡</span>
+                            <span>Novelty</span>
+                        </div>
+
+                        <div id="node-style" class="node">
+                            <span class="node-emoji">✍️</span>
+                            <span>Style</span>
+                        </div>
+
+                        <div id="node-synthesis" class="node">
+                            <span class="node-emoji">📥</span>
+                            <span>Synthesis</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="workshop-card">
+                    <h3 class="card-header">Shared State Schema Monitor (state_schema)</h3>
+                    <div id="state-log" class="state-monitor-box">{
+                        "status": "idle",
+                        "shared_state": {
+                        "draft_submitted": false,
+                        "current_turn": null
+                        }
+                        }</div>
+                </div>
+            </div>
+
+            <!-- Right Column: Results Report -->
+            <div class="workspace-column">
+                <div class="report-section">
+                    <h3 class="card-header" style="border-bottom: none; padding-bottom: 0;">Evaluation Report Preview
+                    </h3>
+
+                    <!-- Placeholder prior to run -->
+                    <div id="report-placeholder" class="review-placeholder">
+                        <div class="review-placeholder-icon">🎓</div>
+                        <span>입력 초고를 제출하고 워크숍을 기동하면 분야별 에이전트의 종합 피드백 보고서가 여기에 렌더링됩니다.</span>
+                    </div>
+
+                    <!-- Results after simulation -->
+                    <div id="report-results" class="review-results">
+                        <div class="scorecard-container">
+                            <div class="score-box">
+                                <span class="score-val" id="score-meth">8.8</span>
+                                <span class="score-label">Method</span>
+                            </div>
+                            <div class="score-box">
+                                <span class="score-val" id="score-nov">9.2</span>
+                                <span class="score-label">Novelty</span>
+                            </div>
+                            <div class="score-box">
+                                <span class="score-val" id="score-sty">7.8</span>
+                                <span class="score-label">Style</span>
+                            </div>
+                            <div class="score-box"
+                                style="border-color: var(--accent-green); background-color: rgba(16, 163, 127, 0.05);">
+                                <span class="score-val overall" id="score-over">8.6</span>
+                                <span class="score-label"
+                                    style="color: var(--accent-green); font-weight: 600;">Overall</span>
+                            </div>
+                        </div>
+
+                        <div class="report-content">
+                            <div class="report-header">Executive Summary</div>
+                            <p id="res-summary">제출된 CS 분야 RAG 최적화 논문 초안은 타겟 학회(IEEE Transactions) 수준에 적합한 탄탄한 방법론을 포함하고
+                                있으나, 영어 작성 스타일에서 비학술적 표현이 산재해 있습니다.</p>
+
+                            <div class="report-header">Methodology & Design</div>
+                            <p id="res-method">학계 표준인 SCIDOCS 평가 셋을 활용한 교차 검증 디자인이 매우 훌륭합니다. 다만, 토큰 크기 변경에 따른 민감도 분석 수치
+                                표가 본문에 추가된다면 방법론의 신뢰성이 더 완벽해질 것입니다.</p>
+
+                            <div class="report-header">Novelty & Academic Impact</div>
+                            <p id="res-novelty">기존 단일 RAG 구조에 Step-Back 추론 노드와 자기 일관성(Self-Consistency) 결합 방식을 결합한 기획은
+                                학술적 고유성과 신규성을 확보하고 있어 학회 투고에 긍정적입니다.</p>
+
+                            <div class="report-header">Style & Corrections</div>
+                            <table class="diff-table">
+                                <thead>
+                                    <tr>
+                                        <th>Original Draft</th>
+                                        <th>Academic Suggestion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="diff-del">We think our RAG model is really super fast and good.</td>
+                                        <td class="diff-add">The proposed RAG model exhibits high computational
+                                            efficiency and robust accuracy.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="diff-del">We tried using 3 different ways to check the results.</td>
+                                        <td class="diff-add">To validate the outputs, we implemented a three-way
+                                            cross-validation methodology.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Set default values in abstract field for easier demonstration
+        document.getElementById('draft-text').value = `Abstract:
+In this work, we propose a new framework to improve academic search. We think our RAG model is really super fast and good. We tried using 3 different ways to check the results. We test it on SCIDOCS and get excellent scores. However, privacy remains a concern for proprietary manuscripts.`;
+
+        function updateStateBox(status, activeNode, extra = {}) {
+            const box = document.getElementById('state-log');
+            const stateObj = {
+                "status": status,
+                "current_active_node": activeNode,
+                "shared_state": {
+                    "draft_submitted": true,
+                    "target_journal": document.getElementById('target-journal').value,
+                    "focus_weights": {
+                        "methodology": document.getElementById('slide-method').value + "%",
+                        "novelty": document.getElementById('slide-novelty').value + "%",
+                        "style": document.getElementById('slide-style').value + "%"
+                    },
+                    ...extra
+                }
+            };
+            box.innerText = JSON.stringify(stateObj, null, 2);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function clearAllHighlight() {
+            // Remove active/completed classes from nodes
+            document.querySelectorAll('.node').forEach(node => {
+                node.className = 'node';
+            });
+            // Remove active class from lines
+            document.querySelectorAll('.graph-line').forEach(line => {
+                line.classList.remove('active');
+            });
+        }
+
+        function startWorkshop() {
+            const placeholder = document.getElementById('report-placeholder');
+            const results = document.getElementById('report-results');
+
+            placeholder.style.display = 'none';
+            results.style.display = 'none';
+
+            clearAllHighlight();
+
+            // Step 1: Analysis Node active
+            const nodeAn = document.getElementById('node-analysis');
+            nodeAn.className = 'node active';
+            updateStateBox("running", "Analysis Node", { "logs": "Analyzing document domains and target parameters..." });
+
+            // Step 2: Line 1 active & Method Node
+            setTimeout(() => {
+                nodeAn.className = 'node completed';
+                const nodeMeth = document.getElementById('node-methodology');
+                nodeMeth.className = 'node active';
+                document.getElementById('line-an-meth').classList.add('active');
+                updateStateBox("running", "Methodology Evaluator", {
+                    "logs": "Extracting research design details and calculating method score...",
+                    "intermediate_findings": { "evaluation_metric": "SCIDOCS standard checked" }
+                });
+            }, 1000);
+
+            // Step 3: Line 2 active & Novelty Node
+            setTimeout(() => {
+                document.getElementById('node-methodology').className = 'node completed';
+                document.getElementById('line-an-meth').classList.remove('active');
+
+                const nodeNov = document.getElementById('node-novelty');
+                nodeNov.className = 'node active';
+                document.getElementById('line-an-nov').classList.add('active');
+                updateStateBox("running", "Novelty Checker", {
+                    "logs": "Searching reference databases and verifying contribution originality...",
+                    "intermediate_findings": { "overlap_percentage": "12.4% (acceptable)" }
+                });
+            }, 2000);
+
+            // Step 4: Line 3 active & Style Node
+            setTimeout(() => {
+                document.getElementById('node-novelty').className = 'node completed';
+                document.getElementById('line-an-nov').classList.remove('active');
+
+                const nodeSty = document.getElementById('node-style');
+                nodeSty.className = 'node active';
+                document.getElementById('line-an-sty').classList.add('active');
+                updateStateBox("running", "English Style Editor", {
+                    "logs": "Running grammar parse checks and academic phrase matching...",
+                    "intermediate_findings": { "informal_phrases_detected": 4 }
+                });
+            }, 3000);
+
+            // Step 5: Synthesis Node
+            setTimeout(() => {
+                document.getElementById('node-style').className = 'node completed';
+                document.getElementById('line-an-sty').classList.remove('active');
+
+                const nodeSyn = document.getElementById('node-synthesis');
+                nodeSyn.className = 'node active';
+                document.getElementById('line-meth-syn').classList.add('active');
+                document.getElementById('line-nov-syn').classList.add('active');
+                document.getElementById('line-sty-syn').classList.add('active');
+                updateStateBox("running", "Synthesis Node", {
+                    "logs": "Aggregating opinions and preparing DTO formatted review report...",
+                    "evaluation_scores": {
+                        "methodology": "8.8/10",
+                        "novelty": "9.2/10",
+                        "style": "7.8/10"
+                    }
+                });
+            }, 4000);
+
+            // Step 6: Complete
+            setTimeout(() => {
+                document.getElementById('node-synthesis').className = 'node completed';
+                document.getElementById('line-meth-syn').classList.remove('active');
+                document.getElementById('line-nov-syn').classList.remove('active');
+                document.getElementById('line-sty-syn').classList.remove('active');
+
+                updateStateBox("completed", "Synthesis Node", {
+                    "status": "success",
+                    "output_report_id": "review-rpt-2026-9912",
+                    "logs": "All review nodes processed successfully. Results dispatched to UI."
+                });
+
+                // Display Results
+                results.style.display = 'flex';
+                // Adjust score values slightly based on user sliders
+                const sMeth = parseFloat(document.getElementById('slide-method').value) / 10 + 1.8;
+                const sNov = parseFloat(document.getElementById('slide-novelty').value) / 10 + 0.2;
+                const sSty = parseFloat(document.getElementById('slide-style').value) / 10 + 2.8;
+                const sOver = ((sMeth + sNov + sSty) / 3).toFixed(1);
+
+                document.getElementById('score-meth').innerText = sMeth.toFixed(1);
+                document.getElementById('score-nov').innerText = sNov.toFixed(1);
+                document.getElementById('score-sty').innerText = sSty.toFixed(1);
+                document.getElementById('score-over').innerText = sOver;
+
+                alert("피어 리뷰 워크숍 에이전트 연산이 완료되었습니다! 종합 평가서를 검토하세요.");
+            }, 5000);
+        }
+
+        function handleNewChatClick() {
+            location.href = 'user-main-chat.html?action=new';
+        }
+
+        function handleNewSandboxClick() {
+            location.href = 'user-sandbox-control.html?action=new_session';
+        }
+    </script>
+</body>
+
+</html>

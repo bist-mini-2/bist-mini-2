@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Sandbox Redaction Editor - ChatGPT Paper Agent</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-card: #2f2f2f;
+            --border-light: #3f3f3f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent-green: #10a37f;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --accent-blue: #3b82f6;
+            --redact-highlight: rgba(239, 68, 68, 0.25);
+            --redact-border: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Sidebar Menu */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 4px 8px;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .menu-section {
+            margin-top: 24px;
+            flex-grow: 1;
+        }
+
+        .sidebar-menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-menu-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu-item:hover, .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+        }
+
+        /* Workspace Grid */
+        .workspace-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workspace-header {
+            height: 56px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .shield-icon {
+            color: var(--accent-green);
+        }
+
+        .workspace-body {
+            flex-grow: 1;
+            padding: 20px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+        }
+
+        /* Columns layout */
+        .workspace-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .sandbox-card {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .sandbox-card.fill-space {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .card-header {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Document Preview Panels */
+        .preview-scroll-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            background-color: #1a1a1a;
+            padding: 16px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        /* Highlight classes */
+        .entity {
+            padding: 1px 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            font-weight: 500;
+        }
+
+        .entity-name {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-bottom: 1px dotted var(--accent-blue);
+        }
+        .entity-email {
+            background-color: rgba(245, 158, 11, 0.2);
+            border-bottom: 1px dotted var(--accent-orange);
+        }
+        .entity-formula {
+            background-color: rgba(139, 92, 246, 0.2);
+            border-bottom: 1px dotted #8b5cf6;
+        }
+
+        .entity.redacted {
+            background-color: #000 !important;
+            color: #000 !important;
+            border-bottom: 1px solid var(--accent-red) !important;
+            text-decoration: none !important;
+        }
+
+        .entity.redacted::after {
+            content: "REDACTED";
+            color: var(--accent-red);
+            font-size: 0.6rem;
+            font-weight: 700;
+            position: absolute;
+            top: -12px;
+            left: 0;
+            background: #000;
+            padding: 0 3px;
+            border-radius: 2px;
+            border: 1px solid var(--accent-red);
+            line-height: 1;
+        }
+
+        /* Custom Toggle Switch CSS */
+        .switch-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .switch-option:last-child {
+            border-bottom: none;
+        }
+
+        .switch-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            max-width: 80%;
+        }
+
+        .switch-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .switch-desc {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #555;
+            transition: .2s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 12px; width: 12px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-green);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(18px);
+        }
+
+        /* RAG Chunk Output */
+        .rag-output-box {
+            background-color: #0b0b0b;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.75rem;
+            color: #a7f3d0;
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0e8c6d;
+        }
+
+        .badge {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .badge.green {
+            background-color: rgba(16, 163, 127, 0.15);
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Menu -->
+    <aside class="sidebar">
+        <div class="logo-group-wrapper" style="padding: 4px 8px;">
+            <div class="logo-group">
+                <div class="logo-circle">P</div>
+                <span>Paper Agent</span>
+            </div>
+        </div>
+        
+        <div class="menu-section">
+            <ul class="sidebar-menu-list">
+                <li class="sidebar-menu-item" onclick="location.href='user-main-chat.html'">
+                    <span>💬</span><span>Chat Hub</span>
+                </li>
+                <li class="sidebar-menu-item" onclick="location.href='user-library-archive.html'">
+                    <span>📚</span><span>Library & Reports</span>
+                </li>
+                <li class="sidebar-menu-item active" onclick="location.href='user-sandbox-control.html'">
+                    <span>🛡️</span><span>Secure Sandbox</span>
+                </li>
+                <li class="sidebar-menu-item" onclick="location.href='user-peer-review.html'">
+                    <span>🎓</span><span>Peer Review Workshop</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-bottom">
+            <button class="settings-btn" onclick="alert('시스템 페르소나 설정 모달을 엽니다 (POST /chat-with-system)')">
+                <span>⚙️</span>
+                <span>Persona & Settings</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <div class="workspace-container">
+        <header class="workspace-header">
+            <div class="header-title">
+                <span class="shield-icon">🛡️</span>
+                <span>Confidential Document Redaction & Masking Preview</span>
+            </div>
+            <div>
+                <span class="badge">SANDBOX ARMED</span>
+            </div>
+        </header>
+
+        <div class="workspace-body">
+            <!-- Left Column: Interactive Original Doc -->
+            <div class="workspace-column">
+                <div class="sandbox-card fill-space">
+                    <div class="card-header">
+                        <span>Original Document: confidential_formula_v2.pdf</span>
+                        <span style="font-size: 0.7rem; color: var(--text-secondary); text-transform: none;">Click highlighted words to toggle manual redactions</span>
+                    </div>
+
+                    <div class="preview-scroll-container">
+                        <p><strong>Title:</strong> Next-Generation Academic Search Integration via RAG and Self-Consistency</p>
+                        <p style="margin-top: 12px;"><strong>Authors:</strong> 
+                            <span id="ent-1" class="entity entity-name redacted" onclick="toggleRedact('ent-1')">Dr. Min-su Kim</span>, 
+                            <span id="ent-2" class="entity entity-name redacted" onclick="toggleRedact('ent-2')">Professor Sarah Jenkins</span>
+                        </p>
+                        <p><strong>Contact:</strong> 
+                            <span id="ent-3" class="entity entity-email redacted" onclick="toggleRedact('ent-3')">mskim@bist-institute.edu</span>
+                        </p>
+                        <p style="margin-top: 12px;"><strong>Abstract:</strong></p>
+                        <p>This draft outlines our proprietary database routing algorithms and structural data. The core optimization model is built on an adaptive vector reranking metric. The methodology uses three distinct validation nodes and executes a self-consistency loops. The experimental formulas and pipeline configuration are designated as highly confidential. Specifically, the internal routing weight formula is calculated as follows:</p>
+                        <div style="background-color: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px; margin: 10px 0; border: 1px solid var(--border-light); font-family: monospace;">
+                            R_score = w1 * CosineSim(q, c) + w2 * BM25(q, c) - <span id="ent-4" class="entity entity-formula redacted" onclick="toggleRedact('ent-4')">exp(-t / 30.0) * penalty_coefficient_v3</span>
+                        </div>
+                        <p>Our secure RAG cluster connects to our local database repository running on virtual machine instances configured by the network engineering team at BIST. If you have inquiries regarding deployment logs, contact the lead developers directly.</p>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="location.href='user-sandbox-control.html'">
+                            ⬅ Back to Sandbox
+                        </button>
+                        <button class="btn btn-primary" style="margin-left: auto;" onclick="applyRedaction()">
+                            💾 Apply & Sync to Vector DB
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Rules & Vector Chunk Preview -->
+            <div class="workspace-column">
+                <!-- Redaction Policies -->
+                <div class="sandbox-card">
+                    <h3 class="card-header">Redaction Policies</h3>
+                    
+                    <div class="switch-option">
+                        <div class="switch-info">
+                            <span class="switch-title">Personal Identifiable Information (PII)</span>
+                            <span class="switch-desc">Mask names, email addresses, and phone numbers.</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="rule-pii" checked onchange="toggleRule('pii')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="switch-option">
+                        <div class="switch-info">
+                            <span class="switch-title">Confidential Formulas & Parameters</span>
+                            <span class="switch-desc">Redact mathematical models, equation variables, and raw coefficients.</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="rule-formula" checked onchange="toggleRule('formula')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="switch-option">
+                        <div class="switch-info">
+                            <span class="switch-title">Affiliation & Institution Names</span>
+                            <span class="switch-desc">Filter university names, research labs, or company details.</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="rule-affiliation" onchange="toggleRule('affiliation')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Vector DB Indexed Preview -->
+                <div class="sandbox-card fill-space">
+                    <div class="card-header">
+                        <span>Clean RAG Chunk Output Preview</span>
+                        <span class="badge green">pgvector Safe</span>
+                    </div>
+
+                    <div id="rag-preview" class="rag-output-box">Loading clean preview...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const entities = {
+            'ent-1': { text: 'Dr. Min-su Kim', replacement: '[REDACTED_NAME]', type: 'pii', redacted: true },
+            'ent-2': { text: 'Professor Sarah Jenkins', replacement: '[REDACTED_NAME]', type: 'pii', redacted: true },
+            'ent-3': { text: 'mskim@bist-institute.edu', replacement: '[REDACTED_EMAIL]', type: 'pii', redacted: true },
+            'ent-4': { text: 'exp(-t / 30.0) * penalty_coefficient_v3', replacement: '[REDACTED_CONFIDENTIAL_FORMULA]', type: 'formula', redacted: true }
+        };
+
+        const ruleState = {
+            pii: true,
+            formula: true,
+            affiliation: false
+        };
+
+        function updateRAGPreview() {
+            let originalText = `Chunk #1:
+Title: Next-Generation Academic Search Integration via RAG and Self-Consistency
+Authors: {Dr. Min-su Kim}, {Professor Sarah Jenkins}
+Contact: {mskim@bist-institute.edu}
+
+Abstract:
+This draft outlines our proprietary database routing algorithms and structural data. The core optimization model is built on an adaptive vector reranking metric. Specifically, the internal routing weight formula is calculated as follows:
+R_score = w1 * CosineSim(q, c) + w2 * BM25(q, c) - {exp(-t / 30.0) * penalty_coefficient_v3}
+
+Our secure RAG cluster connects to our local database repository running on virtual machine instances configured by the network engineering team at BIST.`;
+
+            // Replace according to entities status
+            for (let id in entities) {
+                const ent = entities[id];
+                const placeholder = `{${ent.text}}`;
+                if (ent.redacted) {
+                    originalText = originalText.replace(placeholder, ent.replacement);
+                } else {
+                    originalText = originalText.replace(placeholder, ent.text);
+                }
+            }
+
+            // Handle general rules not tied to specific entities (like affiliation)
+            if (ruleState.affiliation) {
+                originalText = originalText.replace(/BIST/g, '[REDACTED_AFFILIATION]');
+            } else {
+                originalText = originalText.replace(/BIST/g, 'BIST');
+            }
+
+            document.getElementById('rag-preview').innerText = originalText;
+        }
+
+        function toggleRedact(id) {
+            entities[id].redacted = !entities[id].redacted;
+            const el = document.getElementById(id);
+            if (entities[id].redacted) {
+                el.classList.add('redacted');
+            } else {
+                el.classList.remove('redacted');
+            }
+            updateRAGPreview();
+        }
+
+        function toggleRule(type) {
+            const checked = document.getElementById(`rule-${type}`).checked;
+            ruleState[type] = checked;
+
+            // Update all entities of this type
+            for (let id in entities) {
+                if (entities[id].type === type) {
+                    entities[id].redacted = checked;
+                    const el = document.getElementById(id);
+                    if (checked) {
+                        el.classList.add('redacted');
+                    } else {
+                        el.classList.remove('redacted');
+                    }
+                }
+            }
+            updateRAGPreview();
+        }
+
+        function applyRedaction() {
+            alert("수정된 마스킹 규칙이 pgvector 데이터베이스 청크에 실시간 동기화되었습니다! \n이제 채팅 세션에서 민감정보가 제외된 상태로 안전하게 RAG를 활용할 수 있습니다.");
+            location.href = 'user-sandbox-control.html';
+        }
+
+        // Init
+        updateRAGPreview();
+    </script>
+</body>
+</html>

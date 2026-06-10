@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library & Reports - ChatGPT Paper Agent</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-card: #2f2f2f;
+            --border-light: #3f3f3f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent-green: #10a37f;
+            --card-hover: #2a2a2a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Sidebar - Same as Main Chat */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 4px 8px;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .menu-section {
+            margin-top: 24px;
+            flex-grow: 1;
+        }
+
+        .sidebar-menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-menu-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu-item:hover, .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+        }
+
+        /* Main Content Workspace */
+        .main-workspace {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workspace-header {
+            height: 56px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .workspace-body {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Search & Filter Bar */
+        .search-filter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .search-input-wrapper {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-field {
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .search-field::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-chip {
+            background-color: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            padding: 6px 14px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-chip:hover, .filter-chip.active {
+            color: var(--text-main);
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: var(--text-secondary);
+        }
+
+        .filter-chip.active {
+            border-color: var(--accent-green);
+            background-color: rgba(16, 163, 127, 0.1);
+            color: var(--accent-green);
+        }
+
+        /* Reports Section Grid */
+        .section-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section-header {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 8px;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .report-card {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 140px;
+        }
+
+        .report-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-green);
+        }
+
+        .report-card-top {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .domain-tag {
+            font-size: 0.65rem;
+            font-weight: 700;
+            background-color: rgba(16, 163, 127, 0.15);
+            color: var(--accent-green);
+            padding: 2px 6px;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        .report-card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+
+        .report-card-meta {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding-top: 8px;
+        }
+
+        /* Starred Papers Table */
+        .papers-table-wrapper {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .papers-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .papers-table th, .papers-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .papers-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            background-color: rgba(255, 255, 255, 0.02);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .papers-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .papers-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .paper-title-link {
+            color: var(--text-main);
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .paper-title-link:hover {
+            color: var(--accent-green);
+        }
+
+        .btn-star-active {
+            background: none;
+            border: none;
+            color: var(--accent-green);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Menu -->
+    <aside class="sidebar">
+        <div class="logo-group-wrapper" style="padding: 4px 8px;">
+            <div class="logo-group">
+                <div class="logo-circle">P</div>
+                <span>Paper Agent</span>
+            </div>
+        </div>
+        
+        <div class="menu-section">
+            <ul class="sidebar-menu-list">
+                <li class="sidebar-menu-item" onclick="location.href='user-main-chat.html'">
+                    <span>💬</span><span>Chat Hub</span>
+                </li>
+                <li class="sidebar-menu-item active" onclick="location.href='user-library-archive.html'">
+                    <span>📚</span><span>Library & Reports</span>
+                </li>
+                <li class="sidebar-menu-item" onclick="location.href='user-sandbox-control.html'">
+                    <span>🛡️</span><span>Secure Sandbox</span>
+                </li>
+                <li class="sidebar-menu-item" onclick="location.href='user-peer-review.html'">
+                    <span>🎓</span><span>Peer Review Workshop</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-bottom">
+            <button class="settings-btn" onclick="alert('시스템 페르소나 설정 모달을 엽니다 (POST /chat-with-system)')">
+                <span>⚙️</span>
+                <span>Persona & Settings</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-workspace">
+        <header class="workspace-header">
+            <div class="header-title">My Knowledge Library</div>
+        </header>
+
+        <div class="workspace-body">
+            
+            <!-- Search & Filters -->
+            <div class="search-filter-section">
+                <div class="search-input-wrapper">
+                    <span>🔍</span>
+                    <input type="text" class="search-field" placeholder="저장된 리포트 제목 또는 논문 키워드로 검색...">
+                </div>
+                <div class="filter-chips">
+                    <button class="filter-chip active">All Domains</button>
+                    <button class="filter-chip">Computer Science</button>
+                    <button class="filter-chip">Medical & Bio</button>
+                    <button class="filter-chip">Natural Sciences</button>
+                </div>
+            </div>
+
+            <!-- Saved Reports Section -->
+            <div class="section-container">
+                <h3 class="section-header">Saved Literature Survey Notes (3)</h3>
+                <div class="report-grid">
+                    
+                    <!-- Report Card 1 -->
+                    <div class="report-card" onclick="location.href='user-report-view.html'">
+                        <div class="report-card-top">
+                            <span class="domain-tag">Computer Science</span>
+                            <h4 class="report-card-title">RAG 청크 크기 및 유사도 검색 아키텍처 분석</h4>
+                        </div>
+                        <div class="report-card-meta">
+                            <span>2026. 06. 10</span>
+                            <span style="color: var(--accent-green);">View Note →</span>
+                        </div>
+                    </div>
+
+                    <!-- Report Card 2 -->
+                    <div class="report-card" onclick="alert('COVID-19 백신 면역 리포트 화면으로 이동합니다.')">
+                        <div class="report-card-top">
+                            <span class="domain-tag" style="background-color: rgba(245, 158, 11, 0.15); color: #f59e0b;">Medical & Bio</span>
+                            <h4 class="report-card-title">COVID-19 백신 종류별 면역 반응 작용 기전 비교</h4>
+                        </div>
+                        <div class="report-card-meta">
+                            <span>2026. 06. 08</span>
+                            <span style="color: var(--accent-green);">View Note →</span>
+                        </div>
+                    </div>
+
+                    <!-- Report Card 3 -->
+                    <div class="report-card" onclick="alert('양자 역학 리포트 화면으로 이동합니다.')">
+                        <div class="report-card-top">
+                            <span class="domain-tag" style="background-color: rgba(16, 185, 129, 0.15); color: #10b981;">Natural Sciences</span>
+                            <h4 class="report-card-title">양자 중첩 가설의 물리적 타당성 및 논문 검증</h4>
+                        </div>
+                        <div class="report-card-meta">
+                            <span>2026. 06. 03</span>
+                            <span style="color: var(--accent-green);">View Note →</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Starred Reference Papers Section -->
+            <div class="section-container">
+                <h3 class="section-header">Starred Reference Papers (3)</h3>
+                <div class="papers-table-wrapper">
+                    <table class="papers-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>Document Title</th>
+                                <th>Authors</th>
+                                <th style="width: 100px;">Year</th>
+                                <th style="width: 140px;">Domain</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><button class="btn-star-active" onclick="alert('즐겨찾기 해제')">★</button></td>
+                                <td><span class="paper-title-link" onclick="location.href='user-citation-graph.html'">Evaluating Chunk Size in Academic Document Retrieval</span></td>
+                                <td>J. Smith, K. Adams</td>
+                                <td>2024</td>
+                                <td>Computer Science</td>
+                            </tr>
+                            <tr>
+                                <td><button class="btn-star-active" onclick="alert('즐겨찾기 해제')">★</button></td>
+                                <td><span class="paper-title-link" onclick="location.href='user-citation-graph.html'">pgvector vs Hybrid RAG in Computer Science Literature</span></td>
+                                <td>H. Chen, S. Patel</td>
+                                <td>2023</td>
+                                <td>Computer Science</td>
+                            </tr>
+                            <tr>
+                                <td><button class="btn-star-active" onclick="alert('즐겨찾기 해제')">★</button></td>
+                                <td><span class="paper-title-link" onclick="location.href='user-citation-graph.html'">Real-time Web Grounding for Academic AI Agents</span></td>
+                                <td>D. Miller</td>
+                                <td>2024 (arXiv)</td>
+                                <td>Tavily Web / arXiv</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+</html>

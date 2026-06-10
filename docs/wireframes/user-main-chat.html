@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Search - Paper AI Agent</title>
+    <!-- Google Fonts: Inter for clean typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #212121;
+            --bg-sidebar: #171717;
+            --bg-user-msg: #2f2f2f;
+            --bg-input: #2f2f2f;
+            --text-main: #ececec;
+            --text-secondary: #b4b4b4;
+            --border-light: #2f2f2f;
+            --accent-green: #10a37f;
+            --accent-blue: #10a37f;
+            /* Matching GPT brand color */
+            --card-hover: #2a2a2a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Sidebar - ChatGPT Style */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-top {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .new-chat-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .new-chat-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .new-chat-icon {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .history-section {
+            margin-top: 16px;
+            overflow-y: auto;
+            max-height: calc(100vh - 180px);
+        }
+
+        .history-group-title {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 8px;
+            margin-top: 12px;
+        }
+
+        .history-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .history-item {
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .history-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .history-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 4px 8px;
+        }
+
+        .logo-circle {
+            width: 22px;
+            height: 22px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .menu-section {
+            margin-top: 16px;
+        }
+
+        .sidebar-menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-menu-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu-item:hover,
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .sidebar-menu-item.active {
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        /* Submenu and secure thread styling */
+        .sidebar-menu-sublist {
+            list-style: none;
+            padding-left: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: -2px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-menu-subitem {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: #f87171;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-menu-subitem:hover {
+            background-color: rgba(239, 68, 68, 0.08);
+        }
+
+        .sidebar-menu-subitem.active {
+            background-color: rgba(239, 68, 68, 0.12);
+            font-weight: 600;
+        }
+
+        .history-item.secure-thread {
+            color: #f87171 !important;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-item.secure-thread:hover {
+            background-color: rgba(239, 68, 68, 0.05) !important;
+        }
+
+        .history-item.secure-thread.active {
+            background-color: rgba(239, 68, 68, 0.1) !important;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Sidebar Quick Actions */
+        .sidebar-actions-section {
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 14px;
+        }
+
+        .sidebar-action-btn {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            font-family: inherit;
+        }
+
+        .sidebar-action-btn.primary-action {
+            background-color: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .sidebar-action-btn.primary-action:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .sidebar-action-btn.secure-action {
+            background-color: rgba(239, 68, 68, 0.06);
+            border-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .sidebar-action-btn.secure-action:hover {
+            background-color: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Main Chat Window */
+        .chat-window {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-main);
+            position: relative;
+        }
+
+        /* Top Header */
+        .chat-header {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .model-selector {
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .model-dropdown-icon {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: none;
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .action-btn.danger {
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+        }
+
+        .action-btn.danger:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Chat Stream Area */
+        .chat-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stream-container {
+            width: 100%;
+            max-width: 768px;
+            /* GPT standard width */
+            padding: 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        /* User Message (Plain & clean layout) */
+        .message-block.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message-bubble.user {
+            background-color: var(--bg-user-msg);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 20px;
+            max-width: 70%;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        /* Agent Message - Open Flat layout, no bubble */
+        .message-block.agent {
+            display: flex;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .agent-avatar {
+            width: 30px;
+            height: 30px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        .agent-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .msg-text {
+            font-size: 0.98rem;
+            line-height: 1.62;
+            color: var(--text-main);
+        }
+
+        /* GPT Search Source Chips */
+        .sources-chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .source-chip {
+            background-color: var(--bg-user-msg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .source-chip:hover {
+            background-color: var(--card-hover);
+            border-color: var(--text-secondary);
+        }
+
+        .source-chip-num {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        .source-chip-title {
+            max-width: 160px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Citation Tooltip Links */
+        .citation-link {
+            color: var(--accent-green);
+            background-color: rgba(16, 163, 127, 0.1);
+            border: 1px solid rgba(16, 163, 127, 0.2);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 2px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .citation-link:hover {
+            background-color: var(--accent-green);
+            color: white;
+        }
+
+        /* Thinking Step Indicator */
+        .thinking-box {
+            background-color: var(--bg-sidebar);
+            border-radius: 12px;
+            padding: 14px 18px;
+            border: 1px solid var(--border-light);
+        }
+
+        .thinking-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: 2px solid var(--accent-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .thinking-steps {
+            list-style: none;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .thinking-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-icon.check {
+            color: var(--accent-green);
+        }
+
+        /* Bottom Fixed Input Box */
+        .chat-input-wrapper {
+            width: 100%;
+            max-width: 768px;
+            margin: 0 auto;
+            padding: 0 24px 24px 24px;
+            background-color: var(--bg-main);
+        }
+
+        .chat-input-container {
+            background-color: var(--bg-input);
+            border-radius: 26px;
+            /* GPT standard round input box */
+            border: 1px solid var(--border-light);
+            padding: 8px 12px 8px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .chat-textarea {
+            width: 100%;
+            background: none;
+            border: none;
+            outline: none;
+            resize: none;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            min-height: 38px;
+            max-height: 200px;
+            padding-top: 6px;
+        }
+
+        .chat-textarea::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .input-bar-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .input-tools-left {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-tool-btn {
+            background-color: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            padding: 6px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .input-tool-btn:hover {
+            color: var(--text-main);
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .send-circle-btn {
+            width: 32px;
+            height: 32px;
+            background-color: var(--text-main);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .send-circle-btn:hover {
+            background-color: var(--accent-green);
+        }
+
+        .send-arrow-icon {
+            border: solid var(--bg-main);
+            border-width: 0 2.5px 2.5px 0;
+            display: inline-block;
+            padding: 3px;
+            transform: rotate(-135deg);
+            /* Point up arrow */
+            margin-top: 2px;
+        }
+
+        /* Hover Tooltip Overlay */
+        .citation-tooltip {
+            position: absolute;
+            width: 260px;
+            background-color: #2f2f2f;
+            border: 1px solid #3f3f3f;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.78rem;
+            color: var(--text-main);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            display: none;
+            pointer-events: none;
+        }
+
+        .citation-tooltip.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Menu (ChatGPT Left Panel) -->
+    <aside class="sidebar">
+        <div class="sidebar-top">
+            <div class="logo-group-wrapper" style="padding: 4px 8px;">
+                <div class="logo-group">
+                    <div class="logo-circle">P</div>
+                    <span>Paper Agent</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <ul class="sidebar-menu-list">
+                    <li class="sidebar-menu-item active" onclick="location.href='user-main-chat.html'">
+                        <span>💬</span><span>Chat Hub</span>
+                    </li>
+                    <li class="sidebar-menu-item" onclick="location.href='user-library-archive.html'">
+                        <span>📚</span><span>Library & Reports</span>
+                    </li>
+                    <li class="sidebar-menu-item" onclick="location.href='user-sandbox-control.html'">
+                        <span>🛡️</span><span>Secure Sandbox</span>
+                    </li>
+                    <li class="sidebar-menu-item" onclick="location.href='user-peer-review.html'">
+                        <span>🎓</span><span>Peer Review Workshop</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Sidebar Quick Actions -->
+            <div class="sidebar-actions-section">
+                <button class="sidebar-action-btn primary-action" onclick="handleNewChatClick()">
+                    <span>➕</span><span>New Conversation</span>
+                </button>
+                <!-- <button class="sidebar-action-btn secure-action" onclick="handleNewSandboxClick()">
+                    <span>🔒</span><span>New Secure Sandbox</span>
+                </button> -->
+            </div>
+
+            <div class="history-section" id="sidebar-bottom-section">
+                <div class="history-group-title">Today</div>
+                <ul class="history-list" id="history-list-today">
+                    <li class="history-item active" onclick="location.href='user-main-chat.html'">
+                        LLM RAG 성능 최적화 논문 비교
+                    </li>
+                </ul>
+
+                <div class="history-group-title">Yesterday</div>
+                <ul class="history-list">
+                    <li class="history-item" onclick="location.href='user-main-chat.html'">COVID-19 백신 면역 작용 조사</li>
+                    <li class="history-item" onclick="location.href='user-main-chat.html'">양자 역학적 가설 타당성 검토</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="sidebar-bottom">
+            <button class="settings-btn" onclick="alert('시스템 페르소나 설정 모달을 엽니다 (POST /chat-with-system)')">
+                <span>⚙️</span>
+                <span>Persona & Settings</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Chat Content -->
+    <main class="chat-window">
+        <!-- Top Title Bar -->
+        <header class="chat-header">
+            <div class="model-selector">
+                <span>Paper Agent GPT-4o</span>
+                <span class="model-dropdown-icon">▼</span>
+            </div>
+            <div class="header-actions">
+                <!-- <button class="action-btn" onclick="location.href='admin-test.html'">
+                    🛠️ Dev Console
+                </button>
+                <button class="action-btn danger" onclick="location.href='user-sandbox-control.html'">
+                    🛡️ Secure Sandbox
+                </button> -->
+            </div>
+        </header>
+
+        <!-- Message Stream Scrollable Area -->
+        <div class="chat-body">
+            <div class="stream-container">
+
+                <!-- User Message Bubble -->
+                <div class="message-block user">
+                    <div class="message-bubble user">
+                        컴퓨터 과학 도메인에서 비정형 문서 RAG 시스템을 구축할 때 500자 청크와 유사도 매칭 성능을 비교한 연구 결과를 요약해줘.
+                    </div>
+                </div>
+
+                <!-- Thinking Log (LangGraph Agent Steps) -->
+                <div class="thinking-box">
+                    <div class="thinking-header">
+                        <div class="spinner"></div>
+                        <span>Thinking Process</span>
+                    </div>
+                    <ul class="thinking-steps">
+                        <li class="thinking-step">
+                            <span class="step-icon check">✔</span>
+                            <span>[Query Analyzer] 입력 분석 완료 -> 컴퓨터 과학(CS) 도메인 라우팅</span>
+                        </li>
+                        <li class="thinking-step">
+                            <span class="step-icon check">✔</span>
+                            <span>[CS RAG Retriever] SCIDOCS DB 코사인 유사도 검색 수행 (3개 청크 검색 성공)</span>
+                        </li>
+                        <li class="thinking-step">
+                            <span class="spinner" style="border-width: 1.5px; width: 10px; height: 10px;"></span>
+                            <span>[Tavily Searcher] 로컬 지식 교차 검증을 위한 외부 학술 웹 브라우징 수행 중...</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Agent Message Block (ChatGPT Flat Layout) -->
+                <div class="message-block agent">
+                    <div class="agent-avatar">AI</div>
+                    <div class="agent-body">
+                        <div class="msg-text">
+                            연구 결과에 따르면 컴퓨터 과학(CS) 도메인에서 대용량 논문 텍스트를 RAG에 적용할 때, 500자 크기로 텍스트를 분할하는 것이 단어의 의미적 결합을 보존하고
+                            임베딩 노이즈를 제어하는 데 가장 이상적인 결과를 나타냅니다<span class="citation-link"
+                                onmouseover="showTooltip(1, this)" onmouseout="hideTooltip()"
+                                onclick="location.href='user-citation-graph.html'">[1]</span>.
+                            특히 pgvector 기반의 코사인 유사도 검색과 유클리드 거리는 분할된 학술 문서 조각 사이의 구조적 문맥 유사성을 판정할 때 연산 효율성과 매칭 정확성 양면에서
+                            뛰어난 신뢰도를 보였습니다<span class="citation-link" onmouseover="showTooltip(2, this)"
+                                onmouseout="hideTooltip()"
+                                onclick="location.href='user-citation-graph.html'">[2]</span>.
+                            만약 로컬 데이터베이스 내부 지식이 부족한 영역의 질의인 경우, Tavily와 BeautifulSoup 웹 스크래퍼를 연동하여 arXiv 등 외부 학술지의 최신
+                            abstracts 본문을 실시간으로 수집하고 임시 병합하는 하이브리드 탐색 기법이 정보의 최신성과 타당성을 보증하는 데 강력한 해법으로 작용합니다<span
+                                class="citation-link" onmouseover="showTooltip(3, this)" onmouseout="hideTooltip()"
+                                onclick="location.href='user-citation-graph.html'">[3]</span>.
+                        </div>
+
+                        <!-- ChatGPT Search-style Source Badges -->
+                        <div class="sources-chips-container">
+                            <div class="source-chip" onclick="location.href='user-citation-graph.html'">
+                                <span class="source-chip-num">1</span>
+                                <span class="source-chip-title">Evaluating Chunk Size in Academic Document
+                                    Retrieval</span>
+                            </div>
+                            <div class="source-chip" onclick="location.href='user-citation-graph.html'">
+                                <span class="source-chip-num">2</span>
+                                <span class="source-chip-title">pgvector vs Hybrid RAG in CS Literature</span>
+                            </div>
+                            <div class="source-chip" onclick="location.href='user-citation-graph.html'">
+                                <span class="source-chip-num">3</span>
+                                <span class="source-chip-title">Real-time Web Grounding for AI Agents</span>
+                            </div>
+                        </div>
+
+                        <!-- Summary Report Action Button -->
+                        <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+                            <button class="action-btn"
+                                style="background-color: var(--accent-green); border: none; color: white; padding: 10px 20px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 163, 127, 0.2);"
+                                onclick="location.href='user-report-view.html'">
+                                📋 Generate Detailed Literature Report for this session
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Chat Input Fixed Container -->
+        <footer class="chat-input-wrapper">
+            <div class="chat-input-container">
+                <textarea class="chat-textarea" placeholder="학술 질문을 입력하세요... (예: 의학 도메인에서 특정 작용 기전 조사)"></textarea>
+                <div class="input-bar-actions">
+                    <div class="input-tools-left">
+                        <button class="input-tool-btn">🔍 RAG: Auto Routing</button>
+                        <button class="input-tool-btn">⚡ Streaming: ON</button>
+                    </div>
+                    <button class="send-circle-btn">
+                        <span class="send-arrow-icon"></span>
+                    </button>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Hover Overlay Tooltip -->
+        <div id="citation-overlay" class="citation-tooltip">
+            <strong>Evaluating Chunk Size in Academic Document Retrieval</strong><br>
+            <span style="color: var(--text-secondary); font-size: 0.75rem;">J. Smith, K. Adams (2024) - p. 12</span>
+            <p
+                style="margin-top: 8px; font-size: 0.75rem; border-top: 1px solid var(--border-light); padding-top: 6px; line-height: 1.4;">
+                "...we demonstrate that a 500-character chunk size with 50-character overlap yields optimal balance for
+                academic RAG pipelines..."
+            </p>
+        </div>
+    </main>
+
+    <script>
+        const tooltip = document.getElementById('citation-overlay');
+
+        function showTooltip(sourceId, element) {
+            const rect = element.getBoundingClientRect();
+
+            if (sourceId === 1) {
+                tooltip.innerHTML = `
+                    <strong>Evaluating Chunk Size in Academic Document Retrieval</strong><br>
+                    <span style="color: var(--text-secondary); font-size: 0.75rem;">J. Smith, K. Adams (2024) - p. 12</span>
+                    <p style="margin-top: 8px; font-size: 0.73rem; border-top: 1px solid var(--border-light); padding-top: 6px; line-height: 1.45;">
+                        "...we demonstrate that a 500-character chunk size with 50-character overlap yields optimal balance for academic RAG pipelines..."
+                    </p>
+                `;
+            } else if (sourceId === 2) {
+                tooltip.innerHTML = `
+                    <strong>pgvector vs Hybrid RAG in Computer Science Literature</strong><br>
+                    <span style="color: var(--text-secondary); font-size: 0.75rem;">H. Chen, S. Patel (2023) - Sec. 3</span>
+                    <p style="margin-top: 8px; font-size: 0.73rem; border-top: 1px solid var(--border-light); padding-top: 6px; line-height: 1.45;">
+                        "...vector-only search using cosine similarity via pgvector remains computationally efficient and highly precise for CS abstracts..."
+                    </p>
+                `;
+            } else if (sourceId === 3) {
+                tooltip.innerHTML = `
+                    <strong>Real-time Web Grounding for Academic AI Agents</strong><br>
+                    <span style="color: var(--text-secondary); font-size: 0.75rem;">D. Miller (2024) - arXiv Abstract</span>
+                    <p style="margin-top: 8px; font-size: 0.73rem; border-top: 1px solid var(--border-light); padding-top: 6px; line-height: 1.45;">
+                        "...grounding static LLM knowledge using live web scrapers dramatically reduces out-of-date hallucinations in fast-evolving scientific domains..."
+                    </p>
+                `;
+            }
+
+            tooltip.style.left = `${rect.left}px`;
+            tooltip.style.top = `${rect.top - tooltip.offsetHeight - 10 + window.scrollY}px`;
+            tooltip.classList.add('active');
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove('active');
+        }
+
+        function createNewChat() {
+            const list = document.getElementById('history-list-today');
+
+            // Remove active class from other items
+            document.querySelectorAll('.history-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Create new item
+            const newItem = document.createElement('li');
+            newItem.className = 'history-item active';
+            newItem.innerText = '새로운 대화';
+            newItem.onclick = () => {
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                newItem.classList.add('active');
+                resetChatWindow();
+            };
+
+            // Prepend new item
+            list.insertBefore(newItem, list.firstChild);
+
+            resetChatWindow();
+        }
+
+        function resetChatWindow() {
+            const container = document.querySelector('.stream-container');
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; text-align: center; color: var(--text-secondary); margin-top: 50px;">
+                    <div style="font-size: 3rem; margin-bottom: 16px;">💬</div>
+                    <h2 style="font-weight: 600;">How can I help you today?</h2>
+                    <p style="font-size: 0.85rem; margin-top: 8px; max-width: 400px; color: var(--text-secondary);">Search academic databases, analyze papers, or run evaluations with paper agents.</p>
+                </div>
+            `;
+            const thinkingBox = document.querySelector('.thinking-box');
+            if (thinkingBox) thinkingBox.style.display = 'none';
+        }
+
+        // Handle action=new query parameter on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('action') === 'new') {
+                createNewChat();
+            }
+        });
+
+        function handleNewChatClick() {
+            createNewChat();
+        }
+
+        function handleNewSandboxClick() {
+            location.href = 'user-sandbox-control.html?action=new_session';
+        }
+    </script>
+</body>
+
+</html>
