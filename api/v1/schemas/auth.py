@@ -43,3 +43,45 @@ class UserInfoResponseWrapper(SuccessResponse):
         data (UserInfoResponse): 현재 로그인한 사용자의 정보 본문 데이터.
     """
     data: UserInfoResponse
+
+
+class MemberJoinRequest(BaseDTO):
+    """회원가입 요청 데이터를 담는 스키마입니다.
+
+    Attributes:
+        mid (str): 회원가입 아이디.
+        mname (str): 회원 이름.
+        mpassword (str): 회원 비밀번호.
+        memail (str): 회원 이메일 주소.
+    """
+    mid: str
+    mname: str
+    mpassword: str
+    memail: str
+
+
+class MemberJoinResponse(BaseDTO):
+    """회원가입 완료 시 반환될 정보를 담는 스키마입니다.
+
+    Attributes:
+        mid (str): 가입된 회원 아이디.
+        mname (str): 가입된 회원 이름.
+        memail (str): 가입된 회원 이메일 주소.
+        menabled (bool): 회원 활성화 상태.
+        mrole (str): 회원 권한/역할.
+    """
+    mid: str
+    mname: str
+    memail: str
+    menabled: bool
+    mrole: str
+
+
+class MemberJoinResponseWrapper(SuccessResponse):
+    """회원가입 성공 공통 래퍼 스키마입니다.
+
+    Attributes:
+        data (MemberJoinResponse): 가입 완료된 회원 정보 본문 데이터.
+    """
+    data: MemberJoinResponse
+

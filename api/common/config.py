@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     # API Configuration
     API_V1_STR: str = "/api/v1"
 
+    # Database Configuration
+    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
+
     # JWT Settings
     JWT_SECRET_KEY: str = "com.mycompany.backendapi.secret.key"
     JWT_ALGORITHM: str = "HS256"

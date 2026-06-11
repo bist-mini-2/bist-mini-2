@@ -40,10 +40,23 @@ class NoCacheStaticFiles(StaticFiles):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging.getLogger("uvicorn").info("Application Starting Up...")
-    # Add database connection pool startup logic here if needed
+    # 비동기 데이터베이스 테이블 생성
+    from api.database.config.dbsession import engine
+    from api.database.config.entity_base import Base
+    import api.database.entities.member  # 엔티티가 Base에 등록되도록 임포트
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logging.getLogger("uvicorn").info("Database tables verified/created successfully.")
+    except Exception as e:
+        logging.getLogger("uvicorn").error(f"Error creating database tables: {e}")
+
     yield
     logging.getLogger("uvicorn").info("Application Shutting Down...")
-    # Add database connection pool cleanup logic here if needed
+    # 커넥션 풀 종료
+    await engine.dispose()
+    logging.getLogger("uvicorn").info("Database engine connections disposed.")
+
 
 # ============================================
 # FastAPI Application Initialization
