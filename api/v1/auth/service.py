@@ -5,9 +5,9 @@ import logging
 from passlib.context import CryptContext
 
 from api.common.auth import create_token
-from api.database.dao.member_dao import MemberDaoDep
-from api.database.entities.member import MemberEntity
-from api.v1.schemas.auth import MemberJoinRequest
+from api.v1.auth.dao import MemberDaoDep
+from api.v1.auth.entities import MemberEntity
+from api.v1.auth.schemas import MemberJoinRequest
 
 logger = logging.getLogger(__name__)
 
@@ -167,5 +167,3 @@ class AuthService:
 
 # Dependency injection alias for the service
 AuthServiceDep = Annotated[AuthService, Depends(AuthService)]
-
-

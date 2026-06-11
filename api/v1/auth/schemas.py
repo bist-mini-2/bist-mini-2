@@ -84,4 +84,3 @@ class MemberJoinResponseWrapper(SuccessResponse):
         data (MemberJoinResponse): 가입 완료된 회원 정보 본문 데이터.
     """
     data: MemberJoinResponse
-

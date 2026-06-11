@@ -4,7 +4,7 @@ from fastapi import Depends
 from sqlalchemy import select, delete
 
 from api.database.config.dbsession import OrmSessionDep
-from api.database.entities.member import MemberEntity
+from api.v1.auth.entities import MemberEntity
 
 logger = logging.getLogger(__name__)
 

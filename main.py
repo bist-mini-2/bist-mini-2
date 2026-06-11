@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     # 비동기 데이터베이스 테이블 생성
     from api.database.config.dbsession import engine
     from api.database.config.entity_base import Base
-    import api.database.entities.member  # 엔티티가 Base에 등록되도록 임포트
+    import api.v1.auth.entities  # 엔티티가 Base에 등록되도록 임포트
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

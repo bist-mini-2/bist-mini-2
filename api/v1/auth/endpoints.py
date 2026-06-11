@@ -4,8 +4,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from api.common.auth import LoginCheckDep, AdminCheckDep
 from api.database.config.dto_base import SuccessResponse
-from api.v1.services.auth_service import AuthServiceDep
-from api.v1.schemas.auth import (
+from api.v1.auth.service import AuthServiceDep
+from api.v1.auth.schemas import (
     TokenResponse,
     TokenResponseWrapper,
     UserInfoResponse,
@@ -99,6 +99,3 @@ async def admin_only(payload: AdminCheckDep):
             "message": f"Hello Admin '{payload['sub']}'! You have successfully accessed this protected endpoint."
         }
     )
-
-
-
