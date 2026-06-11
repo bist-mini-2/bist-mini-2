@@ -1,0 +1,15 @@
+name: Auto PR Description
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  auto-write-pr:
+    uses: bist-mini-2/.github/.github/workflows/auto-pr-writer.yml@main
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
