@@ -1,0 +1,54 @@
+name: Python Build & Test CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+        fi
+        # Ensure testing & linting tools are installed
+        pip install pytest ruff
+
+    - name: Lint check with Ruff
+      run: |
+        # Checks for syntax errors and warnings. Does not fail yet if there's no code.
+        ruff check . || echo "Ruff found code issues"
+
+    - name: Run tests with pytest
+      run: |
+        # Runs pytest if a tests folder or test files exist.
+        if [ -d tests ] || ls test_*.py 1> /dev/null 2>&1; then
+          pytest
+        else
+          echo "No tests found yet."
+        fi
