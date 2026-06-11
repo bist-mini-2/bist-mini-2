@@ -16,8 +16,14 @@ api/
 │   └── exception_handler.py # 전역 에러 핸들러 및 응답 규격화
 │
 ├── database/              # 데이터베이스 관련 설정 및 엔진
-│   └── config/
-│       └── dto_base.py    # 공통 BaseDTO 및 Success/ErrorResponse 스키마 정의
+│   ├── config/
+│   │   ├── dto_base.py    # 공통 BaseDTO 및 Success/ErrorResponse 스키마 정의
+│   │   ├── dbsession.py   # 비동기 DB 엔진, 세션 메이커 및 의존성 주입 (OrmSessionDep)
+│   │   └── entity_base.py # SQLAlchemy DeclarativeBase 상속 베이스 클래스 (Base)
+│   ├── entities/          # [Entity 레이어] 데이터베이스 테이블 매핑 ORM 엔티티 클래스들
+│   │   └── member.py      # 회원(member) 테이블 매핑 엔티티
+│   └── dao/               # [DAO 계층] DB CRUD 및 쿼리 연산 처리 (Service에 주입됨)
+│       └── member_dao.py  # 회원 CRUD 데이터 접근 객체 (MemberDaoDep)
 │
 └── v1/                    # API v1 (하위 호환성 유지 구간)
     ├── api_router.py      # v1 하위의 모든 라우터들을 통합 취합하는 메인 라우터
