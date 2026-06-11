@@ -145,7 +145,7 @@
 
 백엔드 아키텍처의 일관된 코드 품질을 유지하고, 3인의 개발자가 모듈 단위로 독립적이면서도 조화롭게 개발을 연동할 수 있도록 공통 개발 규칙을 별도 문서로 분리하였습니다.
 
-*   **상세 가이드라인**: [백엔드 개발 및 공통 코드 컨벤션 (code-conventions.md)](file:///c:/Repo/bist-mini-2-backend/docs/code-conventions.md)
+*   **상세 가이드라인**: [백엔드 개발 및 공통 코드 컨벤션 (code-conventions.md)](file:///c:/Repo/bist-mini-2-backend/docs/project_plans/code-conventions.md)
 *   **주요 포함 사양**:
     *   API 응답 및 전역 예외 처리 규격 (HTTP 캐시 방지 및 상태 코드 매핑)
     *   FastAPI Annotated DI & 의존성 캐시 활용 2단계 보안 검증 패턴
