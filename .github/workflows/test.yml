@@ -1,10 +1,8 @@
 name: Python Build & Test CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, test ]
 
 permissions:
   contents: read
