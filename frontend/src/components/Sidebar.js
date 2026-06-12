@@ -1,6 +1,6 @@
 "use client"
 
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthContext } from "@/contexts/AuthContext";
@@ -16,13 +16,28 @@ export default function Sidebar() {
   const { user, setUser, setAccessToken } = useContext(AuthContext);
   const pathname = usePathname();
   const router = useRouter();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // 로그아웃 수행 함수
   const handleLogout = () => {
     setUser("");
     setAccessToken("");
+    setIsDropdownOpen(false);
     router.push("/login");
   };
+
+  // 드롭다운 외부 클릭 시 자동으로 닫히도록 핸들러 추가
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (isDropdownOpen && !e.target.closest(`.${styles.bottomSection}`)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("click", handleOutsideClick);
+    return () => {
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  }, [isDropdownOpen]);
 
   // 네비게이션 메뉴 정의
   const menus = [
@@ -63,19 +78,32 @@ export default function Sidebar() {
 
       {/* 하단 사용자 정보 및 세션 영역 */}
       <div className={styles.bottomSection}>
-        <div className={styles.profileCard}>
+        {isDropdownOpen && (
+          <div className={styles.dropdownMenu}>
+            {user ? (
+              <button className={styles.dropdownItem} onClick={handleLogout}>
+                <i className="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
+              </button>
+            ) : (
+              <Link href="/login" className={styles.dropdownItem} onClick={() => setIsDropdownOpen(false)}>
+                <i className="bi bi-box-arrow-in-right"></i>
+                <span>Login</span>
+              </Link>
+            )}
+          </div>
+        )}
+
+        <div className={styles.profileCard} onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
           <div className={styles.profileAvatar}>
-            {user ? user.substring(0, 2).toUpperCase() : "U"}
+            {user ? user.substring(0, 2).toUpperCase() : "G"}
           </div>
           <div className={styles.profileInfo}>
             <span className={styles.profileName}>{user || "Guest"}</span>
-            <span className={styles.profileRole}>ROLE_USER</span>
+            <span className={styles.profileRole}>{user ? "ROLE_USER" : "GUEST"}</span>
           </div>
+          <i className={`bi bi-chevron-up ${styles.chevronIcon} ${isDropdownOpen ? styles.chevronIconActive : ""}`}></i>
         </div>
-        <button className={styles.logoutBtn} onClick={handleLogout}>
-          <i className="bi bi-box-arrow-right"></i>
-          <span>Logout</span>
-        </button>
       </div>
     </aside>
   );

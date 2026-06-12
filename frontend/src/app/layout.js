@@ -22,7 +22,7 @@ import AppLayoutWrapper from "@/components/AppLayoutWrapper";
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body>
         <BootstrapClient />
         <AuthContextProvider>

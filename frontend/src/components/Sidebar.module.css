@@ -150,6 +150,7 @@
   border-top: 1px solid #2f2f2f;
   padding-top: 12px;
   margin-top: auto;
+  position: relative;
 }
 
 .profileCard {
@@ -160,6 +161,14 @@
   background-color: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.profileCard:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .profileAvatar {
@@ -196,25 +205,68 @@
   font-weight: 500;
 }
 
-.logoutBtn {
+/* 프로필 드롭다운 메뉴 스타일링 */
+.dropdownMenu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background-color: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdownItem {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  color: #f87171;
+  gap: 10px;
   padding: 8px 12px;
-  border-radius: 8px;
+  color: #ececec;
+  background: none;
+  border: none;
+  border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
   width: 100%;
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-decoration: none;
 }
 
-.logoutBtn:hover {
-  background-color: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #ffffff;
+.dropdownItem:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.chevronIcon {
+  margin-left: auto;
+  color: #7d7d7d;
+  font-size: 0.75rem;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.profileCard:hover .chevronIcon {
+  color: #ececec;
+}
+
+.chevronIconActive {
+  transform: rotate(180deg);
 }
