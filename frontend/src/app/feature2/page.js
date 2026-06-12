@@ -2,6 +2,7 @@
 
 import { useContext } from "react";
 import { AuthContext } from "@/contexts/AuthContext";
+import styles from "./page.module.css";
 
 /**
  * 기능 2(Feature 2) 전용 메인 페이지 컴포넌트입니다.
@@ -13,13 +14,13 @@ export default function Feature2Page() {
   const { user } = useContext(AuthContext);
 
   return (
-    <div className="d-flex align-items-center justify-content-center h-100" style={{ minHeight: "100vh" }}>
-      <div className="glass-card p-5 text-center" style={{ maxWidth: "480px", width: "100%", margin: "20px" }}>
+    <div className={`d-flex align-items-center justify-content-center h-100 ${styles.container}`}>
+      <div className={`glass-card p-5 text-center ${styles.card}`}>
         <div className="mono-badge mb-3">
           <i className="bi bi-terminal-fill"></i> console.log("feature_2")
         </div>
         <h2 className="fw-bold mb-3 text-gradient">page2 화면입니다</h2>
-        <div className="p-3 rounded bg-light border" style={{ fontFamily: "var(--mono-font)", fontSize: "0.85rem" }}>
+        <div className={`p-3 rounded bg-light border ${styles.details}`}>
           <div className="d-flex justify-content-between mb-2">
             <span className="text-muted">status:</span>
             <span className="text-success fw-semibold">ACTIVE</span>
