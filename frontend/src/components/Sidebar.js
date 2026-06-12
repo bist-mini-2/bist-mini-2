@@ -61,7 +61,7 @@ export default function Sidebar({ isCollapsed, onToggle }) {
             title={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
             aria-label="Toggle Sidebar"
           >
-            <i className={`bi ${isCollapsed ? "bi-chevron-right" : "bi-chevron-left"}`}></i>
+            <i className={`bi ${isCollapsed ? "bi-arrow-bar-right" : "bi-arrow-bar-left"}`}></i>
           </button>
         </div>
 
@@ -112,7 +112,7 @@ export default function Sidebar({ isCollapsed, onToggle }) {
             <span className={styles.profileName}>{user || "Guest"}</span>
             <span className={styles.profileRole}>{user ? "ROLE_USER" : "GUEST"}</span>
           </div>
-          <i className={`bi bi-chevron-up ${styles.chevronIcon} ${isCollapsed ? styles.hidden : ""} ${isDropdownOpen ? styles.chevronIconActive : ""}`}></i>
+          <i className={`bi bi-three-dots-vertical ${styles.dotsIcon} ${isCollapsed ? styles.hidden : ""}`}></i>
         </div>
       </div>
     </aside>
