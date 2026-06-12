@@ -2,11 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import Topbar from "@/components/Topbar";
 import styles from "./AppLayoutWrapper.module.css";
 
 /**
  * 로그인/회원가입 등 전체화면 페이지와 대시보드 사이드바 레이아웃이 구분될 수 있도록
- * 경로명을 검사하여 Sidebar를 조건부 렌더링하는 레이아웃 래퍼 컴포넌트입니다.
+ * 경로명을 검사하여 Sidebar와 Topbar를 조건부 렌더링하는 레이아웃 래퍼 컴포넌트입니다.
  */
 export default function AppLayoutWrapper({ children }) {
   const pathname = usePathname();
@@ -21,7 +22,8 @@ export default function AppLayoutWrapper({ children }) {
   return (
     <div className={`d-flex min-vh-100 ${styles.wrapper}`}>
       <Sidebar />
-      <main className={`flex-grow-1 overflow-auto position-relative ${styles.mainCanvas}`}>
+      <main className={`flex-grow-1 d-flex flex-column overflow-hidden position-relative ${styles.mainCanvas}`}>
+        <Topbar />
         <div className={styles.content}>
           {children}
         </div>
