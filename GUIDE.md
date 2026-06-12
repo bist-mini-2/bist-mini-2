@@ -88,21 +88,24 @@ bist-mini-2/
 ### ② 도메인별 작업 분담 방식 (예시)
 각자가 맡은 학술 도메인을 아래의 규칙에 따라 독립된 폴더 내 파일들로 구현합니다.
 
-* **[개발자 A: 의학/바이오 medical 전담]**
-  - **폴더 경로**: `backend/api/v1/medical/` 생성
-  - **엔드포인트**: `backend/api/v1/medical/endpoints.py` (HTTP 바인딩 및 라우팅)
-  - **서비스**: `backend/api/v1/medical/services.py` (비즈니스 쿼리 및 연산)
-  - **스키마(DTO)**: `backend/api/v1/medical/models.py` (`BaseDTO` 상속)
-* **[개발자 B: 컴퓨터 과학 cs 전담]**
+* **[승현: 생명공학 bio 전담]**
+  - **도메인**: 생명공학 (Kaggle/arXiv에서 생명공학 카테고리 논문 데이터를 직접 추출 및 적재)
+  - **폴더 경로**: `backend/api/v1/bio/` 생성
+  - **엔드포인트**: `backend/api/v1/bio/endpoints.py` (HTTP 바인딩 및 라우팅)
+  - **서비스**: `backend/api/v1/bio/services.py` (비즈니스 쿼리 및 RAG 연산)
+  - **스키마(DTO)**: `backend/api/v1/bio/models.py` (`BaseDTO` 상속)
+* **[지환: 컴퓨터 과학 cs 전담]**
+  - **도메인**: 컴퓨터 과학 (Kaggle/arXiv에서 컴퓨터 과학 카테고리 논문 데이터를 직접 추출 및 적재)
   - **폴더 경로**: `backend/api/v1/cs/` 생성
   - **엔드포인트**: `backend/api/v1/cs/endpoints.py`
   - **서비스**: `backend/api/v1/cs/services.py`
   - **스키마(DTO)**: `backend/api/v1/cs/models.py`
-* **[개발자 C: 자연 과학 science 전담]**
-  - **폴더 경로**: `backend/api/v1/science/` 생성
-  - **엔드포인트**: `backend/api/v1/science/endpoints.py`
-  - **서비스**: `backend/api/v1/science/services.py`
-  - **스키마(DTO)**: `backend/api/v1/science/models.py`
+* **[동원: 천문학 astronomy 전담]**
+  - **도메인**: 천문학 (Kaggle/arXiv에서 천문학 카테고리 논문 데이터를 직접 추출 및 적재)
+  - **폴더 경로**: `backend/api/v1/astronomy/` 생성
+  - **엔드포인트**: `backend/api/v1/astronomy/endpoints.py`
+  - **서비스**: `backend/api/v1/astronomy/services.py`
+  - **스키마(DTO)**: `backend/api/v1/astronomy/models.py`
 
 ### ③ 통합 메인 라우터(`api_router.py`) 연결 규칙
 도메인별 엔드포인트 작성이 완료되면, **[api_router.py](file:///c:/Repo/bist-mini-2/backend/api/v1/api_router.py)**에 각자 생성한 라우터를 포함시켜 전역 앱에 바인딩합니다.
@@ -112,8 +115,10 @@ from fastapi import APIRouter
 from api.v1.auth import endpoints as auth_endpoints
 from api.v1.health import endpoints as health_endpoints
 from api.v1.member import endpoints as member_endpoints
-# 각자 개발한 도메인 엔드포인트 추가 임포트 예시
-# from api.v1.medical import endpoints as medical_endpoints
+# 각자 개발한 도메인 엔드포인트 임포트
+from api.v1.bio import endpoints as bio_endpoints
+from api.v1.cs import endpoints as cs_endpoints
+from api.v1.astronomy import endpoints as astronomy_endpoints
 
 api_router = APIRouter()
 
@@ -122,8 +127,10 @@ api_router.include_router(health_endpoints.router, tags=["System"])
 api_router.include_router(auth_endpoints.router)
 api_router.include_router(member_endpoints.router)
 
-# 각자 개발한 도메인 라우터 등록 예시
-# api_router.include_router(medical_endpoints.router, prefix="/similarity-search/medical", tags=["Medical RAG"])
+# 각자 개발한 도메인 라우터 등록
+api_router.include_router(bio_endpoints.router, prefix="/similarity-search/bio", tags=["Biotechnology RAG"])
+api_router.include_router(cs_endpoints.router, prefix="/similarity-search/cs", tags=["CS RAG"])
+api_router.include_router(astronomy_endpoints.router, prefix="/similarity-search/astronomy", tags=["Astronomy RAG"])
 ```
 
 ---

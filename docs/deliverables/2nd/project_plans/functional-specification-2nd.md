@@ -18,9 +18,9 @@
 
 | 기능 코드 | 하위 구분 | 상세 기능명 | 우선순위 | 엔드포인트 / 기술 | Input 스펙 (파라미터) | Output 스펙 (결과 데이터) | 상세 설명 |
 | :---: | :--- | :--- | :---: | :--- | :--- | :--- | :--- |
-| **F-RAG-01** | 데이터/RAG | 의학/바이오(NFCorpus) RAG 파이프라인 | **P0** | PostgreSQL pgvector / `POST /similarity-search/medical` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • NFCorpus/TREC-COVID 데이터셋 pgvector 테이블(`medical_embeddings`) 500자 단위 청킹 적재 및 유사도 검색 반환 |
-| **F-RAG-02** | 데이터/RAG | 컴퓨터 과학(SCIDOCS) RAG 파이프라인 | **P0** | PostgreSQL pgvector / `POST /similarity-search/cs` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • SCIDOCS 데이터셋 pgvector 테이블(`scidocs_embeddings`) 500자 단위 청킹 적재 및 유사도 검색 반환 |
-| **F-RAG-03** | 데이터/RAG | 자연 과학(SciFact) RAG 파이프라인 | **P0** | PostgreSQL pgvector / `POST /similarity-search/science` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • SciFact 데이터셋 pgvector 테이블(`science_embeddings`) 500자 단위 청킹 적재 및 유사도 검색 반환 |
+| **F-RAG-01** | 데이터/RAG | 생명공학(Biotechnology) RAG 파이프라인 (담당: 승현) | **P0** | PostgreSQL pgvector / `POST /similarity-search/bio` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • Kaggle/arXiv에서 생명공학 카테고리 논문 데이터를 추출하여 pgvector 테이블(`bio_embeddings`)에 500자 단위 청킹 적재 및 유사도 검색 반환 |
+| **F-RAG-02** | 데이터/RAG | 컴퓨터 과학(Computer Science) RAG 파이프라인 (담당: 지환) | **P0** | PostgreSQL pgvector / `POST /similarity-search/cs` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • Kaggle/arXiv에서 컴퓨터 과학 카테고리 논문 데이터를 추출하여 pgvector 테이블(`cs_embeddings`)에 500자 단위 청킹 적재 및 유사도 검색 반환 |
+| **F-RAG-03** | 데이터/RAG | 천문학(Astronomy) RAG 파이프라인 (담당: 동원) | **P0** | PostgreSQL pgvector / `POST /similarity-search/astronomy` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • Kaggle/arXiv에서 천문학 카테고리 논문 데이터를 추출하여 pgvector 테이블(`astronomy_embeddings`)에 500자 단위 청킹 적재 및 유사도 검색 반환 |
 
 ---
 
@@ -71,7 +71,7 @@
 
 | 기능 코드 | 상세 기능명 | 우선순위 | 엔드포인트 / 기술 | Input 스펙 | Output 스펙 | 상세 설명 |
 | :---: | :--- | :---: | :--- | :--- | :--- | :--- |
-| **F-03-A-1** | 젬(Gem) 생성 API | **P1** | `POST /gems` | • `name` (str)<br>• `db_sources` (List of str)<br>• `system_prompt` (str) | • `gem_id` (str)<br>• `name` (str)<br>• `db_sources` (List) | • 지정된 이름, RAG 소스 참조 필터(의학/CS/자연과학 DB 중 다중 선택), 시스템 프롬프트를 바인딩해 영구 저장 |
+| **F-03-A-1** | 젬(Gem) 생성 API | **P1** | `POST /gems` | • `name` (str)<br>• `db_sources` (List of str)<br>• `system_prompt` (str) | • `gem_id` (str)<br>• `name` (str)<br>• `db_sources` (List) | • 지정된 이름, RAG 소스 참조 필터(생명공학/CS/천문학 DB 중 다중 선택), 시스템 프롬프트를 바인딩해 영구 저장 |
 | **F-03-A-2** | 젬(Gem) 목록 조회 API | **P1** | `GET /gems` | 없음 | • `gems`: Array of Gem Card | • 생성 및 스토어에 보관된 사용자 정의 젬 카드 리스트 호출 |
 | **F-03-A-3** | 젬(Gem) 1:1 특화 대화 API | **P1** | `POST /gems/{gem_id}/chat` | • `thread_id` (str)<br>• `message` (str) | SSE Stream | • 생성된 특정 젬의 페르소나와 지정된 RAG 필터를 타겟팅하여 격리된 1:1 대화를 진행 |
 
@@ -81,7 +81,7 @@
 
 | 기능 코드 | 상세 기능명 | 우선순위 | 엔드포인트 / 기술 | 스케줄/동작 주기 | 상세 설명 |
 | :---: | :--- | :---: | :--- | :--- | :--- |
-| **B-01-A-1** | arXiv/PubMed 정기 크롤러 데몬 | **P3** | HTTP Client Batch Service | 매일 02:00 (KST) | • arXiv 및 PubMed Open API를 호출하여 최근 등록된 타겟 도메인(의학, 컴퓨터과학, 자연과학) 논문의 메타데이터 및 PDF 링크 수집 |
+| **B-01-A-1** | arXiv/Kaggle 정기 수집 데몬 | **P3** | HTTP Client Batch Service | 매일 02:00 (KST) | • arXiv API 및 Kaggle API/Scraper를 호출하여 최근 등록된 타겟 도메인(생명공학, 컴퓨터 과학, 천문학) 논문의 메타데이터 및 PDF 링크 수집 |
 | **B-01-A-2** | 신규 논문 파이프라인 적재 배치 | **P3** | Text Chunker & Embedder | 크롤링 완료 직후 | • 새로 수집된 논문 텍스트를 500자 단위 청킹 처리하고 OpenAI/BGE 임베딩 모델로 벡터 변환하여 pgvector 테이블에 bulk insert |
 | **B-01-A-3** | 구독 가설 자동 매칭 변동 탐색 | **P3** | Vector Query Execution | 매주 월요일 03:00 | • 유저가 등록한 구독 가설(**F-02-A-6**)에 대해 RAG 유사도 검색을 재실행하여 신규 추가된 논문들의 지지/반박 여부를 판별하고 Inbox 적재 |
 
