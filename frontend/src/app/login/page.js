@@ -2,7 +2,7 @@
 
 import { useState, useContext } from "react";
 import Link from "next/link";
-import axios from "axios";
+import authApi from "@/apis/authApi";
 import { AuthContext } from "@/contexts/AuthContext";
 
 /**
@@ -29,19 +29,8 @@ export default function LoginPage() {
     setErrorMsg("");
 
     try {
-      // OAuth2PasswordRequestForm 형식에 맞추어 x-www-form-urlencoded 데이터 준비
-      const params = new URLSearchParams();
-      params.append("username", mid);
-      params.append("password", mpassword);
-
-      const response = await axios.post("/auth/login", params, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      });
-
-      // 백엔드가 성공 래퍼 없이 직접 토큰 스키마를 반환하므로 바로 데이터를 추출합니다.
-      const data = response.data; // data = { username, access_token, token_type, role }
+      // API 모듈을 호출하여 인증을 수행합니다.
+      const data = await authApi.login(mid, mpassword);
       
       setUser(data.username);
       setAccessToken(data.access_token);

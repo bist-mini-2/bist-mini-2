@@ -2,7 +2,7 @@
 
 import { createContext, useState, useEffect, startTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import axiosConfig from "@/apis/axiosConfig";
+import { apiClient } from "@/apis/axiosConfig";
 
 // 인증 관련 전역 상태를 관리하기 위한 Context 생성
 export const AuthContext = createContext();
@@ -34,18 +34,34 @@ export function AuthContextProvider({ children }) {
     });
   }, []);
 
-  // 인증 상태 변화 시 로컬 스토리지 동기화 및 Axios 헤더 갱신
+  // 인증 상태 변화 시 로컬 스토리지 동기화
   useEffect(() => {
     if (user !== "") {
       localStorage.setItem("user", user);
       localStorage.setItem("accessToken", accessToken);
-      axiosConfig.addAuthHeader(accessToken);
     } else {
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
-      axiosConfig.removeAuthHeader();
     }
   }, [user, accessToken]);
+
+  // Response Interceptor: 401 Unauthorized 에러 발생 시 세션 만료 및 강제 로그아웃
+  useEffect(() => {
+    const interceptor = apiClient.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          setUser("");
+          setAccessToken("");
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      apiClient.interceptors.response.eject(interceptor);
+    };
+  }, []);
 
   // 비로그인 사용자 및 로그인 사용자의 경로 접근 제한 (라우트 가드 및 리다이렉션)
   useEffect(() => {

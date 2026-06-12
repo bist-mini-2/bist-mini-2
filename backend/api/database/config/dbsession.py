@@ -1,10 +1,11 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from typing import AsyncGenerator, Annotated
 from fastapi import Depends
+from api.common.config import settings
 
 # DB 커넥션 풀(비동기 데이터베이스 엔진) 생성
 engine = create_async_engine(
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres",
+    settings.DATABASE_URL,
     pool_size=5,
     max_overflow=10,
     pool_pre_ping=True,

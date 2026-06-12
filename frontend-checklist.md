@@ -8,6 +8,8 @@
 - [ ] **JavaScript 사용 (TypeScript 금지)**: 전체 코드베이스는 반드시 **JavaScript**(`.js`, `.jsx`, `.mjs`)로 작성되어야 하며, 경로 설정 및 alias 매핑을 위해 `jsconfig.json`을 사용합니까?
 - [ ] **Vanilla CSS 및 Bootstrap 5 사용 (Tailwind CSS 금지)**: UI 스타일링을 위해 **Vanilla CSS**와 **Bootstrap 5**만을 사용해야 합니다. 명시적 요청이 없는 한 Tailwind CSS 클래스 및 설정 파일 사용은 금지됩니다.
 - [ ] **Axios를 통한 API 요청**: 백엔드와의 모든 비동기 API 통신은 Axios를 사용하며, 관련 통신 모듈은 `src/apis/` 디렉토리에 잘 분리되어 있습니까?
+  - `page.js` 등 페이지 컴포넌트 내에 Axios 호출을 직접 작성하지 않고, `authApi.js`, `memberApi.js`와 같은 전담 모듈 함수를 임포트해 연동해야 합니다.
+  - 로그인 API 호출의 경우 백엔드의 성공 래퍼 미사용 정책에 맞춰, 중첩 구조(`response.data.data`)가 아닌 `response.data`에서 직접 데이터를 파싱합니까?
 
 ## 2. Next.js App Router 구조 (Next.js App Router Structure)
 - [ ] **라우팅 구조**: 모든 페이지 구성이 Next.js App Router 규격에 따라 `src/app/` 하위 폴더 구조로 설계되어 있습니까?
@@ -21,6 +23,7 @@
   - 이를 통해 Bootstrap CSS 스타일 및 JS 번들 스크립트가 클라이언트 단에서 정상 작동되도록 제어해야 합니다.
 - [ ] **Bootstrap 유틸리티 클래스 활용**: 페이지 레이아웃 구조화 및 컴포넌트 디자인 시 Bootstrap의 표준 스타일 클래스(`container`, `row`, `col-*`, `d-flex`, `justify-content-*`, `align-items-*`, `shadow`, `border-0`, `rounded-*` 등)를 적극적으로 활용하고 있습니까?
 - [ ] **커스텀 스타일 가이드**: 추가 커스텀 스타일이 필요할 경우, `src/app/globals.css` 또는 모듈형 CSS 스타일시트(`*.module.css`)에만 추가해 구현했습니까?
+- [ ] **이모지 사용 금지 및 Bootstrap Icons 활용**: UI 상의 시각적 기호나 아이콘 장식 시 이모지(이모티콘) 문자를 그대로 사용하는 대신, `bi bi-*` 등의 **Bootstrap Icons** 클래스를 적용했습니까?
 
 ## 4. 상태 관리 및 Context API (State Management & Context API)
 - [ ] **Context API를 통한 전역 상태 관리**: 사용자 인증 정보나 시스템 설정과 같이 여러 컴포넌트에서 공유되어야 하는 상태 정보들은 React **Context API**를 구현해 관리합니까?

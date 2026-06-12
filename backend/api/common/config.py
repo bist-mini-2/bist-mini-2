@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 24 * 60  # 24 hours (1440 minutes)
 
+    # Database Configuration
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
+
     # Automatically load from .env file if it exists
     model_config = SettingsConfigDict(
         env_file=".env",

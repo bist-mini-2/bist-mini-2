@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import memberApi from "@/apis/memberApi";
 
 /**
  * 신규 회원 가입을 지원하는 다크 모드 폼 인터페이스 페이지입니다.
@@ -56,7 +56,7 @@ export default function JoinPage() {
         mrole: "ROLE_USER"
       };
 
-      await axios.post("/member/join", joinData);
+      await memberApi.join(joinData);
 
       alert("회원가입이 완료되었습니다. 로그인 해주세요!");
       router.push("/login");

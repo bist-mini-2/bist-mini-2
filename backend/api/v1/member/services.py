@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 from fastapi import Depends
-from passlib.context import CryptContext
+import bcrypt
 from api.v1.member.dao import MemberDaoDep
 from api.v1.member.entity import MemberEntity
 from api.common.exceptions import MemberNotFoundError, InvalidPasswordError
@@ -15,12 +15,12 @@ class MemberService:
     def __init__(self, member_dao: MemberDaoDep) -> None:
         self.logger = logging.getLogger(f"{__name__}.MemberService")
         self.member_dao = member_dao
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     async def join(self, member_entity: MemberEntity) -> MemberEntity:
         """비밀번호를 암호화하여 회원 정보를 영구 저장소에 추가합니다."""
         self.logger.info("join 실행")
-        member_entity.mpassword = self.pwd_context.hash(member_entity.mpassword)
+        hashed = bcrypt.hashpw(member_entity.mpassword.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        member_entity.mpassword = hashed
         member_entity = await self.member_dao.insert(member_entity)
         return member_entity
 
@@ -42,7 +42,7 @@ class MemberService:
         db_member_entity = await self.member_dao.select_by_mid(mid)
         if not db_member_entity:
             raise MemberNotFoundError("존재하지 않는 회원 아이디")
-        if not self.pwd_context.verify(password, db_member_entity.mpassword):
+        if not bcrypt.checkpw(password.encode('utf-8'), db_member_entity.mpassword.encode('utf-8')):
             raise InvalidPasswordError("회원 비밀번호가 틀림")
         return db_member_entity
 
@@ -53,7 +53,8 @@ class MemberService:
     async def modify(self, member_entity: MemberEntity) -> MemberEntity:
         """회원 비밀번호 등을 업데이트하며, 비밀번호 변경 시 다시 암호화 해싱을 수행합니다."""
         if member_entity.mpassword:
-            member_entity.mpassword = self.pwd_context.hash(member_entity.mpassword)
+            hashed = bcrypt.hashpw(member_entity.mpassword.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            member_entity.mpassword = hashed
         return await self.member_dao.update(member_entity)
 
     async def delete(self, mid: str):

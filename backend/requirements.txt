@@ -7,6 +7,6 @@ sqlalchemy>=2.0
 psycopg[binary]
 asyncpg
 pyjwt
-passlib[bcrypt]
+bcrypt
 jinja2
 python-multipart

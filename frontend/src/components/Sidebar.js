@@ -24,17 +24,11 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  // 새 대화 시작 액션
-  const handleNewChat = () => {
-    alert("새 대화를 생성합니다. (POST /chat-with-system)");
-  };
-
   // 네비게이션 메뉴 정의
   const menus = [
-    { name: "Chat Hub", path: "/", icon: "💬" },
-    { name: "Library & Reports", path: "/library", icon: "📚" },
-    { name: "Secure Sandbox", path: "/sandbox", icon: "🛡️" },
-    { name: "Peer Review Workshop", path: "/peer-review", icon: "🎓" }
+    { name: "기능 1", path: "/feature1", icon: "bi-gear" },
+    { name: "기능 2", path: "/feature2", icon: "bi-tools" },
+    { name: "기능 3", path: "/feature3", icon: "bi-bar-chart" }
   ];
 
   return (
@@ -57,7 +51,7 @@ export default function Sidebar() {
                     href={menu.path}
                     className={`${styles.menuItem} ${isActive ? styles.menuItemActive : ""}`}
                   >
-                    <span>{menu.icon}</span>
+                    <i className={`bi ${menu.icon}`}></i>
                     <span>{menu.name}</span>
                   </Link>
                 </li>
@@ -65,34 +59,6 @@ export default function Sidebar() {
             })}
           </ul>
         </nav>
-
-        {/* 액션 버튼 영역 */}
-        <div className={styles.actionsSection}>
-          <button className={styles.actionBtn} onClick={handleNewChat}>
-            <span>➕</span>
-            <span>New Conversation</span>
-          </button>
-        </div>
-
-        {/* 히스토리 리스트 (임시 더미 데이터) */}
-        <div className={styles.historySection}>
-          <div className={styles.historyGroupTitle}>Today</div>
-          <ul className={styles.historyList}>
-            <li className={styles.historyItem} onClick={() => alert("해당 히스토리로 이동합니다.")}>
-              LLM RAG 성능 최적화 논문 비교
-            </li>
-          </ul>
-
-          <div className={styles.historyGroupTitle} style={{ marginTop: "16px" }}>Yesterday</div>
-          <ul className={styles.historyList}>
-            <li className={styles.historyItem} onClick={() => alert("해당 히스토리로 이동합니다.")}>
-              COVID-19 백신 면역 작용 조사
-            </li>
-            <li className={styles.historyItem} onClick={() => alert("해당 히스토리로 이동합니다.")}>
-              양자 역학적 가설 타당성 검토
-            </li>
-          </ul>
-        </div>
       </div>
 
       {/* 하단 사용자 정보 및 세션 영역 */}
@@ -107,7 +73,7 @@ export default function Sidebar() {
           </div>
         </div>
         <button className={styles.logoutBtn} onClick={handleLogout}>
-          <span>🔑</span>
+          <i className="bi bi-box-arrow-right"></i>
           <span>Logout</span>
         </button>
       </div>
