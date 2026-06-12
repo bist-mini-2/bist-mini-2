@@ -15,14 +15,18 @@
     *   *내용*: 핵심 고객 세그먼트, 고유 가치 제안(UVP), 비용 구조 및 핵심 지표 분석서
 *   **사용자 페르소나 정의서**: [persona.md](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/persona.md)
     *   *내용*: 석·박사과정 및 기업 연구원 등 가상의 핵심 사용자 니즈와 페인 포인트 정의
+*   **의사결정 체크리스트**: [project-decision-checklist.md](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/project-decision-checklist.md)
+    *   *내용*: 개발 착수 전 합의해야 할 DB 설정, API 비용, 개인정보 가이드라인 등 회의 안건
 
 ### 📐 1.2 설계 및 개발 스펙 문서 (Design & Specifications)
 *   **유즈케이스 명세서**: [use-cases.md](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/use-cases.md)
     *   *내용*: 사용자 행동 여정 시퀀스 다이어그램(Mermaid) 및 구체적 basic flow 정의
 *   **화면 연동 관계 정의서**: [wireframe-connections.md](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/wireframe-connections.md)
     *   *내용*: 7대 화면의 연동 흐름도 및 화면 간 전달 데이터 바인딩 규격 명세
-*   **상세 기능 명세서**: [functional-specification.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/functional-specification.md)
+*   **상세 기능 명세서**: [functional-specification-1st.md](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/functional-specification-1st.md)
     *   *내용*: 유즈케이스와 매핑된 초정밀 세분화 API 핸들러, Pydantic DTO, 보안 로직 명세
+*   **공통 코드 컨벤션**: [code-conventions.md](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/code-conventions.md)
+    *   *내용*: FastAPI DI 패턴, 예외 처리, 비동기 트랜잭션, Sphinx 주석 규격 정의
 
 ### 🖥️ 1.3 UI/UX 와이어프레임 프로토타입 (HTML & PNG)
 
@@ -86,8 +90,8 @@
 
 ### 🧪 2.6 단계 5: 테스트 & 제품 완료 보고 (Validation & Final Deliverables)
 *   **통합 및 단위 테스트 스크립트** (`c:/Repo/bist-mini-2/backend/tests/`):
-    *   *역할*: RAG 유사도 성능, Pydantic Structured Output 규격, 다중 에이전트 가설 검증 결과의 정확도를 검증하는 PyTest 코드.
-*   **테스트 검증 완료 보고서** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/test-report.md`):
+    *   *역할*: RAG 유사도 성능, Pydantic Structured Output 규격, 다중 에이전ล 가설 검증 결과의 정확도를 검증하는 PyTest 코드.
+*   **테스트 검증 완료 보고서** (`c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/test-report-1st.md`):
     *   *역할*: API 및 도구 연동 단위 테스트 성공 기록 및 RAG 정확도 팩트체크 테스트 스코어.
-*   **제품 시연 가이드 & 완료 보고서** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/walkthrough.md` 업데이트):
+*   **제품 시연 가이드 & 완료 보고서** (`c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/walkthrough-1st.md` 업데이트):
     *   *역할*: 개발이 완수된 최종 플랫폼 구동 및 시연 가이드라인과 릴리즈 버전의 산출물 현황 보고서.
