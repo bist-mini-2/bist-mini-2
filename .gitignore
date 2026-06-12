@@ -1,1 +1,33 @@
+# Documents
 docs/langchain-v5.pptx.pdf
+
+# Python (Backend)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+backend/.env
+backend/static/
+backend/templates/
+
+# Node.js (Frontend)
+node_modules/
+/frontend/.next/
+/frontend/out/
+/frontend/build/
+/frontend/dist/
+frontend/.env*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# General
+.DS_Store
+.env

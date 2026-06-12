@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Welcome to the Bist Mini 2 FastAPI Application Portal. View documentation and monitor API status.">
+  <title>{{ app_name }} - Welcome Portal</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <header>
+    <div class="brand" id="brand-header">
+      <span class="brand-dot"></span>
+      {{ app_name }}
+    </div>
+    <div class="status-badge" id="system-status-badge">
+      <span class="status-dot"></span>
+      API Online
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="hero-section">
+      <h1>Accelerate Backend Dev<br>with <span>FastAPI Template</span></h1>
+      <p>A beautifully structured foundation designed for speed, flexibility, and robust debugging. Explore the interactive documentation below to interact with the API.</p>
+    </section>
+
+    <section class="grid" id="portal-grid">
+      <!-- Swagger UI Card -->
+      <article class="card" id="swagger-card">
+        <div>
+          <div class="card-icon">🚀</div>
+          <h2 class="card-title">Interactive OpenAPI Docs</h2>
+          <p class="card-description">Fully interactive Swagger UI documentation. Directly test endpoints, view request/response schemas, and handle authorization flow in the browser.</p>
+        </div>
+        <a href="/docs" class="card-link" id="swagger-link">
+          Open Swagger UI
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </article>
+
+      <!-- ReDoc Card -->
+      <article class="card" id="redoc-card">
+        <div>
+          <div class="card-icon">📖</div>
+          <h2 class="card-title">Structured ReDoc</h2>
+          <p class="card-description">Clean, three-panel structured API documentation powered by ReDoc. Excellent for reading, sharing, and understanding overall design principles.</p>
+        </div>
+        <a href="/redoc" class="card-link" id="redoc-link">
+          Open ReDoc
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </article>
+
+      <!-- Health Check Card -->
+      <article class="card" id="health-card">
+        <div>
+          <div class="card-icon">⚡</div>
+          <h2 class="card-title">System Health API</h2>
+          <p class="card-description">Diagnostic endpoint verifying runtime configurations, server environment variables, active debugger settings, and real-time server uptime metrics.</p>
+        </div>
+        <a href="/api/v1/health" class="card-link" id="health-link" target="_blank">
+          Check Health Status
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </article>
+    </section>
+  </main>
+
+  <footer id="footer-main">
+    <p>&copy; 2026 {{ app_name }}. Built on top of FastAPI.</p>
+  </footer>
+
+</body>
+</html>

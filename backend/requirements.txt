@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+colorlog
+pydantic-settings
+pydantic[email]
+sqlalchemy>=2.0
+psycopg[binary]
+asyncpg
+pyjwt
+passlib[bcrypt]
+jinja2
+python-multipart
