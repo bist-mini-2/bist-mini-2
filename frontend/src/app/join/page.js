@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import memberApi from "@/apis/memberApi";
+import styles from "./page.module.css";
 
 /**
  * 신규 회원 가입을 지원하는 다크 모드 폼 인터페이스 페이지입니다.
@@ -73,39 +74,12 @@ export default function JoinPage() {
   };
 
   return (
-    <div 
-      className="d-flex align-items-center justify-content-center min-vh-100 p-4"
-      style={{
-        backgroundColor: "var(--background)",
-        backgroundImage: "linear-gradient(rgba(235, 231, 224, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(235, 231, 224, 0.5) 1px, transparent 1px)",
-        backgroundSize: "24px 24px"
-      }}
-    >
-      <div 
-        className="card border-0 p-5" 
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          backgroundColor: "#ffffff",
-          border: "1px solid var(--card-border)",
-          borderRadius: "4px",
-          boxShadow: "none"
-        }}
-      >
+    <div className={styles.container}>
+      <div className={`card border-0 p-5 ${styles.card}`}>
         <div className="card-body p-0">
           {/* 헤더 영역 */}
           <div className="text-center mb-5">
-            <div 
-              className="d-inline-flex align-items-center justify-content-center text-white mb-3"
-              style={{ 
-                width: "48px", 
-                height: "48px", 
-                fontSize: "1.4rem", 
-                fontWeight: "800",
-                backgroundColor: "var(--accent-color)",
-                borderRadius: "2px"
-              }}
-            >
+            <div className={styles.logoIcon}>
               P
             </div>
             <h2 className="fw-bold text-dark mb-1 text-gradient">계정 생성</h2>
@@ -114,10 +88,7 @@ export default function JoinPage() {
 
           {/* 에러 메시지 표시 */}
           {errorMsg && (
-            <div 
-              className="alert alert-danger border-0 rounded-0 text-center mb-4 small py-2" 
-              style={{ border: "1px solid #dc3545", backgroundColor: "rgba(220, 53, 69, 0.04)", color: "#dc3545" }}
-            >
+            <div className={`alert text-center mb-4 small py-2 ${styles.errorAlert}`}>
               {errorMsg}
             </div>
           )}
@@ -128,8 +99,7 @@ export default function JoinPage() {
               <label className="form-label text-muted small fw-semibold">아이디 (ID)</label>
               <input 
                 type="text" 
-                className="form-control bg-white text-dark shadow-none py-2.5" 
-                style={{ border: "1px solid var(--card-border)", borderRadius: "4px" }}
+                className={`form-control shadow-none py-2.5 ${styles.formInput}`} 
                 placeholder="5~20자 사이로 입력하세요"
                 value={mid}
                 onChange={(e) => setMid(e.target.value)}
@@ -141,8 +111,7 @@ export default function JoinPage() {
               <label className="form-label text-muted small fw-semibold">이름</label>
               <input 
                 type="text" 
-                className="form-control bg-white text-dark shadow-none py-2.5" 
-                style={{ border: "1px solid var(--card-border)", borderRadius: "4px" }}
+                className={`form-control shadow-none py-2.5 ${styles.formInput}`} 
                 placeholder="2~20자 사이로 입력하세요"
                 value={mname}
                 onChange={(e) => setMname(e.target.value)}
@@ -154,8 +123,7 @@ export default function JoinPage() {
               <label className="form-label text-muted small fw-semibold">이메일 주소</label>
               <input 
                 type="email" 
-                className="form-control bg-white text-dark shadow-none py-2.5" 
-                style={{ border: "1px solid var(--card-border)", borderRadius: "4px" }}
+                className={`form-control shadow-none py-2.5 ${styles.formInput}`} 
                 placeholder="example@domain.com"
                 value={memail}
                 onChange={(e) => setMemail(e.target.value)}
@@ -167,8 +135,7 @@ export default function JoinPage() {
               <label className="form-label text-muted small fw-semibold">비밀번호</label>
               <input 
                 type="password" 
-                className="form-control bg-white text-dark shadow-none py-2.5" 
-                style={{ border: "1px solid var(--card-border)", borderRadius: "4px" }}
+                className={`form-control shadow-none py-2.5 ${styles.formInput}`} 
                 placeholder="5~20자 사이로 입력하세요"
                 value={mpassword}
                 onChange={(e) => setMpassword(e.target.value)}
@@ -178,12 +145,7 @@ export default function JoinPage() {
 
             <button 
               type="submit" 
-              className="btn btn-primary w-100 py-2.5 fw-bold mb-3 border-0"
-              style={{
-                backgroundColor: "var(--accent-color)",
-                borderRadius: "4px",
-                boxShadow: "none"
-              }}
+              className={`btn w-100 py-2.5 fw-bold mb-3 ${styles.submitBtn}`}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -197,7 +159,7 @@ export default function JoinPage() {
           {/* 로그인 리다이렉트 유도 */}
           <div className="text-center mt-4">
             <span className="text-muted small">이미 계정이 있으신가요? </span>
-            <Link href="/login" className="small fw-semibold text-decoration-none hover-underline" style={{ color: "var(--accent-color)" }}>
+            <Link href="/login" className={`small fw-semibold text-decoration-none hover-underline ${styles.redirectLink}`}>
               로그인하기
             </Link>
           </div>

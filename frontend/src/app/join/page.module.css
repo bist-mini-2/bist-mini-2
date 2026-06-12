@@ -1,0 +1,67 @@
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background-color: var(--background);
+  background-image: linear-gradient(rgba(235, 231, 224, 0.5) 1px, transparent 1px), 
+                    linear-gradient(90deg, rgba(235, 231, 224, 0.5) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background-color: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+}
+
+.logoIcon {
+  width: 48px;
+  height: 48px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  background-color: var(--accent-color);
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.errorAlert {
+  border: 1px solid #dc3545;
+  background-color: rgba(220, 53, 69, 0.04);
+  color: #dc3545;
+}
+
+.formInput {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background-color: #ffffff;
+  color: var(--foreground);
+}
+
+.formInput:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(142, 157, 135, 0.3) !important;
+}
+
+.submitBtn {
+  background-color: var(--accent-color);
+  border-radius: var(--radius-md);
+  border: none;
+  color: #ffffff;
+  transition: background-color 0.1s ease;
+}
+
+.submitBtn:hover {
+  background-color: #7A8973;
+}
+
+.redirectLink {
+  color: var(--accent-color);
+}
