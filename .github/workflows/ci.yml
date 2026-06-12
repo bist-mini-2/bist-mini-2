@@ -27,6 +27,7 @@ jobs:
       - name: Run Tests
         env:
           DATABASE_URL: sqlite+aiosqlite:///:memory:
+          PYTHONPATH: .
         run: |
           cd backend
           pytest
