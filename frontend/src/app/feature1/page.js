@@ -15,8 +15,8 @@ export default function Feature1Page() {
   return (
     <div className="d-flex align-items-center justify-content-center h-100" style={{ minHeight: "100vh" }}>
       <div className="text-center">
-        <h2 className="fw-bold text-white mb-2 text-gradient">page1 화면입니다</h2>
-        <p className="text-secondary small mb-0">현재 로그인 유저: <span className="text-success fw-semibold">{user || "Guest"}</span></p>
+        <h2 className="fw-bold text-dark mb-2 text-gradient">page1 화면입니다</h2>
+        <p className="text-muted small mb-0">현재 로그인 유저: <span className="text-success fw-semibold">{user || "Guest"}</span></p>
       </div>
     </div>
   );

@@ -48,10 +48,10 @@ export default function LoginPage() {
 
   return (
     <div 
-      className="d-flex align-items-center justify-content-center min-vh-100 text-light p-4"
+      className="d-flex align-items-center justify-content-center min-vh-100 text-dark p-4"
       style={{
-        backgroundColor: "#080b11",
-        backgroundImage: "radial-gradient(at 10% 10%, rgba(16, 163, 127, 0.08) 0px, transparent 50%), radial-gradient(at 90% 90%, rgba(59, 130, 246, 0.06) 0px, transparent 50%)"
+        backgroundColor: "#ffffff",
+        backgroundImage: "radial-gradient(at 10% 10%, rgba(16, 163, 127, 0.05) 0px, transparent 50%), radial-gradient(at 90% 90%, rgba(59, 130, 246, 0.03) 0px, transparent 50%)"
       }}
     >
       <div 
@@ -59,11 +59,11 @@ export default function LoginPage() {
         style={{
           width: "100%",
           maxWidth: "420px",
-          backgroundColor: "rgba(17, 22, 34, 0.65)",
+          backgroundColor: "rgba(255, 255, 255, 0.8)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
-          border: "1px solid rgba(255, 255, 255, 0.07)",
-          boxShadow: "0 20px 45px rgba(0, 0, 0, 0.4)",
+          border: "1px solid rgba(0, 0, 0, 0.08)",
+          boxShadow: "0 20px 45px rgba(0, 0, 0, 0.06)",
         }}
       >
         <div className="card-body p-0">
@@ -77,12 +77,12 @@ export default function LoginPage() {
                 fontSize: "1.6rem", 
                 fontWeight: "800",
                 background: "linear-gradient(135deg, #10a37f 0%, #3b82f6 100%)",
-                boxShadow: "0 4px 14px rgba(16, 163, 127, 0.3)"
+                boxShadow: "0 4px 14px rgba(16, 163, 127, 0.2)"
               }}
             >
               P
             </div>
-            <h2 className="fw-bold text-white mb-1 text-gradient">Paper Agent</h2>
+            <h2 className="fw-bold text-dark mb-1 text-gradient">Paper Agent</h2>
             <p className="text-muted small">로그인하여 플랫폼을 이용해 보세요.</p>
           </div>
 
@@ -90,7 +90,7 @@ export default function LoginPage() {
           {errorMsg && (
             <div 
               className="alert alert-danger border-0 rounded-3 text-center mb-4 small py-2" 
-              style={{ backgroundColor: "rgba(239, 68, 68, 0.1)", color: "#f87171" }}
+              style={{ backgroundColor: "rgba(220, 53, 69, 0.08)", color: "#dc3545" }}
             >
               {errorMsg}
             </div>
@@ -99,11 +99,11 @@ export default function LoginPage() {
           {/* 로그인 폼 */}
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label className="form-label text-secondary small fw-semibold">아이디</label>
+              <label className="form-label text-muted small fw-semibold">아이디</label>
               <input 
                 type="text" 
-                className="form-control bg-dark border-secondary text-white rounded-3 shadow-none py-2.5" 
-                style={{ borderColor: "rgba(255, 255, 255, 0.15) !important" }}
+                className="form-control bg-white text-dark rounded-3 shadow-none py-2.5" 
+                style={{ border: "1px solid rgba(0, 0, 0, 0.12)" }}
                 placeholder="아이디를 입력하세요 (5자 이상)"
                 value={mid}
                 onChange={(e) => setMid(e.target.value)}
@@ -112,10 +112,11 @@ export default function LoginPage() {
             </div>
             
             <div className="mb-4">
-              <label className="form-label text-secondary small fw-semibold">비밀번호</label>
+              <label className="form-label text-muted small fw-semibold">비밀번호</label>
               <input 
                 type="password" 
-                className="form-control bg-dark border-secondary text-white rounded-3 shadow-none py-2.5" 
+                className="form-control bg-white text-dark rounded-3 shadow-none py-2.5" 
+                style={{ border: "1px solid rgba(0, 0, 0, 0.12)" }}
                 placeholder="비밀번호를 입력하세요 (5자 이상)"
                 value={mpassword}
                 onChange={(e) => setMpassword(e.target.value)}
@@ -128,7 +129,7 @@ export default function LoginPage() {
               className="btn btn-success w-100 rounded-3 py-2.5 fw-bold mb-3 border-0 transition"
               style={{
                 backgroundColor: "#10a37f",
-                boxShadow: "0 4px 12px rgba(16, 163, 127, 0.2)"
+                boxShadow: "0 4px 12px rgba(16, 163, 127, 0.15)"
               }}
               disabled={isSubmitting}
             >
@@ -143,7 +144,7 @@ export default function LoginPage() {
           {/* 회원가입 리다이렉트 유도 */}
           <div className="text-center mt-4">
             <span className="text-muted small">계정이 없으신가요? </span>
-            <Link href="/join" className="text-success small fw-semibold text-decoration-none hover-underline">
+            <Link href="/join" className="text-success small fw-semibold text-decoration-none hover-underline" style={{ color: "#10a37f" }}>
               회원가입
             </Link>
           </div>
