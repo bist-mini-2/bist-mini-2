@@ -49,10 +49,10 @@
 }
 
 .menuItem {
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  border-radius: 8px;
   font-size: 0.9rem;
-  color: #475569;
+  color: #555c56;
   cursor: pointer;
   transition: all 0.15s ease;
   display: flex;
@@ -63,20 +63,17 @@
 }
 
 .menuItem:hover {
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(0, 0, 0, 0.02);
   color: var(--foreground);
-  transform: translateX(2px);
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .menuItemActive {
-  background-color: #ffffff !important;
-  border: 1px solid rgba(24, 24, 27, 0.08) !important;
-  border-left: 3px solid var(--accent-color) !important;
-  font-weight: 600;
-  color: var(--accent-color) !important;
-  padding-left: 11px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid transparent !important;
+  font-weight: 700;
+  color: var(--foreground) !important;
+  padding-left: 16px !important;
+  box-shadow: none !important;
 }
 
 .bottomSection {
