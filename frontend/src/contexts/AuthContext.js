@@ -88,8 +88,8 @@ export function AuthContextProvider({ children }) {
   // 마운트 직후 로컬 스토리지 읽기 완료 전에는 로딩 스피너 표시
   if (isLoading) {
     return (
-      <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-light">
-        <div className="spinner-border text-success" role="status" style={{ width: "3rem", height: "3rem" }}>
+      <div className="loading-overlay">
+        <div className="spinner-border loading-spinner" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
       </div>

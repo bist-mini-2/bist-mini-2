@@ -89,3 +89,18 @@
 .dev-btn:active {
   transform: translateY(1px);
 }
+
+/* Global Loading Overlay */
+.loading-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  color: var(--accent-color);
+}
