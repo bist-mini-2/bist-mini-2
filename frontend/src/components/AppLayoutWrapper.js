@@ -25,27 +25,11 @@ export default function AppLayoutWrapper({ children }) {
         style={{ 
           height: "100vh",
           backgroundColor: "var(--background)",
-          backgroundImage: "radial-gradient(var(--tertiary-color) 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
+          backgroundImage: "linear-gradient(rgba(199, 200, 204, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(199, 200, 204, 0.3) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
           backgroundPosition: "0 0"
         }}
       >
-        {/* Ambient Light 번짐 광원 효과 */}
-        <div 
-          className="position-absolute" 
-          style={{
-            width: "600px",
-            height: "600px",
-            top: "-100px",
-            left: "-100px",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(120, 149, 178, 0.08) 0%, rgba(120, 149, 178, 0) 70%)",
-            filter: "blur(80px)",
-            pointerEvents: "none",
-            zIndex: 0
-          }}
-        ></div>
-        
         <div className="position-relative h-100" style={{ zIndex: 1 }}>
           {children}
         </div>

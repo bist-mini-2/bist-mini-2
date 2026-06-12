@@ -3,26 +3,28 @@
    ============================================================================= */
 
 :root {
-  --background: #F5EFE6;
-  --foreground: #1e293b;
+  --background: #F2EFE5;
+  --foreground: #18181b;
   --card-bg: #ffffff;
-  --card-border: #E8DFCA;
-  --accent-color: #7895B2;
-  --accent-glow: rgba(120, 149, 178, 0.12);
-  --tertiary-color: #AEBDCA;
-  --glass-blur: 8px;
+  --card-border: #C7C8CC;
+  --sidebar-bg: #E3E1D9;
+  --accent-color: #18181b;
+  --accent-glow: rgba(24, 24, 27, 0.06);
+  --tertiary-color: #B4B4B8;
+  --radius-sm: 2px;
+  --radius-md: 4px;
   --mono-font: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
-/* Text Gradients (Langfuse Dev theme style) */
+/* Text Gradients (Langfuse Sharp Slate style) */
 .text-gradient {
-  background: linear-gradient(135deg, #1e293b 30%, #7895B2 100%);
+  background: linear-gradient(135deg, #18181b 40%, #52525b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .text-gradient-accent {
-  background: linear-gradient(135deg, #7895B2 0%, #AEBDCA 100%);
+  background: linear-gradient(135deg, #18181b 0%, #71717a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

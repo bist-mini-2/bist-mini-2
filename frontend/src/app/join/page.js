@@ -77,8 +77,8 @@ export default function JoinPage() {
       className="d-flex align-items-center justify-content-center min-vh-100 p-4"
       style={{
         backgroundColor: "var(--background)",
-        backgroundImage: "radial-gradient(var(--tertiary-color) 1px, transparent 1px), linear-gradient(180deg, rgba(120, 149, 178, 0.05) 0%, transparent 100%)",
-        backgroundSize: "20px 20px, 100% 100%"
+        backgroundImage: "linear-gradient(rgba(199, 200, 204, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(199, 200, 204, 0.3) 1px, transparent 1px)",
+        backgroundSize: "24px 24px"
       }}
     >
       <div 
@@ -88,22 +88,22 @@ export default function JoinPage() {
           maxWidth: "420px",
           backgroundColor: "#ffffff",
           border: "1px solid var(--card-border)",
-          borderRadius: "8px",
-          boxShadow: "0 4px 24px rgba(120, 149, 178, 0.08)",
+          borderRadius: "4px",
+          boxShadow: "none"
         }}
       >
         <div className="card-body p-0">
           {/* 헤더 영역 */}
           <div className="text-center mb-5">
             <div 
-              className="d-inline-flex align-items-center justify-content-center rounded-circle text-white mb-3"
+              className="d-inline-flex align-items-center justify-content-center text-white mb-3"
               style={{ 
-                width: "52px", 
-                height: "52px", 
-                fontSize: "1.6rem", 
+                width: "48px", 
+                height: "48px", 
+                fontSize: "1.4rem", 
                 fontWeight: "800",
-                background: "linear-gradient(135deg, var(--accent-color) 0%, var(--tertiary-color) 100%)",
-                boxShadow: "0 4px 14px rgba(120, 149, 178, 0.2)"
+                backgroundColor: "var(--accent-color)",
+                borderRadius: "2px"
               }}
             >
               P
@@ -115,8 +115,8 @@ export default function JoinPage() {
           {/* 에러 메시지 표시 */}
           {errorMsg && (
             <div 
-              className="alert alert-danger border-0 rounded-3 text-center mb-4 small py-2" 
-              style={{ backgroundColor: "rgba(220, 53, 69, 0.08)", color: "#dc3545" }}
+              className="alert alert-danger border-0 rounded-0 text-center mb-4 small py-2" 
+              style={{ border: "1px solid #dc3545", backgroundColor: "rgba(220, 53, 69, 0.04)", color: "#dc3545" }}
             >
               {errorMsg}
             </div>
@@ -129,7 +129,7 @@ export default function JoinPage() {
               <input 
                 type="text" 
                 className="form-control bg-white text-dark shadow-none py-2.5" 
-                style={{ border: "1px solid var(--card-border)", borderRadius: "6px" }}
+                style={{ border: "1px solid var(--card-border)", borderRadius: "4px" }}
                 placeholder="5~20자 사이로 입력하세요"
                 value={mid}
                 onChange={(e) => setMid(e.target.value)}
@@ -142,7 +142,7 @@ export default function JoinPage() {
               <input 
                 type="text" 
                 className="form-control bg-white text-dark shadow-none py-2.5" 
-                style={{ border: "1px solid var(--card-border)", borderRadius: "6px" }}
+                style={{ border: "1px solid var(--card-border)", borderRadius: "4px" }}
                 placeholder="2~20자 사이로 입력하세요"
                 value={mname}
                 onChange={(e) => setMname(e.target.value)}
@@ -155,7 +155,7 @@ export default function JoinPage() {
               <input 
                 type="email" 
                 className="form-control bg-white text-dark shadow-none py-2.5" 
-                style={{ border: "1px solid var(--card-border)", borderRadius: "6px" }}
+                style={{ border: "1px solid var(--card-border)", borderRadius: "4px" }}
                 placeholder="example@domain.com"
                 value={memail}
                 onChange={(e) => setMemail(e.target.value)}
@@ -168,7 +168,7 @@ export default function JoinPage() {
               <input 
                 type="password" 
                 className="form-control bg-white text-dark shadow-none py-2.5" 
-                style={{ border: "1px solid var(--card-border)", borderRadius: "6px" }}
+                style={{ border: "1px solid var(--card-border)", borderRadius: "4px" }}
                 placeholder="5~20자 사이로 입력하세요"
                 value={mpassword}
                 onChange={(e) => setMpassword(e.target.value)}
@@ -181,8 +181,8 @@ export default function JoinPage() {
               className="btn btn-primary w-100 py-2.5 fw-bold mb-3 border-0"
               style={{
                 backgroundColor: "var(--accent-color)",
-                borderRadius: "6px",
-                boxShadow: "0 2px 8px rgba(120, 149, 178, 0.15)"
+                borderRadius: "4px",
+                boxShadow: "none"
               }}
               disabled={isSubmitting}
             >
