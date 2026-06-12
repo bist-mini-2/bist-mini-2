@@ -47,26 +47,42 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 bg-dark text-light p-4">
+    <div 
+      className="d-flex align-items-center justify-content-center min-vh-100 text-light p-4"
+      style={{
+        backgroundColor: "#080b11",
+        backgroundImage: "radial-gradient(at 10% 10%, rgba(16, 163, 127, 0.08) 0px, transparent 50%), radial-gradient(at 90% 90%, rgba(59, 130, 246, 0.06) 0px, transparent 50%)"
+      }}
+    >
       <div 
-        className="card border-0 rounded-4 shadow-lg p-5" 
+        className="card border-0 rounded-4 p-5" 
         style={{
           width: "100%",
           maxWidth: "420px",
-          backgroundColor: "#171717",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          backgroundColor: "rgba(17, 22, 34, 0.65)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(255, 255, 255, 0.07)",
+          boxShadow: "0 20px 45px rgba(0, 0, 0, 0.4)",
         }}
       >
         <div className="card-body p-0">
           {/* 로고 영역 */}
           <div className="text-center mb-5">
             <div 
-              className="d-inline-flex align-items-center justify-content-center rounded-circle bg-success text-white mb-3"
-              style={{ width: "48px", height: "48px", fontSize: "1.5rem", fontWeight: "800" }}
+              className="d-inline-flex align-items-center justify-content-center rounded-circle text-white mb-3"
+              style={{ 
+                width: "52px", 
+                height: "52px", 
+                fontSize: "1.6rem", 
+                fontWeight: "800",
+                background: "linear-gradient(135deg, #10a37f 0%, #3b82f6 100%)",
+                boxShadow: "0 4px 14px rgba(16, 163, 127, 0.3)"
+              }}
             >
               P
             </div>
-            <h2 className="fw-bold text-white mb-1">Paper Agent</h2>
+            <h2 className="fw-bold text-white mb-1 text-gradient">Paper Agent</h2>
             <p className="text-muted small">로그인하여 플랫폼을 이용해 보세요.</p>
           </div>
 

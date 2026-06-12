@@ -13,10 +13,10 @@ export default function Feature1Page() {
   const { user } = useContext(AuthContext);
 
   return (
-    <div className="d-flex align-items-center justify-content-center h-100 bg-dark text-light">
+    <div className="d-flex align-items-center justify-content-center h-100" style={{ minHeight: "100vh" }}>
       <div className="text-center">
-        <h2 className="fw-bold text-white mb-2">page1 화면입니다</h2>
-        <p className="text-secondary small">현재 로그인 유저: {user || "Guest"}</p>
+        <h2 className="fw-bold text-white mb-2 text-gradient">page1 화면입니다</h2>
+        <p className="text-secondary small mb-0">현재 로그인 유저: <span className="text-success fw-semibold">{user || "Guest"}</span></p>
       </div>
     </div>
   );
