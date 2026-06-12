@@ -66,7 +66,7 @@
 
 .dev-input:focus {
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(24, 24, 27, 0.15); /* Zero blur style sharp shadow ring */
+  box-shadow: 0 0 0 2px rgba(142, 157, 135, 0.3); /* Zero blur sage green shadow ring */
 }
 
 /* Accent Developer Button */
@@ -83,7 +83,7 @@
 }
 
 .dev-btn:hover {
-  background-color: #3f3f46;
+  background-color: #7A8973;
 }
 
 .dev-btn:active {

@@ -77,7 +77,7 @@ export default function JoinPage() {
       className="d-flex align-items-center justify-content-center min-vh-100 p-4"
       style={{
         backgroundColor: "var(--background)",
-        backgroundImage: "linear-gradient(rgba(199, 200, 204, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(199, 200, 204, 0.3) 1px, transparent 1px)",
+        backgroundImage: "linear-gradient(rgba(235, 231, 224, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(235, 231, 224, 0.5) 1px, transparent 1px)",
         backgroundSize: "24px 24px"
       }}
     >

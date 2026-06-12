@@ -3,28 +3,28 @@
    ============================================================================= */
 
 :root {
-  --background: #F2EFE5;
-  --foreground: #18181b;
+  --background: #FCFBF6;
+  --foreground: #2E332E;
   --card-bg: #ffffff;
-  --card-border: #C7C8CC;
-  --sidebar-bg: #E3E1D9;
-  --accent-color: #18181b;
-  --accent-glow: rgba(24, 24, 27, 0.06);
-  --tertiary-color: #B4B4B8;
+  --card-border: #EBE7E0;
+  --sidebar-bg: #FAF6F0;
+  --accent-color: #8E9D87;
+  --accent-glow: rgba(142, 157, 135, 0.08);
+  --tertiary-color: #D5DCD0;
   --radius-sm: 2px;
   --radius-md: 4px;
   --mono-font: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
-/* Text Gradients (Langfuse Sharp Slate style) */
+/* Text Gradients (Langfuse Pastel Sage style) */
 .text-gradient {
-  background: linear-gradient(135deg, #18181b 40%, #52525b 100%);
+  background: linear-gradient(135deg, #2E332E 40%, #8E9D87 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .text-gradient-accent {
-  background: linear-gradient(135deg, #18181b 0%, #71717a 100%);
+  background: linear-gradient(135deg, #8E9D87 0%, #D5DCD0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
