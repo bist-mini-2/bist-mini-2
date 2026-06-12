@@ -44,9 +44,9 @@ api/
 각자가 맡은 학술 도메인을 아래의 규칙에 따라 독립된 파일 쌍으로 구현합니다.
 
 * **[개발자 A: 의학/바이오 NFCorpus 전담]**
-  - **스키마**: [api/v1/schemas/medical.py](file:///d:/Repo/bist-mini-2-backend/api/v1/schemas/medical.py) 생성 (`BaseDTO` 상속)
-  - **서비스**: [api/v1/services/medical_service.py](file:///d:/Repo/bist-mini-2-backend/api/v1/services/medical_service.py) 생성 (비즈니스 쿼리 및 연산)
-  - **엔드포인트**: [api/v1/endpoints/medical.py](file:///d:/Repo/bist-mini-2-backend/api/v1/endpoints/medical.py) 생성 (HTTP 바인딩 및 라우팅)
+  - **스키마**: [api/v1/schemas/medical.py](file:///c:/Repo/bist-mini-2/backend/api/v1/schemas/medical.py) 생성 (`BaseDTO` 상속)
+  - **서비스**: [api/v1/services/medical_service.py](file:///c:/Repo/bist-mini-2/backend/api/v1/services/medical_service.py) 생성 (비즈니스 쿼리 및 연산)
+  - **엔드포인트**: [api/v1/endpoints/medical.py](file:///c:/Repo/bist-mini-2/backend/api/v1/endpoints/medical.py) 생성 (HTTP 바인딩 및 라우팅)
 * **[개발자 B: 컴퓨터 과학 SCIDOCS 전담]**
   - **스키마**: `api/v1/schemas/cs.py` 생성
   - **서비스**: `api/v1/services/cs_service.py` 생성
@@ -57,7 +57,7 @@ api/
   - **엔드포인트**: `api/v1/endpoints/science.py` 생성
 
 ### ③ 통합 메인 라우터(`api_router.py`) 연결 규칙
-도메인별 엔드포인트 작성이 완료되면, **[api_router.py](file:///d:/Repo/bist-mini-2-backend/api/v1/api_router.py)**에 각자 생성한 라우터를 포함시켜 전역 앱에 바인딩합니다.
+도메인별 엔드포인트 작성이 완료되면, **[api_router.py](file:///c:/Repo/bist-mini-2/backend/api/v1/api_router.py)**에 각자 생성한 라우터를 포함시켜 전역 앱에 바인딩합니다.
 
 ```python
 from fastapi import APIRouter
@@ -77,9 +77,9 @@ api_router.include_router(science.router, prefix="/similarity-search/science", t
 
 ---
 
-## 🛠️ 3. 반드시 지켜야 할 4대 핵심 코딩 룰셋 (Core Coding Rules)
+## 🛠️ 3. 반드시 지켜야 할 핵심 코딩 룰셋 및 체크리스트 (Core Coding Rules)
 
-프로젝트 루트의 [CONVENTIONS.md](file:///d:/Repo/bist-mini-2-backend/CONVENTIONS.md)에 상세 명세가 기술되어 있습니다. 신규 개발자는 다음 4가지를 반드시 준수해야 합니다.
+프로젝트 상세 컨벤션 가이드와 검증 규칙은 루트의 **[백엔드 개발 체크리스트](file:///c:/Repo/bist-mini-2/backend-checklist.md)** 및 **[프론트엔드 개발 체크리스트](file:///c:/Repo/bist-mini-2/frontend-checklist.md)**에 상세히 명세되어 있습니다. 신규 개발자는 다음 핵심 가이드라인을 반드시 준수해야 합니다.
 
 ### Rule 1: 엔드포인트 내 비즈니스 로직 작성 및 예외 발생 금지
 - 엔드포인트 함수(`api/v1/endpoints/*.py`) 내에 데이터베이스 쿼리를 직접 작성하거나, 토큰을 직접 가공하거나, `raise HTTPException(...)`을 실행하지 마십시오.
@@ -88,7 +88,7 @@ api_router.include_router(science.router, prefix="/similarity-search/science", t
 ### Rule 2: 전역 공통 성공/실패 응답 래핑 강제
 - 모든 API 응답은 프론트엔드 파싱 일관성을 보장하기 위해 전역 규격을 따라야 합니다.
 - **성공 응답**: `{"status": "success", "data": ...}` ➡️ 응답 스키마는 `SuccessResponse`를 상속받은 래퍼 클래스를 만들어 제어합니다.
-- **실패 응답**: `{"status": "error", "message": "에러 내용"}` ➡️ 엔드포인트나 서비스에서 정상적으로 `HTTPException` 등을 발생시키면, [exception_handler.py](file:///d:/Repo/bist-mini-2-backend/api/common/exception_handler.py) 전역 처리기가 자동으로 규격화하여 응답합니다.
+- **실패 응답**: `{"status": "error", "message": "에러 내용"}` ➡️ 엔드포인트나 서비스에서 정상적으로 `HTTPException` 등을 발생시키면, [exception_handler.py](file:///c:/Repo/bist-mini-2/backend/api/common/exception_handler.py) 전역 처리기가 자동으로 규격화하여 응답합니다.
 
 ### Rule 3: Pydantic DTO 분리 및 BaseDTO 상속
 - 모든 Pydantic 모델(DTO)은 엔드포인트 내부에 작성할 수 없으며, 반드시 `api/v1/schemas/` 내에 단독 파일로 존재해야 합니다.

@@ -22,8 +22,10 @@
 - [ ] **Bootstrap 클라이언트 컴포넌트 로드**: 루트 `layout.js`에 `BootstrapClient.js` 래퍼 컴포넌트가 적절하게 마운트되어 있습니까?
   - 이를 통해 Bootstrap CSS 스타일 및 JS 번들 스크립트가 클라이언트 단에서 정상 작동되도록 제어해야 합니다.
 - [ ] **Bootstrap 유틸리티 클래스 활용**: 페이지 레이아웃 구조화 및 컴포넌트 디자인 시 Bootstrap의 표준 스타일 클래스(`container`, `row`, `col-*`, `d-flex`, `justify-content-*`, `align-items-*`, `shadow`, `border-0`, `rounded-*` 등)를 적극적으로 활용하고 있습니까?
-- [ ] **커스텀 스타일 가이드**: 추가 커스텀 스타일이 필요할 경우, `src/app/globals.css` 또는 모듈형 CSS 스타일시트(`*.module.css`)에만 추가해 구현했습니까?
+- [ ] **인라인 CSS 완전 금지 및 스타일시트 이관**: JSX/JS 코드 내에서 인라인 `style={{ ... }}` 속성을 선언하는 행위가 완전히 배제되었습니까?
+  - 추가 커스텀 스타일이 필요한 경우 반드시 `src/app/globals.css` 또는 모듈형 CSS 스타일시트(`*.module.css`)에만 정의해 이관해야 합니다.
 - [ ] **이모지 사용 금지 및 Bootstrap Icons 활용**: UI 상의 시각적 기호나 아이콘 장식 시 이모지(이모티콘) 문자를 그대로 사용하는 대신, `bi bi-*` 등의 **Bootstrap Icons** 클래스를 적용했습니까?
+  - 예: 사이드바 접기/펼치기 버튼은 `bi-arrow-bar-left`/`right`, 계정 정보 드롭다운 버튼은 `bi-three-dots-vertical` 등 모던하고 통일된 아이콘 패밀리를 유지하십시오.
 
 ## 4. 상태 관리 및 Context API (State Management & Context API)
 - [ ] **Context API를 통한 전역 상태 관리**: 사용자 인증 정보나 시스템 설정과 같이 여러 컴포넌트에서 공유되어야 하는 상태 정보들은 React **Context API**를 구현해 관리합니까?
@@ -39,3 +41,9 @@
   - `docs`: 문서 변경 및 생성
   - `refactor`: 구조적인 개선 (기능 변화가 없는 경우)
 - [ ] **PR 전 셀프 리뷰**: PR 생성 전 변경 사항 중 임시로 작성한 디버깅 로그(`console.log` 등)나 불필요한 주석이 남아있지 않은지 검토했습니까?
+
+## 6. 테스트 및 CI 검증 (Testing & CI Verification)
+- [ ] **Jest 기반 테스트 작성 및 빌드**: 프론트엔드 테스트 환경이 깨지지 않고 정상 작동합니까?
+  - 로컬 환경 실행 명령어: `npm run test` (Windows PowerShell 권한 에러 발생 시 `cmd /c npm run test`로 우회)
+- [ ] **플레이스홀더 테스트 유지**: 테스트 설정이 무조건 통과할 수 있도록 `tests/` 폴더 내에 플레이스홀더 테스트 스펙(`expect(true).toBe(true)`)만 존재하는 비어있는 상태로 구성하고, 불필요한 React 컴포넌트 렌더링 테스트는 비활성화 상태를 유지합니까?
+- [ ] **CI 파이프라인 무결성**: PR(Pull Request) 발생 시 GitHub Actions CI 파이프라인(`Frontend Jest` Job)에서 테스트 스위트가 에러 없이 성공하는지 확인했습니까?

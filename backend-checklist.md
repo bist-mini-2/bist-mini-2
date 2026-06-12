@@ -68,3 +68,8 @@
 ## 8. 일반 패턴 및 문서화 (General Patterns & Documentation)
 - [ ] **싱글톤 패턴**: DB 접속 엔진, 앱 설정 정보 등 전역적으로 공유되는 자원은 파이썬 모듈 캐싱 메커니즘을 이용한 싱글톤 인스턴스 형태로 임포트하여 사용합니까?
 - [ ] **표준 Google 스타일 Docstring**: 모든 모듈, 함수 및 클래스 선언부 하단에 Google 스타일의 Docstring(인자 타입, 설명, 반환 값 및 발생 가능 예외)을 필수로 기재했습니까?
+
+## 9. 테스트 및 CI 검증 (Testing & CI Verification)
+- [ ] **Pytest 기반 테스트 작성 및 실행**: 백엔드 API 테스트(예: `tests/test_health.py`)가 오류 없이 구동됩니까?
+  - 로컬 환경 실행 시 `main` 모듈 임포트 누수를 예방하기 위해 반드시 `PYTHONPATH=.` 환경 변수를 지정하고 pytest를 실행해야 합니다. (예: `set PYTHONPATH=.&& pytest` 또는 `python -m pytest`)
+- [ ] **CI 파이프라인 무결성**: PR(Pull Request) 발생 시 GitHub Actions CI 파이프라인(`Backend Pytest` Job)에서 테스트 스위트가 에러 없이 성공하는지 확인했습니까?
