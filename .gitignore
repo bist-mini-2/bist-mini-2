@@ -10,6 +10,7 @@ Thumbs.db
 *.njsproj
 *.sln
 *.swp
+_archive/
 
 # =============================================================================
 # Environment / Secrets (Never commit credentials)
