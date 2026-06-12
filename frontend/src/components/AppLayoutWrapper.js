@@ -18,27 +18,29 @@ export default function AppLayoutWrapper({ children }) {
   }
 
   return (
-    <div className="d-flex min-vh-100 text-dark" style={{ overflow: "hidden", backgroundColor: "#ffffff" }}>
+    <div className="d-flex min-vh-100" style={{ overflow: "hidden", backgroundColor: "var(--background)", color: "var(--foreground)" }}>
       <Sidebar />
       <main 
         className="flex-grow-1 overflow-auto position-relative" 
         style={{ 
           height: "100vh",
-          backgroundColor: "#f9f9fb",
-          backgroundImage: "radial-gradient(at 0% 0%, rgba(16, 163, 127, 0.05) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.03) 0px, transparent 50%)"
+          backgroundColor: "var(--background)",
+          backgroundImage: "radial-gradient(var(--tertiary-color) 1px, transparent 1px)",
+          backgroundSize: "20px 20px",
+          backgroundPosition: "0 0"
         }}
       >
         {/* Ambient Light 번짐 광원 효과 */}
         <div 
           className="position-absolute" 
           style={{
-            width: "400px",
-            height: "400px",
-            top: "10%",
-            left: "10%",
+            width: "600px",
+            height: "600px",
+            top: "-100px",
+            left: "-100px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(16, 163, 127, 0.035) 0%, rgba(16, 163, 127, 0) 70%)",
-            filter: "blur(60px)",
+            background: "radial-gradient(circle, rgba(120, 149, 178, 0.08) 0%, rgba(120, 149, 178, 0) 70%)",
+            filter: "blur(80px)",
             pointerEvents: "none",
             zIndex: 0
           }}

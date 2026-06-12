@@ -3,43 +3,46 @@
    ============================================================================= */
 
 :root {
-  --background: #ffffff;
-  --foreground: #0d0d0d;
-  --card-bg: rgba(255, 255, 255, 0.75);
-  --card-border: rgba(0, 0, 0, 0.08);
-  --accent-color: #10a37f;
-  --accent-glow: rgba(16, 163, 127, 0.08);
-  --glass-blur: 16px;
+  --background: #F5EFE6;
+  --foreground: #1e293b;
+  --card-bg: #ffffff;
+  --card-border: #E8DFCA;
+  --accent-color: #7895B2;
+  --accent-glow: rgba(120, 149, 178, 0.12);
+  --tertiary-color: #AEBDCA;
+  --glass-blur: 8px;
+  --mono-font: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
-/* Text Gradients (Light theme style) */
+/* Text Gradients (Langfuse Dev theme style) */
 .text-gradient {
-  background: linear-gradient(135deg, #0d0d0d 30%, #4b5563 100%);
+  background: linear-gradient(135deg, #1e293b 30%, #7895B2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .text-gradient-accent {
-  background: linear-gradient(135deg, #10a37f 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #7895B2 0%, #AEBDCA 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Custom Scrollbar for Light Theme */
+/* Custom Scrollbar for Langfuse Theme */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(243, 244, 246, 0.5);
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
+  background: var(--tertiary-color);
+  border-radius: 4px;
+  border: 2px solid var(--background);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--accent-color);
 }

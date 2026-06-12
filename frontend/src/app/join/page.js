@@ -74,22 +74,22 @@ export default function JoinPage() {
 
   return (
     <div 
-      className="d-flex align-items-center justify-content-center min-vh-100 text-dark p-4"
+      className="d-flex align-items-center justify-content-center min-vh-100 p-4"
       style={{
-        backgroundColor: "#ffffff",
-        backgroundImage: "radial-gradient(at 10% 10%, rgba(16, 163, 127, 0.05) 0px, transparent 50%), radial-gradient(at 90% 90%, rgba(59, 130, 246, 0.03) 0px, transparent 50%)"
+        backgroundColor: "var(--background)",
+        backgroundImage: "radial-gradient(var(--tertiary-color) 1px, transparent 1px), linear-gradient(180deg, rgba(120, 149, 178, 0.05) 0%, transparent 100%)",
+        backgroundSize: "20px 20px, 100% 100%"
       }}
     >
       <div 
-        className="card border-0 rounded-4 p-5" 
+        className="card border-0 p-5" 
         style={{
           width: "100%",
           maxWidth: "420px",
-          backgroundColor: "rgba(255, 255, 255, 0.8)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          border: "1px solid rgba(0, 0, 0, 0.08)",
-          boxShadow: "0 20px 45px rgba(0, 0, 0, 0.06)",
+          backgroundColor: "#ffffff",
+          border: "1px solid var(--card-border)",
+          borderRadius: "8px",
+          boxShadow: "0 4px 24px rgba(120, 149, 178, 0.08)",
         }}
       >
         <div className="card-body p-0">
@@ -102,8 +102,8 @@ export default function JoinPage() {
                 height: "52px", 
                 fontSize: "1.6rem", 
                 fontWeight: "800",
-                background: "linear-gradient(135deg, #10a37f 0%, #3b82f6 100%)",
-                boxShadow: "0 4px 14px rgba(16, 163, 127, 0.2)"
+                background: "linear-gradient(135deg, var(--accent-color) 0%, var(--tertiary-color) 100%)",
+                boxShadow: "0 4px 14px rgba(120, 149, 178, 0.2)"
               }}
             >
               P
@@ -128,8 +128,8 @@ export default function JoinPage() {
               <label className="form-label text-muted small fw-semibold">아이디 (ID)</label>
               <input 
                 type="text" 
-                className="form-control bg-white text-dark rounded-3 shadow-none py-2.5" 
-                style={{ border: "1px solid rgba(0, 0, 0, 0.12)" }}
+                className="form-control bg-white text-dark shadow-none py-2.5" 
+                style={{ border: "1px solid var(--card-border)", borderRadius: "6px" }}
                 placeholder="5~20자 사이로 입력하세요"
                 value={mid}
                 onChange={(e) => setMid(e.target.value)}
@@ -141,8 +141,8 @@ export default function JoinPage() {
               <label className="form-label text-muted small fw-semibold">이름</label>
               <input 
                 type="text" 
-                className="form-control bg-white text-dark rounded-3 shadow-none py-2.5" 
-                style={{ border: "1px solid rgba(0, 0, 0, 0.12)" }}
+                className="form-control bg-white text-dark shadow-none py-2.5" 
+                style={{ border: "1px solid var(--card-border)", borderRadius: "6px" }}
                 placeholder="2~20자 사이로 입력하세요"
                 value={mname}
                 onChange={(e) => setMname(e.target.value)}
@@ -154,8 +154,8 @@ export default function JoinPage() {
               <label className="form-label text-muted small fw-semibold">이메일 주소</label>
               <input 
                 type="email" 
-                className="form-control bg-white text-dark rounded-3 shadow-none py-2.5" 
-                style={{ border: "1px solid rgba(0, 0, 0, 0.12)" }}
+                className="form-control bg-white text-dark shadow-none py-2.5" 
+                style={{ border: "1px solid var(--card-border)", borderRadius: "6px" }}
                 placeholder="example@domain.com"
                 value={memail}
                 onChange={(e) => setMemail(e.target.value)}
@@ -167,8 +167,8 @@ export default function JoinPage() {
               <label className="form-label text-muted small fw-semibold">비밀번호</label>
               <input 
                 type="password" 
-                className="form-control bg-white text-dark rounded-3 shadow-none py-2.5" 
-                style={{ border: "1px solid rgba(0, 0, 0, 0.12)" }}
+                className="form-control bg-white text-dark shadow-none py-2.5" 
+                style={{ border: "1px solid var(--card-border)", borderRadius: "6px" }}
                 placeholder="5~20자 사이로 입력하세요"
                 value={mpassword}
                 onChange={(e) => setMpassword(e.target.value)}
@@ -178,10 +178,11 @@ export default function JoinPage() {
 
             <button 
               type="submit" 
-              className="btn btn-success w-100 rounded-3 py-2.5 fw-bold mb-3 border-0"
+              className="btn btn-primary w-100 py-2.5 fw-bold mb-3 border-0"
               style={{
-                backgroundColor: "#10a37f",
-                boxShadow: "0 4px 12px rgba(16, 163, 127, 0.15)"
+                backgroundColor: "var(--accent-color)",
+                borderRadius: "6px",
+                boxShadow: "0 2px 8px rgba(120, 149, 178, 0.15)"
               }}
               disabled={isSubmitting}
             >
@@ -196,7 +197,7 @@ export default function JoinPage() {
           {/* 로그인 리다이렉트 유도 */}
           <div className="text-center mt-4">
             <span className="text-muted small">이미 계정이 있으신가요? </span>
-            <Link href="/login" className="text-success small fw-semibold text-decoration-none hover-underline" style={{ color: "#10a37f" }}>
+            <Link href="/login" className="small fw-semibold text-decoration-none hover-underline" style={{ color: "var(--accent-color)" }}>
               로그인하기
             </Link>
           </div>

@@ -1,33 +1,29 @@
 /* =============================================================================
-   Reusable Component Styles (Light Glassmorphism)
+   Reusable Component Styles (Langfuse Developer Aesthetic)
    ============================================================================= */
 
-/* Glassmorphism Card (Light Style) */
+/* Flat Border Developer Card */
 .glass-card {
   background: var(--card-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--card-border);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-color 0.2s ease, 
-              box-shadow 0.2s ease;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  border-color: var(--tertiary-color);
+  box-shadow: 0 4px 12px rgba(120, 149, 178, 0.08);
 }
 
-/* Gradient Accent Border Card */
+/* Gradient Accent Border Card (Langfuse style) */
 .accent-card {
   position: relative;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .accent-card::before {
@@ -36,6 +32,63 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, #10a37f, #0dcd9b, #3b82f6);
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-color), var(--tertiary-color));
+}
+
+/* Developer Monospace Badge */
+.mono-badge {
+  font-family: var(--mono-font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  background-color: var(--background);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Modern Input Style (Langfuse/Vercel Concept) */
+.dev-input {
+  background-color: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dev-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(120, 149, 178, 0.25);
+}
+
+/* Accent Developer Button */
+.dev-btn {
+  background-color: var(--accent-color);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 10px 20px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dev-btn:hover {
+  background-color: #5d7a96;
+  box-shadow: 0 2px 8px rgba(120, 149, 178, 0.2);
+}
+
+.dev-btn:active {
+  transform: translateY(1px);
 }

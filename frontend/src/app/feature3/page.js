@@ -14,9 +14,21 @@ export default function Feature3Page() {
 
   return (
     <div className="d-flex align-items-center justify-content-center h-100" style={{ minHeight: "100vh" }}>
-      <div className="text-center">
-        <h2 className="fw-bold text-dark mb-2 text-gradient">page3 화면입니다</h2>
-        <p className="text-muted small mb-0">현재 로그인 유저: <span className="text-success fw-semibold">{user || "Guest"}</span></p>
+      <div className="glass-card p-5 text-center" style={{ maxWidth: "480px", width: "100%", margin: "20px" }}>
+        <div className="mono-badge mb-3">
+          <i className="bi bi-terminal-fill"></i> console.log("feature_3")
+        </div>
+        <h2 className="fw-bold mb-3 text-gradient">page3 화면입니다</h2>
+        <div className="p-3 rounded bg-light border" style={{ fontFamily: "var(--mono-font)", fontSize: "0.85rem" }}>
+          <div className="d-flex justify-content-between mb-2">
+            <span className="text-muted">status:</span>
+            <span className="text-success fw-semibold">ACTIVE</span>
+          </div>
+          <div className="d-flex justify-content-between">
+            <span className="text-muted">current_user:</span>
+            <span className="fw-semibold text-dark">{user || "Guest"}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
