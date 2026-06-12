@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -11,6 +12,7 @@ import styles from "./AppLayoutWrapper.module.css";
  */
 export default function AppLayoutWrapper({ children }) {
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   
   // 로그인 및 회원가입 페이지는 사이드바 레이아웃을 제외시킴
   const isAuthPage = pathname === "/login" || pathname === "/join";
@@ -21,7 +23,7 @@ export default function AppLayoutWrapper({ children }) {
 
   return (
     <div className={`d-flex min-vh-100 ${styles.wrapper}`}>
-      <Sidebar />
+      <Sidebar isCollapsed={isCollapsed} onToggle={() => setIsCollapsed(!isCollapsed)} />
       <main className={`flex-grow-1 d-flex flex-column overflow-hidden position-relative ${styles.mainCanvas}`}>
         <Topbar />
         <div className={styles.content}>

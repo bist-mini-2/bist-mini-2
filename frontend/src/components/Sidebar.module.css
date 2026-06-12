@@ -1,3 +1,4 @@
+/* Sidebar Container */
 .sidebar {
   width: 260px;
   background-color: var(--sidebar-bg);
@@ -8,6 +9,29 @@
   padding: 20px 16px;
   flex-shrink: 0;
   height: 100vh;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebarCollapsed {
+  width: 72px;
+  padding: 20px 10px;
+}
+
+/* Logo Header and Toggle Button */
+.logoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  height: 36px;
+  transition: flex-direction 0.3s, height 0.3s, gap 0.3s;
+}
+
+.sidebarCollapsed .logoHeader {
+  flex-direction: column;
+  height: auto;
+  gap: 12px;
+  align-items: center;
 }
 
 .logoGroup {
@@ -19,6 +43,12 @@
   color: var(--foreground);
   padding: 8px 4px;
   letter-spacing: -0.5px;
+  transition: gap 0.3s;
+}
+
+.sidebarCollapsed .logoGroup {
+  gap: 0;
+  padding: 4px 0;
 }
 
 .logoCircle {
@@ -32,9 +62,46 @@
   color: white;
   font-size: 0.9rem;
   font-weight: 800;
-  box-shadow: none;
+  flex-shrink: 0;
 }
 
+.logoText {
+  opacity: 1;
+  max-width: 150px;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.sidebarCollapsed .logoText {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  color: #8A908A;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.toggleButton:hover {
+  background-color: rgba(142, 157, 135, 0.1);
+  color: var(--accent-color);
+}
+
+/* Menu Section */
 .menuSection {
   margin-top: 24px;
 }
@@ -54,12 +121,18 @@
   font-size: 0.9rem;
   color: #555c56;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: padding 0.3s, justify-content 0.3s, gap 0.3s, background-color 0.15s ease;
   display: flex;
   align-items: center;
   gap: 12px;
   text-decoration: none;
   border: 1px solid transparent;
+}
+
+.menuItemCollapsed {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 0;
 }
 
 .menuItem:hover {
@@ -72,10 +145,34 @@
   border: 1px solid transparent !important;
   font-weight: 700;
   color: var(--foreground) !important;
-  padding-left: 16px !important;
-  box-shadow: none !important;
 }
 
+.menuIcon {
+  font-size: 1.1rem;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.menuItem:hover .menuIcon {
+  transform: scale(1.1);
+}
+
+.menuText {
+  opacity: 1;
+  max-width: 150px;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.sidebarCollapsed .menuText {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
+}
+
+/* Bottom Profile Section */
 .bottomSection {
   display: flex;
   flex-direction: column;
@@ -95,8 +192,14 @@
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: padding 0.3s, justify-content 0.3s, gap 0.3s, background-color 0.2s ease;
   user-select: none;
+}
+
+.profileCardCollapsed {
+  justify-content: center;
+  padding: 8px 0;
+  gap: 0;
 }
 
 .profileCard:hover {
@@ -116,13 +219,21 @@
   font-family: var(--mono-font);
   font-weight: 700;
   font-size: 0.9rem;
-  box-shadow: none;
+  flex-shrink: 0;
 }
 
 .profileInfo {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 120px;
+}
+
+.sidebarCollapsed .profileInfo {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
 }
 
 .profileName {
@@ -141,7 +252,7 @@
   font-family: var(--mono-font);
 }
 
-/* 프로필 드롭다운 메뉴 스타일링 (Light Theme) */
+/* Profile Dropdown Menu */
 .dropdownMenu {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -154,9 +265,15 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  box-shadow: none;
   z-index: 100;
   animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdownMenuCollapsed {
+  left: calc(100% + 8px);
+  right: auto;
+  width: 150px;
+  bottom: 0;
 }
 
 @keyframes slideUp {
@@ -206,4 +323,8 @@
 
 .chevronIconActive {
   transform: rotate(180deg);
+}
+
+.hidden {
+  display: none !important;
 }

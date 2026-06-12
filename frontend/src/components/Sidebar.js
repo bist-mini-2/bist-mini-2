@@ -12,7 +12,7 @@ import styles from "./Sidebar.module.css";
  * 와이어프레임(user-main-chat.html)의 스타일링과 요소를 준수하여 제작되었으며,
  * 현재 로그인 사용자 표시 및 로그아웃 기능을 포함합니다.
  */
-export default function Sidebar() {
+export default function Sidebar({ isCollapsed, onToggle }) {
   const { user, setUser, setAccessToken } = useContext(AuthContext);
   const pathname = usePathname();
   const router = useRouter();
@@ -47,12 +47,22 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className={styles.sidebar}>
-      {/* 상단 로고 그룹 */}
+    <aside className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ""}`}>
+      {/* 상단 로고 및 토글 버튼 그룹 */}
       <div className="d-flex flex-column gap-3">
-        <div className={styles.logoGroup}>
-          <div className={styles.logoCircle}>P</div>
-          <span>Paper Agent</span>
+        <div className={styles.logoHeader}>
+          <div className={styles.logoGroup}>
+            <div className={styles.logoCircle}>P</div>
+            <span className={styles.logoText}>Paper Agent</span>
+          </div>
+          <button 
+            className={styles.toggleButton} 
+            onClick={onToggle} 
+            title={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+            aria-label="Toggle Sidebar"
+          >
+            <i className={`bi ${isCollapsed ? "bi-chevron-right" : "bi-chevron-left"}`}></i>
+          </button>
         </div>
 
         {/* 메인 메뉴 영역 */}
@@ -64,10 +74,10 @@ export default function Sidebar() {
                 <li key={menu.path}>
                   <Link
                     href={menu.path}
-                    className={`${styles.menuItem} ${isActive ? styles.menuItemActive : ""}`}
+                    className={`${styles.menuItem} ${isActive ? styles.menuItemActive : ""} ${isCollapsed ? styles.menuItemCollapsed : ""}`}
                   >
-                    <i className={`bi ${menu.icon}`}></i>
-                    <span>{menu.name}</span>
+                    <i className={`bi ${menu.icon} ${styles.menuIcon}`}></i>
+                    <span className={styles.menuText}>{menu.name}</span>
                   </Link>
                 </li>
               );
@@ -79,22 +89,22 @@ export default function Sidebar() {
       {/* 하단 사용자 정보 및 세션 영역 */}
       <div className={styles.bottomSection}>
         {isDropdownOpen && (
-          <div className={styles.dropdownMenu}>
+          <div className={`${styles.dropdownMenu} ${isCollapsed ? styles.dropdownMenuCollapsed : ""}`}>
             {user ? (
               <button className={styles.dropdownItem} onClick={handleLogout}>
                 <i className="bi bi-box-arrow-right"></i>
-                <span>Logout</span>
+                <span className={styles.dropdownText}>Logout</span>
               </button>
             ) : (
               <Link href="/login" className={styles.dropdownItem} onClick={() => setIsDropdownOpen(false)}>
                 <i className="bi bi-box-arrow-in-right"></i>
-                <span>Login</span>
+                <span className={styles.dropdownText}>Login</span>
               </Link>
             )}
           </div>
         )}
 
-        <div className={styles.profileCard} onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+        <div className={`${styles.profileCard} ${isCollapsed ? styles.profileCardCollapsed : ""}`} onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
           <div className={styles.profileAvatar}>
             {user ? user.substring(0, 2).toUpperCase() : "G"}
           </div>
@@ -102,7 +112,7 @@ export default function Sidebar() {
             <span className={styles.profileName}>{user || "Guest"}</span>
             <span className={styles.profileRole}>{user ? "ROLE_USER" : "GUEST"}</span>
           </div>
-          <i className={`bi bi-chevron-up ${styles.chevronIcon} ${isDropdownOpen ? styles.chevronIconActive : ""}`}></i>
+          <i className={`bi bi-chevron-up ${styles.chevronIcon} ${isCollapsed ? styles.hidden : ""} ${isDropdownOpen ? styles.chevronIconActive : ""}`}></i>
         </div>
       </div>
     </aside>
