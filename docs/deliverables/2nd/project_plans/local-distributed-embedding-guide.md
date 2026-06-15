@@ -163,7 +163,52 @@ def process_bulk_embedding(chunks_to_embed):
 
 ---
 
-## 📈 5. 성능 비교 및 분석 인사이트 (Performance Insights)
+## 🔌 5. LangChain PGVector 연동 가이드 (LangChain Integration)
+
+백엔드 서비스 소스코드 내부에서 LangChain의 `PGVector` 클래스 인스턴스를 생성하여 RAG 검색을 수행할 때, 기존 OpenAI API 호출 구조를 그대로 유지하면서 단 한 줄의 인자 수정만으로 맥미니 M4 로컬 분산 서버로 전환할 수 있습니다.
+
+### 5.1 헬퍼 함수를 통한 접두사(Prefix) 분기 처리 구현
+`init_embeddings`와 같은 래퍼 함수를 선언해 두면, 호출부 코드의 구조적 일관성을 유지하면서도 실행 모드를 손쉽게 전환할 수 있습니다.
+
+```python
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.vectorstores import PGVector
+
+def init_embeddings(model: str):
+    """
+    모델 식별 접두사(openai: / ollama:)에 따라 임베딩 엔진 객체를 동적으로 생성합니다.
+    """
+    if model.startswith("openai:"):
+        openai_model_name = model.split("openai:")[1]
+        return OpenAIEmbeddings(model=openai_model_name)
+        
+    elif model.startswith("ollama:"):
+        ollama_model_name = model.split("ollama:")[1]
+        return OllamaEmbeddings(
+            base_url="http://192.168.0.15:11434",  # 맥미니 M4 로컬 내부 IP 주소
+            model=ollama_model_name
+        )
+    else:
+        raise ValueError(f"지원하지 않는 임베딩 식별자입니다: {model}")
+```
+
+### 5.2 PGVector 인스턴스 생성 예시
+위의 헬퍼 함수를 활용하여 접두사를 `ollama:`로 지정하기만 하면, PGVector 생성자에 즉시 맥미니 M4 연동 임베딩 모듈이 주입됩니다.
+
+```python
+# 윈도우 PC API 서버의 VectorStore 객체 생성부
+vectorstore = PGVector(
+    # 'openai:text-embedding-3-large' 에서 아래와 같이 한 줄 변경
+    embeddings=init_embeddings(model="ollama:nomic-embed-text"),
+    collection_name=collection_name,
+    connection="postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
+)
+```
+
+---
+
+## 📈 6. 성능 비교 및 분석 인사이트 (Performance Insights)
 
 | 항목 | OpenAI API (`text-embedding-3-large`) | 맥미니 M4 로컬 분산 (`nomic-embed-text`) |
 | :--- | :--- | :--- |
