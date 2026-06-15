@@ -31,10 +31,11 @@ graph TD
         end
     end
 
-    subgraph DataStore ["Database Tier (PostgreSQL)"]
+    subgraph DataStore ["Database & Cache Tier"]
         DB[("PostgreSQL DB")]
         PGV["pgvector Vector Store"]
         Saver["PostgresSaver (LangGraph Session)"]
+        Redis[("Redis Cache")]
     end
 
     %% Client Connection
@@ -45,6 +46,7 @@ graph TD
     AuthGuard --> Router
     Router --> Graph
     Router --> DB
+    Router -->|Read-heavy Cache Lookup| Redis
     
     %% Graph Database connection
     Graph -->|Similarity Search| PGV
@@ -60,9 +62,17 @@ graph TD
 2.  **Backend Tier (FastAPI, Python 3.14)**:
     -   FastAPI 라우터를 토대로 REST API 엔드포인트를 노출하고, `typing.Annotated` 패턴의 의존성 주입(`DbSession`, `CurrentUser`)을 활용해 리소스를 제어합니다.
     -   LangGraph를 사용해 질문 유형에 따른 분기(생명공학/CS/천문학 RAG) 및 다중 에이전트 합의 토론 워크플로우를 정의합니다.
-3.  **Database Tier (PostgreSQL 17, pgvector)**:
-    -   사용자 정보(`member`) 및 에이전트 세션의 스레드 체크포인팅(`PostgresSaver`)을 담는 데이터베이스 노드입니다.
-    -   3대 학술 영역의 벡터 테이블(`bio_embeddings`, `cs_embeddings`, `astronomy_embeddings`)에 1536차원 임베딩 정보를 적재하고 코사인 유사도 연산을 실행합니다.
+3.  **Database & Cache Tier (PostgreSQL 17, pgvector, Redis)**:
+    -   **PostgreSQL DB**: 사용자 정보(`member`) 및 에이전트 세션의 스레드 체크포인팅(`PostgresSaver`)을 관리하는 메인 관계형 데이터베이스입니다.
+    -   **pgvector Vector Store**: 3대 학술 영역의 벡터 테이블(`bio_embeddings`, `cs_embeddings`, `astronomy_embeddings`)에 1536차원 임베딩 정보를 적재하고 코사인 유사도 연산을 실행합니다.
+    -   **Redis Cache (고도화 제언 반영)**: 특정 논문의 고정된 인용 관계망 조회(`GET /papers/{id}/citations`) 및 유사도가 매우 높고 반복되는 동일 RAG 쿼리 벡터 탐색 결과에 대해 Redis 캐시를 도입하여, 비싼 PostgreSQL/pgvector 연산 부하를 획기적으로 낮추고 속도를 보장합니다.
+
+### 💡 아키텍처 및 성능 최적화 고도화 설계 (Performance & Async Push)
+
+*   **Read-heavy 연산에 대한 Redis 캐싱**: 
+    - 동적 에이전트 대화 및 보안 세션은 노캐시 정책을 유지하지만, 구조가 고정된 논문 인용망 조회(`GET /papers/{id}/citations`) 및 고도로 중복되는 동일 RAG 벡터 유사도 탐색은 **Redis 인메모리 캐시**를 거치도록 설계하여 데이터베이스 연산 병목을 예방합니다.
+*   **비동기 알림 방식 고도화 (Push-based Task Notification)**:
+    - 대규모 문헌 분석(`F-01-B-1`)과 같이 처리 시간이 긴 백그라운드 비동기 작업에 대해 클라이언트가 매번 상태를 조회(Polling)하는 트래픽 부담을 해소하기 위해, 작업 완수 시 백엔드에서 **SSE 푸시 이벤트**를 발생시켜 클라이언트 화면(Topbar 알림 또는 Inbox)에 즉각 수신 통보되도록 연동 아키텍처를 고도화합니다.
 
 ---
 
@@ -279,6 +289,7 @@ graph TD
 
 #### 7. F-01-B-2: 비동기 분석 작업 상태 및 결과 조회 API
 *   **설명**: 비동기 배치 작업의 상태(`PENDING`, `RUNNING`, `SUCCESS`)를 조회하고 완료 시 요약 매트릭스 및 연구 공백 제안 데이터를 반환합니다.
+*   **비동기 알림 고도화 (SSE Push)**: 클라이언트의 주기적인 HTTP 폴링(Polling) 부하를 방지하기 위해, 백그라운드 분석 작업 완료 시 **Server-Sent Events(SSE) 푸시**, **WebSocket** 혹은 **Web Push 알림**을 통해 즉시 클라이언트에 완료 이벤트를 전달하고 알림 인박스(`GET /sandbox/subscriptions/inbox`)에 자동 적재하도록 구성합니다.
 *   **HTTP Method & Path**: `GET /research-gap/tasks/{task_id}`
 *   **Request Parameters**:
     -   `task_id` (Path Parameter, str): 비동기 작업 고유 ID
