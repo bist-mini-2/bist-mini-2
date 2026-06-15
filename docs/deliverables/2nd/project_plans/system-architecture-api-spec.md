@@ -64,7 +64,7 @@ graph TD
     -   LangGraph를 사용해 질문 유형에 따른 분기(생명공학/CS/천문학 RAG) 및 다중 에이전트 합의 토론 워크플로우를 정의합니다.
 3.  **Database & Cache Tier (PostgreSQL 17, pgvector, Redis)**:
     -   **PostgreSQL DB**: 사용자 정보(`member`) 및 에이전트 세션의 스레드 체크포인팅(`PostgresSaver`)을 관리하는 메인 관계형 데이터베이스입니다.
-    -   **pgvector Vector Store**: 3대 학술 영역의 벡터 테이블(`bio_embeddings`, `cs_embeddings`, `astronomy_embeddings`)에 1536차원 임베딩 정보를 적재하고 코사인 유사도 연산을 실행합니다.
+    -   **pgvector Vector Store**: 3대 학술 영역의 벡터 테이블(`bio_embeddings`, `cs_embeddings`, `astronomy_embeddings`)에 3072차원 임베딩 정보를 적재하고 코사인 유사도 연산을 실행합니다.
     -   **Redis Cache (고도화 제언 반영)**: 특정 논문의 고정된 인용 관계망 조회(`GET /papers/{id}/citations`) 및 유사도가 매우 높고 반복되는 동일 RAG 쿼리 벡터 탐색 결과에 대해 Redis 캐시를 도입하여, 비싼 PostgreSQL/pgvector 연산 부하를 획기적으로 낮추고 속도를 보장합니다.
 
 ### 💡 아키텍처 및 성능 최적화 고도화 설계 (Performance & Async Push)

@@ -58,3 +58,5 @@ docs/langchain-v5.pptx.pdf
 # Local Dataset Storage (Do not commit large raw files)
 # =============================================================================
 /data/
+models/
+*.gguf

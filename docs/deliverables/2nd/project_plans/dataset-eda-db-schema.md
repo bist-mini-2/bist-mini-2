@@ -57,7 +57,7 @@ Kaggle ArXiv 전체 데이터셋에서 플랫폼이 지원하는 3대 타겟 영
     - RAG 파이프라인의 성능과 컨텍스트 유지 비용 최적화를 위해, 각 논문의 `abstract` 텍스트를 **500자(Characters) 단위**의 슬라이딩 윈도우 방식으로 분할합니다.
     - 단락의 문맥 손실을 방지하기 위해 청크 간 **50자의 중첩 영역(Overlap)**을 부여합니다.
 *   **임베딩 벡터 생성**:
-    - 분할된 각 청크 텍스트에 대해 OpenAI `text-embedding-3-small` API를 통과시켜 **1536차원 조밀 벡터(Dense Vector)**를 추출합니다.
+    -   분할된 각 청크 텍스트에 대해 `qwen3-embedding` 또는 `text-embedding-3-large`를 통과시켜 **3072차원 조밀 벡터(Dense Vector)**를 추출합니다.
     - 데이터베이스의 각 도메인별 임베딩 스토어 테이블에 외래키(`doc_id`), 청크 텍스트(`chunk_text`), 벡터(`embedding`), 순서 정렬용 인덱스(`chunk_index`)를 구조화하여 벌크 적재합니다.
 
 ### 1.4 실제 ArXiv 원천 데이터셋(3,073,376건) 기준 도메인 분포 통계 (EDA 결과)
@@ -273,7 +273,7 @@ CREATE TABLE cs_embeddings (
     chunk_id SERIAL PRIMARY KEY,
     doc_id VARCHAR(50) NOT NULL REFERENCES paper_cs(doc_id) ON DELETE CASCADE,
     chunk_text TEXT NOT NULL,
-    embedding vector(1536) NOT NULL,
+    embedding vector(3072) NOT NULL,
     chunk_index INTEGER NOT NULL
 );
 
@@ -282,7 +282,7 @@ CREATE TABLE bio_embeddings (
     chunk_id SERIAL PRIMARY KEY,
     doc_id VARCHAR(50) NOT NULL REFERENCES paper_bio(doc_id) ON DELETE CASCADE,
     chunk_text TEXT NOT NULL,
-    embedding vector(1536) NOT NULL,
+    embedding vector(3072) NOT NULL,
     chunk_index INTEGER NOT NULL
 );
 
@@ -291,7 +291,7 @@ CREATE TABLE astronomy_embeddings (
     chunk_id SERIAL PRIMARY KEY,
     doc_id VARCHAR(50) NOT NULL REFERENCES paper_astronomy(doc_id) ON DELETE CASCADE,
     chunk_text TEXT NOT NULL,
-    embedding vector(1536) NOT NULL,
+    embedding vector(3072) NOT NULL,
     chunk_index INTEGER NOT NULL
 );
 
@@ -385,7 +385,7 @@ CREATE TABLE sandbox_embeddings (
     chunk_id SERIAL PRIMARY KEY,
     session_file_id VARCHAR(50) NOT NULL REFERENCES sandbox_file(session_file_id) ON DELETE CASCADE,
     chunk_text TEXT NOT NULL,
-    embedding vector(1536) NOT NULL,
+    embedding vector(3072) NOT NULL,
     chunk_index INTEGER NOT NULL
 );
 
