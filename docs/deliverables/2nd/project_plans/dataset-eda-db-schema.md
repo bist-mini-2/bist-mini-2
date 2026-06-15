@@ -37,32 +37,84 @@ JSON 라인 포맷의 각 원본 논문 데이터는 다음과 같은 필드로 
 > 실제 `abstract` 및 `title` 필드는 장문의 텍스트 데이터가 적재되어 있으나, 본 표에서는 가독성을 극대화하기 위해 일부 문자열을 생략(`...`) 처리하여 표현했습니다.
 
 ### 1.2 3대 타겟 도메인 카테고리 필터링 규칙
-Kaggle ArXiv 전체 데이터셋에서 플랫폼이 지원하는 3대 타겟 영역에 해당하는 데이터를 분류하기 위해, `categories` 문자열의 서브클래스 접두사를 활용하여 데이터를 스트리밍 필터링합니다.
+Kaggle ArXiv 전체 데이터셋에서 플랫폼이 지원하는 3대 타겟 영역에 해당하는 데이터를 정밀하게 분류하기 위해, `categories` 컬럼에 매핑된 ArXiv 고유 카테고리 식별자를 사용합니다. 각 학술 도메인의 고유 서브 카테고리 코드 체계와 실측 통계는 다음과 같으며, 서비스에서는 이 서브 카테고리 명칭(예: `cs.AI`, `q-bio.BM` 등)을 API 및 데이터베이스 필터 파라미터로 직접 맵핑하여 사용합니다.
 
-1.  **🧬 생명공학 도메인 (Biotechnology)**:
-    *   **카테고리 매핑**: `q-bio.*` (Quantitative Biology) 전체 카테고리 매핑
-    *   **주요 서브카테고리**:
-        *   `q-bio.BM` (Biomolecules - 분자생물학, 단백질 구조)
-        *   `q-bio.GN` (Genomics - 유전체학, 시퀀싱)
-        *   `q-bio.MN` (Molecular Networks - 신호전달 경로, 대사망)
-        *   `q-bio.TO` (Tissues and Organs - 생체 조직, 이식 생명공학)
-    *   **DB 적재 타겟**: `paper_bio` 메타데이터 테이블 및 `bio_embeddings` 벡터 테이블
-2.  **📄 컴퓨터 과학 도메인 (Computer Science)**:
-    *   **카테고리 매핑**: `cs.*` (Computer Science) 카테고리 매핑
-    *   **주요 서브카테고리**:
-        *   `cs.AI` (Artificial Intelligence - 인공지능)
-        *   `cs.CL` (Computation and Language - 자연어 처리, LLM)
-        *   `cs.CV` (Computer Vision - 컴퓨터 비전, 이미지 처리)
-        *   `cs.LG` (Machine Learning - 머신러닝, 딥러닝)
-    *   **DB 적재 타겟**: `paper_cs` 메타데이터 테이블 및 `cs_embeddings` 벡터 테이블
-3.  **🔬 천문학 도메인 (Astronomy)**:
-    *   **카테고리 매핑**: `astro-ph.*` (Astrophysics) 카테고리 매핑
-    *   **주요 서브카테고리**:
-        *   `astro-ph.CO` (Cosmology and Nongalactic Astrophysics - 우주론 및 은하 천문학)
-        *   `astro-ph.GA` (Astrophysics of Galaxies - 은하 천체물리)
-        *   `astro-ph.HE` (High Energy Astrophysical Phenomena - 고에너지 우주 입자, 블랙홀)
-        *   `astro-ph.SR` (Solar and Stellar Astrophysics - 태양 및 항성 물리)
-    *   **DB 적재 타겟**: `paper_astronomy` 메타데이터 테이블 및 `astronomy_embeddings` 벡터 테이블
+#### 📄 1. 컴퓨터 과학 도메인 (Computer Science - `cs.*`)
+*   **DB 적재 타겟**: `paper_cs` 메타데이터 테이블 및 `cs_embeddings` 벡터 테이블
+*   **세부 카테고리 전체 목록**:
+
+| 서브 카테고리 코드 | 영문 카테고리 명칭 (Official Title) | 국문 설명 및 도메인 매핑 | 데이터 건수 |
+| :--- | :--- | :--- | :---: |
+| `cs.LG` | Machine Learning | 머신러닝, 딥러닝 | 272,646 건 |
+| `cs.CV` | Computer Vision and Pattern Recognition | 컴퓨터 비전, 이미지 처리 | 195,716 건 |
+| `cs.AI` | Artificial Intelligence | 인공지능 | 184,260 건 |
+| `cs.CL` | Computation and Language | 자연어 처리, LLM, Computational Linguistics | 112,061 건 |
+| `cs.IT` | Information Theory | 정보이론 | 54,738 건 |
+| `cs.RO` | Robotics | 로봇공학 | 54,141 건 |
+| `cs.NA` | Numerical Analysis | 수치 해석 및 수치 분석 | 49,733 건 |
+| `cs.CR` | Cryptography and Security | 암호학 및 보안 | 49,202 건 |
+| `cs.SY` | Systems and Control | 시스템 및 제어 | 46,163 건 |
+| `cs.HC` | Human-Computer Interaction | 인간-컴퓨터 상호작용 | 30,934 건 |
+| `cs.DS` | Data Structures and Algorithms | 자료구조 및 알고리즘 | 28,966 건 |
+| `cs.CY` | Computers and Society | 컴퓨터와 사회 | 28,886 건 |
+| `cs.DC` | Distributed, Parallel, and Cluster Computing | 분산/병렬/클러스터 컴퓨팅 | 28,874 건 |
+| `cs.NI` | Networking and Internet Architecture | 네트워킹 및 인터넷 아키텍처 | 27,553 건 |
+| `cs.SE` | Software Engineering | 소프트웨어 공학 | 27,218 건 |
+| `cs.IR` | Information Retrieval | 정보 검색 및 색인 | 25,685 건 |
+| `cs.SI` | Social and Information Networks | 소셜 및 정보 네트워크 | 23,499 건 |
+| `cs.SD` | Sound | 음향 및 오디오 처리 | 21,000 건 |
+| `cs.LO` | Logic in Computer Science | 컴퓨터 과학의 수학적 논리 | 19,489 건 |
+| `cs.NE` | Neural and Evolutionary Computing | 신경망 및 진화 연산 *(5천건 샘플링 타겟)* | 17,825 건 |
+| `cs.DM` | Discrete Mathematics | 이산수학 | 15,667 건 |
+| `cs.GT` | Computer Science and Game Theory | 알고리즘 게임이론 | 14,876 건 |
+| `cs.CC` | Computational Complexity | 계산 복잡도 이론 | 12,947 건 |
+| `cs.MA` | Multiagent Systems | 멀티에이전트 시스템 | 12,619 건 |
+| `cs.DB` | Databases | 데이터베이스, 스토리지 엔진 | 11,845 건 |
+| `cs.CE` | Computational Engineering, Finance, and Science | 계산 공학, 전산 금융 및 융합 과학 | 10,669 건 |
+| `cs.PL` | Programming Languages | 프로그래밍 언어, 컴파일러 | 9,885 건 |
+| `cs.MM` | Multimedia | 멀티미디어 시스템 | 9,654 건 |
+| `cs.GR` | Graphics | 컴퓨터 그래픽스, 렌더링 | 9,323 건 |
+| `cs.AR` | Hardware Architecture | 하드웨어 아키텍처, 컴퓨터 구조 | 8,367 건 |
+| `cs.CG` | Computational Geometry | 계산 기하학 | 8,091 건 |
+| `cs.ET` | Emerging Technologies | 신흥 및 차세대 기술 | 7,418 건 |
+| `cs.DL` | Digital Libraries | 디지털 라이브러리 | 6,065 건 |
+| `cs.FL` | Formal Languages and Automata Theory | 형식 언어 및 오토마타 이론 | 6,021 건 |
+| `cs.PF` | Performance | 시스템 성능 분석 및 모델링 | 5,293 건 |
+| `cs.SC` | Symbolic Computation | 기호 계산 | 3,138 건 |
+| `cs.MS` | Mathematical Software | 수학적 소프트웨어 | 2,652 건 |
+| `cs.OH` | Other Computer Science | 기타 컴퓨터 과학 영역 | 2,317 건 |
+| `cs.OS` | Operating Systems | 운영체제 | 1,371 건 |
+| `cs.GL` | General Literature | 일반 개론 및 문헌 | 239 건 |
+
+#### 🧬 2. 생명공학 도메인 (Quantitative Biology - `q-bio.*`)
+*   **DB 적재 타겟**: `paper_bio` 메타데이터 테이블 및 `bio_embeddings` 벡터 테이블
+*   **세부 카테고리 전체 목록**:
+
+| 서브 카테고리 코드 | 영문 카테고리 명칭 (Official Title) | 국문 설명 및 도메인 매핑 | 데이터 건수 |
+| :--- | :--- | :--- | :---: |
+| `q-bio.QM` | Quantitative Methods | 정량적 분석 방법론, 실험 설계 | 13,229 건 |
+| `q-bio.PE` | Populations and Evolution | 집단 생물학, 생태계 및 진화학 | 13,017 건 |
+| `q-bio.NC` | Neurons and Cognition | 신경 과학 및 인지 생물학 | 12,158 건 |
+| `q-bio.BM` | Biomolecules | 생체분자학, 단백질 폴딩, 생물물리 *(5천건 샘플링 타겟)* | 6,754 건 |
+| `q-bio.MN` | Molecular Networks | 신호전달 경로, 대사망, 유전자 조절 네트워크 | 4,164 건 |
+| `q-bio.GN` | Genomics | 유전체학, 유전자 매핑, 시퀀싱 분석 | 3,848 건 |
+| `q-bio.TO` | Tissues and Organs | 생체 조직, 장기 공학, 조직 생물학 | 2,619 건 |
+| `q-bio.CB` | Cell Behavior | 세포 행동학, 세포 간 상호작용 | 2,454 건 |
+| `q-bio.SC` | Subcellular Processes | 세포 내 소기관 및 하부 프로세스 | 1,809 건 |
+| `q-bio.OT` | Other Quantitative Biology | 기타 정량 생물학 분야 | 1,591 건 |
+
+#### 🔬 3. 천문학 도메인 (Astrophysics - `astro-ph.*`)
+*   **DB 적재 타겟**: `paper_astronomy` 메타데이터 테이블 및 `astronomy_embeddings` 벡터 테이블
+*   **세부 카테고리 전체 목록**:
+
+| 서브 카테고리 코드 | 영문 카테고리 명칭 (Official Title) | 국문 설명 및 도메인 매핑 | 데이터 건수 |
+| :--- | :--- | :--- | :---: |
+| `astro-ph.GA` | Astrophysics of Galaxies | 은하 천체물리, 은하 형성 및 진화 | 77,743 건 |
+| `astro-ph.CO` | Cosmology and Nongalactic Astrophysics | 우주론 및 비은하 천문물리 | 77,276 건 |
+| `astro-ph.SR` | Solar and Stellar Astrophysics | 태양 및 항성 물리, 태양계 물리 | 69,633 건 |
+| `astro-ph.HE` | High Energy Astrophysical Phenomena | 고에너지 우주 현상, 블랙홀, 중성자성, 우주선 | 69,286 건 |
+| `astro-ph.IM` | Instrumentation and Methods for Astrophysics | 천문 계측, 관측 위성 및 분석 방법론 | 35,936 건 |
+| `astro-ph.EP` | Earth and Planetary Astrophysics | 지구 및 행성 천체물리, 태양계 외 행성 *(5천건 샘플링 타겟)* | 35,083 건 |
 
 ### 1.3 RAG 전처리 및 텍스트 청킹 스키마
 *   **텍스트 분할 규칙 (Chunking)**:
