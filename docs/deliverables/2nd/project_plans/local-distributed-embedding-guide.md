@@ -50,8 +50,9 @@ from sentence_transformers import SentenceTransformer
 DATA_PATH = "../../data/raw/archive/arxiv-metadata-oai-snapshot.json"
 OUTPUT_FILE_PATH = "../../data/raw/archive/local_embeddings_output.jsonl"
 # Ollama의 qwen3-embedding에 대응하는 Hugging Face 원본 가중치 모델명
-MODEL_NAME = "Alibaba-NLP/gte-Qwen2-1.5B-instruct"
+MODEL_NAME = "Qwen/Qwen3-Embedding-1.5B-Instruct"
 BATCH_SIZE = 64  # M4 GPU 메모리 최적 배치 사이즈
+
 
 
 def main():
