@@ -27,6 +27,8 @@
     *   *내용*: 플랫폼 3티어 연동 구조(Mermaid) 및 15대 JSON/SSE API 상세 입출력 규격 명세
 *   **데이터셋 EDA 및 DB 스키마 설계**: [dataset-eda-db-schema.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/dataset-eda-db-schema.md)
     *   *내용*: MTEB 3대 데이터셋 구조분석 및 PostgreSQL pgvector DB 테이블 명세(ERD) DDL 정의
+*   **로컬 분산 임베딩 가이드**: [local-distributed-embedding-guide.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/local-distributed-embedding-guide.md)
+    *   *내용*: 맥미니 M4와 윈도우 PC 간의 공유기 내부 IP 망을 통한 Metal GPU 가속 및 분산 임베딩 처리 구축 가이드
 
 ### 🖥️ 1.3 UI/UX 와이어프레임 프로토타입 (HTML & PNG)
 
