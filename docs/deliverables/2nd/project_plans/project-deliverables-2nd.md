@@ -36,6 +36,17 @@
 | **W-06** | 개인용 보안 샌드박스 설정 화면 | [user-sandbox-control.html](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/wireframes/user-sandbox-control.html) | [Screenshot](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/wireframes/images/user-sandbox-control.png) |
 | **W-07** | 유저 피어 리뷰 워크숍 화면 | [user-peer-review.html](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/wireframes/user-peer-review.html) | [Screenshot](file:///c:/Repo/bist-mini-2/docs/deliverables/1st/wireframes/images/user-peer-review.png) |
 
+### 🖥️ 1.4 2차 고도화 UI/UX 와이어프레임 프로토타입 (HTML)
+
+현재 프론트엔드 테마 시스템(Sage/Warm) 및 기능 명세서의 P0/P1 요구사항을 완벽히 반영한 2차 고도화 와이어프레임 목록입니다. 라이트/다크 모드 동적 전환 및 핵심 인터렉션이 구현되어 있습니다.
+
+| 화면 ID | 화면 설명 | HTML 원본 파일 경로 | 주요 구현 기능 |
+| :---: | :--- | :--- | :--- |
+| **W2-01** | 일반 챗 허브 (General Chat Hub) | [user-main-chat.html](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/wireframes/user-main-chat.html) | Step-Back 쿼리, CoT 실시간 추론 로그, 인용 출처 칩 및 D3.js 기반 인용 관계망 시각화 |
+| **W2-02** | 대규모 문헌 비교 및 Gap 분석기 | [user-research-gap.html](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/wireframes/user-research-gap.html) | 문헌 비교 스펙 매트릭스 테이블, 비동기 배치 작업 상태 진행도 및 AI Research Gap 제안 대시보드 |
+| **W2-03** | 보안 리뷰 및 가설 디펜스 아레나 | [user-sandbox-defense.html](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/wireframes/user-sandbox-defense.html) | 30분 소거 타이머 배너, PDF 격리 업로드 드롭존, 3대 에이전트 피어 리뷰 의견 및 자기 일관성 검증 가설구독 |
+| **W2-04** | 맞춤형 연구 비서 Gem 팩토리 | [user-gem-factory.html](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/wireframes/user-gem-factory.html) | RAG 지식베이스 소스 필터 체크박스, 페르소나 시스템 프롬프트 에디터 및 젬 카드 보관함 |
+
 ---
 
 ## 🗺️ 2. 향후 생성될 산출물 계획 로드맵 (Future Roadmap)
