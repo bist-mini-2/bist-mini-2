@@ -4,7 +4,7 @@
   justify-content: space-between;
   height: 56px;
   padding: 0 24px;
-  background-color: rgba(252, 251, 246, 0.85);
+  background-color: var(--topbar-bg);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--card-border);
   z-index: 10;
@@ -47,7 +47,7 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: #556055;
+  color: var(--menu-item-color);
   background-color: var(--tertiary-color);
   padding: 4px 10px;
   border-radius: 9999px;
@@ -66,7 +66,7 @@
 .iconButton {
   background: none;
   border: none;
-  color: #556055;
+  color: var(--menu-item-color);
   font-size: 16px;
   cursor: pointer;
   width: 32px;

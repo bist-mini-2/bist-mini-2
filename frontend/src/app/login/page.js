@@ -49,70 +49,95 @@ export default function LoginPage() {
 
   return (
     <div className={styles.container}>
-      <div className={`card border-0 p-5 ${styles.card}`}>
-        <div className="card-body p-0">
-          {/* 로고 영역 */}
-          <div className="text-center mb-5">
-            <div className={styles.logoIcon}>
-              P
+      {/* 좌측 로그인 폼 섹션 */}
+      <div className={styles.formSection}>
+        <div className={`card border-0 p-5 ${styles.card}`}>
+          <div className="card-body p-0">
+            {/* 로고 영역 */}
+            <div className="text-center mb-5">
+              <div className={styles.logoIcon}>
+                P
+              </div>
+              <h2 className="fw-bold text-dark mb-1 text-gradient">Paper Agent</h2>
+              <p className="text-muted small">로그인하여 플랫폼을 이용해 보세요.</p>
             </div>
-            <h2 className="fw-bold text-dark mb-1 text-gradient">Paper Agent</h2>
-            <p className="text-muted small">로그인하여 플랫폼을 이용해 보세요.</p>
-          </div>
 
-          {/* 에러 메시지 표시 */}
-          {errorMsg && (
-            <div className={`alert text-center mb-4 small py-2 ${styles.errorAlert}`}>
-              {errorMsg}
-            </div>
-          )}
+            {/* 에러 메시지 표시 */}
+            {errorMsg && (
+              <div className={`alert text-center mb-4 small py-2 ${styles.errorAlert}`}>
+                {errorMsg}
+              </div>
+            )}
 
-          {/* 로그인 폼 */}
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label text-muted small fw-semibold">아이디</label>
-              <input 
-                type="text" 
-                className={`form-control shadow-none py-2.5 ${styles.formInput}`} 
-                placeholder="아이디를 입력하세요 (5자 이상)"
-                value={mid}
-                onChange={(e) => setMid(e.target.value)}
+            {/* 로그인 폼 */}
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label className="form-label text-muted small fw-semibold">아이디</label>
+                <input 
+                  type="text" 
+                  className={`form-control shadow-none py-2.5 ${styles.formInput}`} 
+                  placeholder="아이디를 입력하세요 (5자 이상)"
+                  value={mid}
+                  onChange={(e) => setMid(e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="form-label text-muted small fw-semibold">비밀번호</label>
+                <input 
+                  type="password" 
+                  className={`form-control shadow-none py-2.5 ${styles.formInput}`} 
+                  placeholder="비밀번호를 입력하세요 (5자 이상)"
+                  value={mpassword}
+                  onChange={(e) => setMpassword(e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                className={`btn w-100 py-2.5 fw-bold mb-3 transition ${styles.submitBtn}`}
                 disabled={isSubmitting}
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="form-label text-muted small fw-semibold">비밀번호</label>
-              <input 
-                type="password" 
-                className={`form-control shadow-none py-2.5 ${styles.formInput}`} 
-                placeholder="비밀번호를 입력하세요 (5자 이상)"
-                value={mpassword}
-                onChange={(e) => setMpassword(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
+              >
+                {isSubmitting ? (
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                ) : (
+                  "로그인"
+                )}
+              </button>
+            </form>
 
-            <button 
-              type="submit" 
-              className={`btn w-100 py-2.5 fw-bold mb-3 transition ${styles.submitBtn}`}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-              ) : (
-                "로그인"
-              )}
-            </button>
-          </form>
-
-          {/* 회원가입 리다이렉트 유도 */}
-          <div className="text-center mt-4">
-            <span className="text-muted small">계정이 없으신가요? </span>
-            <Link href="/join" className={`small fw-semibold text-decoration-none hover-underline ${styles.redirectLink}`}>
-              회원가입
-            </Link>
+            {/* 회원가입 리다이렉트 유도 */}
+            <div className="text-center mt-4">
+              <span className="text-muted small">계정이 없으신가요? </span>
+              <Link href="/join" className={`small fw-semibold text-decoration-none hover-underline ${styles.redirectLink}`}>
+                회원가입
+              </Link>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* 우측 비주얼 장식 섹션 */}
+      <div className={styles.visualSection}>
+        {/* 흐르는 유기적 블롭 그래픽 */}
+        <div className={styles.blob1}></div>
+        <div className={styles.blob2}></div>
+        <div className={styles.blob3}></div>
+        
+        {/* 비주얼 브랜딩 메시지 */}
+        <div className={styles.visualContent}>
+          <div className={styles.badge}>
+            <i className="bi bi-stars me-2"></i>Next-Gen AI Workspace
+          </div>
+          <h1 className={styles.visualTitle}>
+            Academic Research, <br/>
+            <span className="text-gradient-accent">Reimagined.</span>
+          </h1>
+          <p className={styles.visualSubtitle}>
+            Accelerate your literature reviews, organize your citations, and synthesize scientific insights with a modern, beautiful, AI-powered academic workspace.
+          </p>
         </div>
       </div>
     </div>

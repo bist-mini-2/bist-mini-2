@@ -3,15 +3,17 @@
 import { useContext } from "react";
 import { usePathname } from "next/navigation";
 import { AuthContext } from "@/contexts/AuthContext";
+import { ThemeContext } from "@/contexts/ThemeContext";
 import styles from "./Topbar.module.css";
 
 /**
  * 애플리케이션 우측 메인 캔버스 상단에 배치되는 고정 네비게이션 헤더 바(Topbar)입니다.
- * 현재 활성화된 기능의 명칭(브레드크럼)과 시스템 연동 상태 및 간략한 유저 정보를 제공합니다.
+ * 현재 활성화된 기능의 명칭(브레드크럼)과 시스템 연동 상태 및 테마 전환 기능, 간략한 유저 정보를 제공합니다.
  */
 export default function Topbar() {
   const pathname = usePathname();
   const { user } = useContext(AuthContext);
+  const { theme, toggleTheme } = useContext(ThemeContext);
 
   // 경로명에 대응되는 메뉴 타이틀 맵
   const getPageTitle = (path) => {
@@ -42,6 +44,16 @@ export default function Topbar() {
           <span className={styles.statusDot}></span>
           <span>System: Active</span>
         </div>
+
+        {/* 테마 전환 토글 버튼 */}
+        <button 
+          className={styles.iconButton} 
+          onClick={toggleTheme} 
+          title={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"}
+          aria-label="Toggle Theme"
+        >
+          <i className={`bi ${theme === "light" ? "bi-moon-stars" : "bi-sun"}`}></i>
+        </button>
 
         {/* 도움말 단축 버튼 */}
         <button className={styles.iconButton} title="Help & Documentation">

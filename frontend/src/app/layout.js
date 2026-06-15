@@ -18,6 +18,7 @@ export const metadata = {
 };
 
 import { AuthContextProvider } from "@/contexts/AuthContext";
+import { ThemeContextProvider } from "@/contexts/ThemeContext";
 import AppLayoutWrapper from "@/components/AppLayoutWrapper";
 
 export default function RootLayout({ children }) {
@@ -25,11 +26,13 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body>
         <BootstrapClient />
-        <AuthContextProvider>
-          <AppLayoutWrapper>
-            {children}
-          </AppLayoutWrapper>
-        </AuthContextProvider>
+        <ThemeContextProvider>
+          <AuthContextProvider>
+            <AppLayoutWrapper>
+              {children}
+            </AppLayoutWrapper>
+          </AuthContextProvider>
+        </ThemeContextProvider>
       </body>
     </html>
   );

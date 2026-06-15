@@ -1,8 +1,9 @@
 /* =============================================================================
-   ChatGPT Style Light Theme System Variables
+   ChatGPT Style Theme System Variables
    ============================================================================= */
 
 :root {
+  /* Core Colors */
   --background: #FCFBF6;
   --foreground: #2E332E;
   --card-bg: #ffffff;
@@ -11,9 +12,72 @@
   --accent-color: #8E9D87;
   --accent-glow: rgba(142, 157, 135, 0.08);
   --tertiary-color: #D5DCD0;
+  
+  /* Additional variables to avoid hardcoding */
+  --grid-color: rgba(235, 231, 224, 0.5);
+  --menu-item-color: #555c56;
+  --menu-item-hover-bg: rgba(0, 0, 0, 0.02);
+  --menu-item-active-bg: rgba(0, 0, 0, 0.05);
+  
+  --profile-card-bg: rgba(255, 255, 255, 0.3);
+  --profile-card-border: rgba(255, 255, 255, 0.2);
+  --profile-card-hover-bg: rgba(255, 255, 255, 0.6);
+  --profile-role-color: #64748b;
+  --dots-icon-color: #9ca3af;
+  
+  --dropdown-bg: #ffffff;
+  --dropdown-item-color: #374151;
+  --dropdown-item-hover-bg: rgba(0, 0, 0, 0.03);
+  
+  --topbar-bg: rgba(252, 251, 246, 0.85);
+
+  /* Blob colors */
+  --blob-color-1: rgba(142, 157, 135, 0.25);
+  --blob-color-2: rgba(213, 220, 208, 0.45);
+  --blob-color-3: rgba(142, 157, 135, 0.15);
+
+  /* Utils */
   --radius-sm: 2px;
   --radius-md: 4px;
   --mono-font: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* =============================================================================
+   ChatGPT Style Dark Theme System Variables
+   ============================================================================= */
+[data-theme="dark"] {
+  /* Core Colors */
+  --background: #141614;
+  --foreground: #ECEFED;
+  --card-bg: #1A1D1A;
+  --card-border: #2A302A;
+  --sidebar-bg: #0D0F0D;
+  --accent-color: #A3B29C;
+  --accent-glow: rgba(163, 178, 156, 0.15);
+  --tertiary-color: #242824;
+  
+  /* Theme-specific variables */
+  --grid-color: rgba(45, 51, 45, 0.4);
+  --menu-item-color: #A3B29C;
+  --menu-item-hover-bg: rgba(163, 178, 156, 0.08);
+  --menu-item-active-bg: rgba(163, 178, 156, 0.16);
+  
+  --profile-card-bg: rgba(26, 29, 26, 0.5);
+  --profile-card-border: rgba(255, 255, 255, 0.05);
+  --profile-card-hover-bg: rgba(36, 40, 36, 0.6);
+  --profile-role-color: #8A908A;
+  --dots-icon-color: #8A908A;
+  
+  --dropdown-bg: #1A1D1A;
+  --dropdown-item-color: #ECEFED;
+  --dropdown-item-hover-bg: rgba(255, 255, 255, 0.05);
+  
+  --topbar-bg: rgba(20, 22, 20, 0.85);
+
+  /* Blob colors */
+  --blob-color-1: rgba(163, 178, 156, 0.12);
+  --blob-color-2: rgba(36, 40, 36, 0.4);
+  --blob-color-3: rgba(163, 178, 156, 0.08);
 }
 
 /* Text Gradients (Langfuse Pastel Sage style) */
@@ -23,8 +87,20 @@
   -webkit-text-fill-color: transparent;
 }
 
+[data-theme="dark"] .text-gradient {
+  background: linear-gradient(135deg, #ECEFED 40%, #A3B29C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .text-gradient-accent {
   background: linear-gradient(135deg, #8E9D87 0%, #D5DCD0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="dark"] .text-gradient-accent {
+  background: linear-gradient(135deg, #A3B29C 0%, #ECEFED 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -47,4 +123,28 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-color);
+}
+
+/* =============================================================================
+   Bootstrap Utility Overrides under Dark Theme
+   ============================================================================= */
+[data-theme="dark"] .bg-light {
+  background-color: var(--tertiary-color) !important;
+}
+
+[data-theme="dark"] .text-dark {
+  color: var(--foreground) !important;
+}
+
+[data-theme="dark"] .text-muted {
+  color: #8A908A !important;
+}
+
+[data-theme="dark"] .border {
+  border-color: var(--card-border) !important;
+}
+
+[data-theme="dark"] .card {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
 }
