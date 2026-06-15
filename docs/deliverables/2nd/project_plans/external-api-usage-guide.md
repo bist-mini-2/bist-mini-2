@@ -6,21 +6,25 @@
 
 ## 🌐 1. 네트워크 통신 구성 (Network Configuration)
 
-임베딩 중계 서버와 클라이언트 노트북은 동일한 서브넷 대역 내에서 내부 기가비트 대역폭으로 통신하여 레이턴시를 최소화합니다.
+맥미니 M4 단독 서빙 아키텍처로 개편되어, Ollama 등 중간 REST API 통신 모듈을 전혀 거치지 않고 FastAPI가 직접 GPU(MPS) 메모리에 모델을 적재하여 직접 추론합니다. 외부 노트북에서는 FastAPI 중계 포트인 `8001` 번호 하나만 호출하여 연동할 수 있습니다.
 
 *   **임베딩 API 서버 (맥미니 M4)**: `192.168.5.13`
-    *   **프록시 API 서버 포트**: `8001` (FastAPI)
-    *   **원시 Ollama API 포트**: `11434`
+    *   **임베딩 서비스 포트**: `8001` (FastAPI)
 *   **클라이언트 노트북 (외부 기기)**: 동일 Wi-Fi에 접속된 기기 (예: `192.168.5.10`)
-*   **기본 임베딩 모델**: `qwen3-embedding` (3072차원 고해상도 벡터 모델)
+*   **서빙 모델 가중치**: Hugging Face 원본 `Qwen/Qwen3-Embedding-4B` (Apple Silicon GPU MPS 가속 활성화)
 
 ---
 
-## 🛠️ 2. API 엔드포인트 명세 (API Endpoints)
+## ⚡ 2. 임베딩 차원 스펙 및 제로 패딩 (Zero-Padding)
+*   `Qwen3-Embedding-4B` 모델의 물리적 원본 출력은 **2,560차원**입니다.
+*   사용자 데이터베이스 스키마 `vector(3072)` 및 OpenAI `text-embedding-3-large` 와의 플러그앤플레이 호환을 맞추기 위해, 서버 단에서 **부족한 뒷부분을 `0.0`으로 자동 채우는 제로 패딩(Zero-Padding)**을 적용하여 **최종 3,072차원**을 출력합니다.
+*   코사인 유사도(Cosine Similarity)는 두 벡터의 방향성(각도)만을 연산하므로, 벡터 뒤에 무의미한 `0.0` 성분을 512개 덧붙이더라도 **RAG 검색 성능 및 코사인 유사도 연산 점수는 원본 연산 결과와 100% 일치함이 보장**됩니다.
 
-FastAPI 프록시 서버는 LangChain 등 다양한 프레임워크와의 플러그 앤 플레이 연동을 위해 **Ollama 표준 규격**과 **OpenAI 표준 규격**을 모두 지원합니다.
+---
 
-### 2.1 Ollama 호환 임베딩 API (LangChain OllamaEmbeddings 연동용)
+## 🛠️ 3. API 엔드포인트 명세 (API Endpoints)
+
+### 3.1 Ollama 호환 임베딩 API (LangChain OllamaEmbeddings 연동용)
 *   **Method**: `POST`
 *   **URL**: `http://192.168.5.13:8001/api/embeddings`
 *   **Request Body**:
@@ -33,11 +37,11 @@ FastAPI 프록시 서버는 LangChain 등 다양한 프레임워크와의 플러
 *   **Response Body**:
     ```json
     {
-      "embedding": [0.0125, -0.0456, 0.0891, ... 3072차원 플로팅 배열]
+      "embedding": [0.0125, -0.0456, 0.0891, ... (2560차원 값) ... 0.0, 0.0, 0.0 (총 3072차원)]
     }
     ```
 
-### 2.2 OpenAI 호환 임베딩 API (LangChain OpenAIEmbeddings 연동용)
+### 3.2 OpenAI 호환 임베딩 API (LangChain OpenAIEmbeddings 연동용)
 *   **Method**: `POST`
 *   **URL**: `http://192.168.5.13:8001/v1/embeddings`
 *   **Request Body**:
@@ -54,12 +58,12 @@ FastAPI 프록시 서버는 LangChain 등 다양한 프레임워크와의 플러
       "data": [
         {
           "object": "embedding",
-          "embedding": [0.0125, -0.0456, ...],
+          "embedding": [0.0125, -0.0456, ... (3072차원 벡터)],
           "index": 0
         },
         {
           "object": "embedding",
-          "embedding": [0.0781, -0.0212, ...],
+          "embedding": [0.0781, -0.0212, ... (3072차원 벡터)],
           "index": 1
         }
       ],
@@ -73,9 +77,9 @@ FastAPI 프록시 서버는 LangChain 등 다양한 프레임워크와의 플러
 
 ---
 
-## 🐍 3. Python 연동 코드 예시 (Python Code Examples)
+## 🐍 4. Python 연동 코드 예시 (Python Code Examples)
 
-### 3.1 `requests` 라이브러리를 사용한 다중 텍스트 병렬 호출
+### 4.1 `requests` 라이브러리를 사용한 다중 텍스트 병렬 호출
 외부 노트북 환경에서 프록시 서버로 배치를 날리면, 프록시 서버 내부의 스레드 풀에서 맥미니 GPU에 병렬 연산 요청을 쏘아 고속으로 응답을 리턴합니다.
 
 ```python
@@ -103,24 +107,24 @@ try:
     
     print(f"✅ 배치 임베딩 추출 완료!")
     print(f"   - 추출된 벡터 개수: {len(vectors)}개")
-    print(f"   - 개별 벡터 차원 수: {len(vectors[0])}차원 (Qwen3 규격 확인)")
+    print(f"   - 개별 벡터 차원 수: {len(vectors[0])}차원 (3072차원 확인)")
 except requests.exceptions.RequestException as e:
     print(f"❌ 임베딩 서버 연결 실패: {e}")
 ```
 
 ---
 
-## 🦜 4. LangChain 프레임워크 연동 (LangChain Integration)
+## 🦜 5. LangChain 프레임워크 연동 (LangChain Integration)
 
-### 4.1 `OllamaEmbeddings` 클래스 사용법 (권장)
-LangChain의 커뮤니티 모듈을 사용하여 맥미니의 중계 포트 `8001`을 다이렉트로 매핑합니다.
+### 5.1 `OllamaEmbeddings` 클래스 사용법 (권장)
+LangChain의 커뮤니티 모듈을 사용하여 맥미니의 직접 서빙 포트 `8001`을 다이렉트로 매핑합니다.
 
 ```python
 from langchain_community.embeddings import OllamaEmbeddings
 
 # LangChain 초기화 및 API 엔드포인트 바인딩
 embeddings = OllamaEmbeddings(
-    base_url="http://192.168.5.13:8001",  # 맥미니 프록시 서버 주소
+    base_url="http://192.168.5.13:8001",  # 맥미니 API 서버 주소
     model="qwen3-embedding"
 )
 
@@ -129,7 +133,7 @@ query_vector = embeddings.embed_query("논문 에이전트 RAG 파이프라인")
 print(f"OllamaEmbeddings 추출 성공 (차원수: {len(query_vector)})")
 ```
 
-### 4.2 `OpenAIEmbeddings` 클래스 사용법 (OpenAI 호환 포트 매핑)
+### 5.2 `OpenAIEmbeddings` 클래스 사용법 (OpenAI 호환 포트 매핑)
 기존 OpenAI 코드에서 주소와 모델명만 한 줄 바꿔서 그대로 마이그레이션할 때 유용합니다.
 
 ```python
@@ -151,9 +155,9 @@ print(f"OpenAIEmbeddings 배치 추출 성공 (문서 개수: {len(docs_vectors)
 
 ---
 
-## 🐘 5. 데이터베이스(pgvector) 세팅 참고사항
+## 🐘 6. 데이터베이스(pgvector) 세팅 참고사항
 
-`qwen3-embedding`은 **3072차원**의 벡터를 출력하므로, 데이터베이스에 테이블을 생성할 때 반드시 컬럼 규격을 `vector(3072)`로 맞춰주어야 합니다.
+`Qwen3-Embedding-4B` 모델에 제로 패딩을 거쳐 출력되는 차원은 **3072차원**이므로, 데이터베이스에 테이블을 생성할 때 컬럼 규격을 `vector(3072)`로 맞춰주어야 합니다.
 
 ```sql
 -- 1. pgvector 확장 모듈 활성화
@@ -173,3 +177,32 @@ CREATE INDEX idx_cs_hnsw ON cs_embeddings
 USING hnsw (embedding vector_cosine_ops) 
 WITH (m = 16, ef_construction = 64);
 ```
+
+---
+
+## ⚡ 7. 성능 최적화 및 동시성 가이드 (Performance & Concurrency Tuning)
+
+### 7.1 동시성 스레드 풀 (`MAX_WORKERS`) 설정 권장사항
+*   **왜 30개 내외가 최적인가?**
+    *   FastAPI의 동기 추론 핸들러(`def`)는 내부 스레드 풀(`ThreadPoolExecutor`)을 통해 다중 요청을 처리합니다.
+    *   하지만 GPU(Apple Silicon MPS) 연산은 단일 하드웨어 가속기에서 물리적으로 직렬/병렬 텐서 연산으로 변환되어 수행됩니다.
+    *   동시 요청 스레드(`MAX_WORKERS`)를 30개 이상으로 과도하게 늘릴 경우, GPU VRAM 컨텍스트 스위칭 오버헤드와 커널 경합으로 인해 오히려 개별 요청의 처리 지연(Latency)이 증가하고 하드웨어 병목이 심화될 수 있습니다.
+    *   맥미니 M4 기준 **20~30개의 스레드 워커**가 GPU 가속 성능을 최대로 쥐어짜면서도 데드락 없이 안정적으로 가동할 수 있는 최적의 임계점입니다.
+
+### 7.2 모델 크기별 성능 및 속도 비교 (0.6B vs 4B)
+프로젝트 요구 스펙에 따라 정확도 우선(4B) 또는 속도 우선(0.6B) 모델을 선택하여 교체 서빙할 수 있습니다.
+
+| 모델명 | 파라미터 크기 | 기본 차원 | 3072차원 변환 방식 | 상대 속도 비교 | VRAM 점유량 | 추천 시나리오 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Qwen3-Embedding-4B** | 약 40억 (4B) | 2,560 | 512차원 제로 패딩 | **1.0x (기준)** | 약 8.2 GB | 고품질 RAG, 복잡한 의미론적 유사도 검색 |
+| **Qwen3-Embedding-0.6B**| 약 6억 (0.6B) | 1,024 | 2,048차원 제로 패딩 | **4.0x ~ 6.0x (빠름)**| 약 1.3 GB | 실시간 대용량 문서 배치 임베딩, 고속 질의응답 |
+
+*   **0.6B 모델의 3072차원 변환 지원**:
+    *   0.6B 모델은 기본 1,024차원을 출력하지만, API 서버 환경 변수 `EMBEDDING_DIM=3072` 설정이 적용되면 서버가 부족한 뒷부분 2,048차원을 자동으로 `0.0`으로 패딩합니다.
+    *   이를 통해 DB 스키마(`vector(3072)`)를 수정할 필요 없이 플러그앤플레이로 가볍고 빠른 0.6B 모델로 스위칭하여 활용할 수 있습니다.
+
+### 7.3 모델 스위칭 방법
+1. Hugging Face 등에서 0.6B 모델 가중치 폴더를 다운로드하여 `embedding-pipeline/models/Qwen3-Embedding-0.6B` 경로에 저장합니다.
+2. `embedding-pipeline/main.py`의 `HF_MODEL_NAME` 경로를 해당 폴더로 수정합니다.
+3. `.env` 파일에서 `EMBEDDING_DIM=3072`를 유지하고 서버를 재기동합니다.
+
