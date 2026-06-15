@@ -12,7 +12,7 @@ except Exception:
     pass
 
 # 파일 경로 정의
-DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/raw/archive/arxiv-metadata-oai-snapshot.json"))
+DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw/archive/arxiv-metadata-oai-snapshot.json"))
 
 def analyze_arxiv_dataset():
     """
