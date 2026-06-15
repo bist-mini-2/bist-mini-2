@@ -25,6 +25,8 @@
     *   *내용*: 유즈케이스와 매핑된 초정밀 세분화 API 핸들러, Pydantic DTO, 보안 로직 명세
 *   **시스템 아키텍처 및 API 명세서**: [system-architecture-api-spec.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/system-architecture-api-spec.md)
     *   *내용*: 플랫폼 3티어 연동 구조(Mermaid) 및 15대 JSON/SSE API 상세 입출력 규격 명세
+*   **데이터셋 EDA 및 DB 스키마 설계**: [dataset-eda-db-schema.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/dataset-eda-db-schema.md)
+    *   *내용*: MTEB 3대 데이터셋 구조분석 및 PostgreSQL pgvector DB 테이블 명세(ERD) DDL 정의
 
 ### 🖥️ 1.3 UI/UX 와이어프레임 프로토타입 (HTML & PNG)
 
@@ -56,7 +58,7 @@
 실제 백엔드, 데이터베이스 및 프론트엔드 연동을 진행하는 과정에서 추가로 생성해야 할 주요 코드 및 검증 산출물의 상세 계획입니다.
 
 ### 🗺️ 2.1 단계 0: 기획 설계 및 개발 준비 단계 산출물 계획 (Planning & Design Specs)
-*   **데이터셋 EDA 및 DB 스키마 설계** (`c:/Repo/bist-mini-2/docs/deliverables/1st/project_plans/dataset-eda-db-schema.md`):
+*   **데이터셋 EDA 및 DB 스키마 설계** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/dataset-eda-db-schema.md`):
     *   *역할*: MTEB 3대 데이터셋 구조분석 및 PostgreSQL pgvector DB 테이블 명세(ERD) DDL 정의.
 *   **시스템 아키텍처 및 API 명세** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/system-architecture-api-spec.md`):
     *   *역할*: 플랫폼 3티어 연동 관계도 및 14대 JSON API 상세 입출력 규격 명세.
