@@ -14,9 +14,15 @@ BATCH_SIZE = 64  # M4 GPU 메모리 최적 배치 사이즈
 
 
 def main():
-    # 2. MPS 가속 디바이스 확인 및 모델 로드
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
-    print(f"📡 임베딩 디바이스 설정: {device}")
+    # 2. GPU 가속 디바이스 확인 및 모델 로드 (CUDA / MPS / CPU 지원)
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
+    print(f"📡 임베딩 가속 디바이스 설정: {device}")
+
     
     start_model = time.time()
     # Qwen 임베딩 모델은 trust_remote_code=True가 필요합니다.
