@@ -37,7 +37,7 @@ flowchart TD
 맥미니 M4 내부에서 PyTorch의 MPS(Metal Performance Shaders) 디바이스 가속을 통해 대량의 초록 데이터를 일괄 임베딩 연산한 후, 그 결과(ID 및 임베딩 벡터)를 우선 로컬 JSON Lines(`.jsonl`) 파일에 순차적으로 기록합니다.
 
 ### 2.1 로컬 배치 임베딩 스크립트 (`scripts/experiments/local_batch_embed.py`)
-*   **사용 모델**: Hugging Face `Alibaba-NLP/gte-Qwen2-1.5B-instruct` (Ollama의 `qwen3-embedding` 모델에 상응하는 Hugging Face 고품질 오픈소스 임베딩 모델)
+*   **사용 모델**: Hugging Face `Alibaba-NLP/gte-Qwen2-1.5B-instruct` (프로젝트 `.env`에 정의된 Ollama `qwen3-embedding` 모델의 Hugging Face 원본 가중치 규격 모델)
 
 ```python
 import os
@@ -49,8 +49,10 @@ from sentence_transformers import SentenceTransformer
 # 1. 경로 및 설정 정보
 DATA_PATH = "../../data/raw/archive/arxiv-metadata-oai-snapshot.json"
 OUTPUT_FILE_PATH = "../../data/raw/archive/local_embeddings_output.jsonl"
+# Ollama의 qwen3-embedding에 대응하는 Hugging Face 원본 가중치 모델명
 MODEL_NAME = "Alibaba-NLP/gte-Qwen2-1.5B-instruct"
 BATCH_SIZE = 64  # M4 GPU 메모리 최적 배치 사이즈
+
 
 def main():
     # 2. MPS 가속 디바이스 확인 및 모델 로드
