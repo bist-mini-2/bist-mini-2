@@ -8,57 +8,58 @@
 
 플랫폼은 학술 연구의 도메인 특수성을 다루기 위해 MTEB(Massive Text Embedding Benchmark)에 포함된 의학, 컴퓨터 과학, 자연 과학 분야의 대표 데이터셋 3종을 학습 및 RAG 검색 소스로 활용합니다.
 
-### 1.1 의학/생명공학 도메인: NFCorpus (NutritionFacts.org Corpus)
+### 1.1 생명공학 도메인 (Biotechnology): TREC-COVID & NFCorpus
 *   **데이터셋 개요 및 목적**:
-    - NutritionFacts.org 웹사이트에서 추출한 일반 대중의 의학/영양 질문(Query)과 PubMed 학술 논문 초록(Document) 간의 상호 평가 및 관련성을 다루는 정보 검색 벤치마크 데이터셋입니다.
+    - **TREC-COVID**: SARS-CoV-2 및 COVID-19 관련 생명 의학 임상 검색 성능을 평가하기 위한 정보 검색 벤치마크 데이터셋입니다. 임상 질의(Clinical Query)에 부합하는 PubMed 기반의 대규모 문헌(CORD-19)을 효과적으로 검색하는 능력을 테스트합니다.
+    - **NFCorpus**: NutritionFacts.org 웹사이트에서 추출한 비전문가 수준의 일반 자연어 의학/영양 질문(Query)과 PubMed 학술 논문 초록(Document) 간의 연관성을 평가하는 전문 검색 벤치마크 데이터셋입니다.
 *   **구조 분석**:
-    -   `corpus.jsonl` (PubMed Documents):
-        -   `_id` (str): PubMed 고유 문서 키 (예: `MED-10`)
+    -   `corpus.jsonl` (PubMed & CORD-19 Documents):
+        -   `_id` (str): 문헌 고유 식별자 (PubMed ID 또는 CORD-19 UID, 예: `MED-10`, `trec-covid-doc-39`)
         -   `title` (str): 논문 제목
-        -   `text` (str): 논문 초록 (Abstract)
-        -   `metadata` (json): `{ "url": "..." }`
-    -   `queries.jsonl` (User Queries):
-        -   `_id` (str): 질의 고유 키 (예: `PLAIN-1`)
-        -   `text` (str): 자연어로 작성된 영양/건강 의학 질문
-    -   `qrels/train.tsv` (Relevance Judgments):
-        -   `query-id` (str) - `doc-id` (str) - `rel` (int, 1~2단계 연관성 스코어)
+        -   `text` (str): 초록 본문 (Abstract)
+        -   `metadata` (json): `{ "url": "...", "pubmed_id": "..." }`
+    -   `queries.jsonl` (User/Clinical Queries):
+        -   `_id` (str): 질의 고유 식별자 (예: `PLAIN-1`, `trec-covid-q-12`)
+        -   `text` (str): 자연어로 작성된 영양/의학/임상 질문
 *   **RAG 최적화 및 활용 전략**:
-    -   일반 대중의 질문(질의)은 비학술적 단어를 많이 포함하는 반면, 논문 초록은 복잡한 의학 전문 용어로 구성되어 있어 **어휘적 불일치(Vocabulary Mismatch)**가 발생합니다.
-    -   따라서 단순 키워드(BM25) 매칭의 한계를 극복하기 위해 `text-embedding-3-small` (1536차원) 조밀 벡터 임베딩을 이용한 시맨틱 유사도 검색을 주로 활용하되, 약물명이나 영양소 명칭의 정확성을 위해 하이브리드 검색을 고려합니다.
-    -   추출된 청크 텍스트는 `bio_embeddings` 테이블에 적재됩니다.
+    -   일반 자연어 질문이나 임상 키워드는 비정형적이고 일상 표현이 섞여 있는 반면, 타겟 문헌들은 학술적 용어로 쓰여 있어 **어휘적 장벽(Vocabulary Barrier)**이 있습니다.
+    -   이를 극복하기 위해 `text-embedding-3-small` 모델 기반의 1536차원 고밀도 벡터 임베딩 시맨틱 검색 파이프라인을 구축하고, 질병명 및 약물 명칭의 엄격한 키워드 필터링을 조화시킨 하이브리드 RAG 방식을 활용합니다.
+    -   파싱된 청크 데이터와 임베딩 정보는 `bio_embeddings` 테이블에 저장되어 `POST /similarity-search/bio`를 통해 사용됩니다.
 
-### 1.2 컴퓨터 과학 도메인: SCIDOCS (Bibliographic Literature Benchmark)
+### 1.2 컴퓨터 과학 도메인 (Computer Science): SCIDOCS
 *   **데이터셋 개요 및 목적**:
-    - 컴퓨터 과학 분야의 논문 서지 구조(Bibliographic Network) 분석 및 추천 성능을 검증하기 위한 데이터셋입니다. 논문의 인용망(Citation), 공동 저자(Co-authorship), 학술지(Venue) 등 다각적인 메타데이터를 지니고 있습니다.
+    - 컴퓨터 과학 분야 논문들의 의미 관계 분석 및 서지 네트워크(Bibliographic Network) 추천 성능을 검증하는 벤치마크 데이터셋입니다. 논문 상호 인용(Citation), 공동 저자(Co-authorship), 게재 학술지(Venue) 정보 등의 유기적 관계 정보를 갖추고 있습니다.
 *   **구조 분석**:
     -   `corpus.jsonl` (CS Documents):
-        -   `_id` (str): Semantic Scholar 고유 논문 ID
+        -   `_id` (str): Semantic Scholar 논문 ID
         -   `title` (str): 논문 제목
-        -   `abstract` (str): 초록 본문
-        -   `authors` (list[str]): 저자 이름 리스트
-        -   `year` (int): 출판 연도
-        -   `venue` (str): 발표 저널 또는 컨퍼런스 명칭
-        -   `out_citations` (list[str]): 해당 논문이 인용한 타 논문 ID 목록
-        -   `in_citations` (list[str]): 해당 논문을 인용한 타 논문 ID 목록
+        -   `abstract` (str): 초록 내용
+        -   `authors` (list[str]): 공동 저자 목록
+        -   `year` (int): 출판/발표 연도
+        -   `venue` (str): 학회 또는 저널명 (예: CVPR, NeurIPS)
+        -   `out_citations` (list[str]): 해당 논문이 참조(인용)한 타 논문 ID 배열
+        -   `in_citations` (list[str]): 해당 논문을 인용한 타 논문 ID 배열
 *   **RAG 최적화 및 활용 전략**:
-    -   `F-01-A-5: 인용 관계망 조회 API`에서 D3.js 노드-링크 시각화 컴포넌트의 데이터 소스로 사용하기 위해, 논문 간의 인용 계보 정보를 데이터베이스 상에서 정규화된 조인 관계인 `paper_citation` 테이블로 분리하여 설계합니다.
-    -   컴퓨터 과학 논문은 컨퍼런스(CVPR, NeurIPS, ACL 등) 및 저자 필터링 요구가 빈번하므로, 메타데이터 컬럼(`venue`, `authors`, `year`)을 별도 인덱싱 필드로 분리하여 RAG 검색 시 벡터 임베딩 필터 옵션으로 함께 적용합니다.
+    -   `F-01-A-5: 인용 관계망 조회 API`에서 D3.js 노드-링크 구조로 계보 시각화 기능을 실시간 제공하기 위해, 인용 네트워크 데이터를 DB 레벨에서 `paper_citation` 테이블로 분리 및 매핑하여 정규화합니다.
+    -   컴퓨터 과학 도메인은 최신 학회(Venue) 및 저자 검색 니즈가 크므로, 연도/저자/컨퍼런스 정보를 별도의 관계형 컬럼으로 매핑해 벡터 검색 시 메타데이터 필터링 조건으로 적극 바인딩합니다.
+    -   임베딩 및 청크 데이터는 `cs_embeddings` 테이블에 저장되어 `POST /similarity-search/cs`를 통해 서비스됩니다.
 
-### 1.3 자연 과학 도메인: SciFact (Scientific Claim Verification)
+### 1.3 천문학 도메인 (Astronomy): SciFact
 *   **데이터셋 개요 및 목적**:
-    - 과학적 주장(Claim)에 대해 학술 논문 초록들을 근거로 대조하여, 주장이 사실인지 여부를 판별(SUPPORT / CONTRADICT / NOT_ENOUGH_INFO)하고 증거 문장(Sentence-level Evidence)을 추출하는 팩트 체크 벤치마크 데이터셋입니다.
+    - 다중 물리학 및 천문/우주 과학 분야를 포함한 복잡한 과학적 주장(Claim)을 과학 논문 초록들을 근거로 검증하고, 지지(SUPPORT) 또는 반박(CONTRADICT) 여부를 식별하며 그 세부 증거 문장(Evidence Sentence)을 추출하는 팩트 체크 벤치마크 데이터셋입니다.
 *   **구조 분석**:
     -   `corpus.jsonl` (Scientific Documents):
         -   `doc_id` (int): 논문 고유 ID
         -   `title` (str): 논문 제목
-        -   `abstract` (list[str]): 문장 단위로 절단된 초록 본문 리스트
-    -   `claims.jsonl` (User/Expert Hypotheses):
-        -   `id` (int): 주장 고유 ID
-        -   `claim` (str): 과학적 주장 서술문
-        -   `citations` (list[json]): 지지/반박을 증명하는 `doc_id` 및 해당 논문 초록의 증거 문장 인덱스 리스트
+        -   `abstract` (list[str]): 문장 단위로 분할된 초록 본문 리스트
+    -   `claims.jsonl` (User Hypotheses):
+        -   `id` (int): 주장 고유 식별 키
+        -   `claim` (str): 우주과학/물리 관련 과학적 주장 텍스트
+        -   `citations` (list[json]): 지지/반박 증명 관계 및 논문 초록 상의 정확한 증거 문장 인덱스
 *   **RAG 최적화 및 활용 전략**:
-    -   `F-02-A-6: 최신 연구 동향 알림 구독 등록 API`를 통해 연구자가 설정한 가설에 대해, 이를 지지하거나 반박하는 증거를 탐색하는 **Fact-Checking 에이전트** 구현 시 핵심으로 활용됩니다.
-    -   초록 데이터가 문장 단위(`list[str]`)로 분리되어 있으므로, 텍스트 청커 단계에서 단순 글자 수 윈도우 분할이 아닌 **문장 경계를 보존하는 문장형 청커(Sentence-based Chunker)**를 적용하고, 각 문장별 임베딩 벡터를 `astronomy_embeddings`에 매핑해 정확한 매칭 인덱스를 가리키도록 구조화합니다.
+    -   보안 샌드박스의 **가설 검증 알림 구독(`F-02-A-6`)** 및 **자기 일관성 검증(Majority Voting)** 수행 시 핵심 백본 데이터로 기능합니다.
+    -   본 데이터셋은 논문 초록이 문장별(`list[str]`)로 나누어져 있으므로, 텍스트 청커에서 일반적인 글자 수 슬라이딩 윈도우가 아닌 **문장 단위를 엄격히 보존하는 문장 단위 청커(Sentence-preserving Chunker)**를 적용하고, 각 문장별 고유 임베딩을 `astronomy_embeddings`에 저장하여 정확한 증거 문장 인덱스를 가리키도록 구조화합니다.
+    -   임베딩 및 문장 청크 정보는 `astronomy_embeddings` 테이블에 저장되어 `POST /similarity-search/astronomy`를 통해 검색됩니다.
 
 ---
 
