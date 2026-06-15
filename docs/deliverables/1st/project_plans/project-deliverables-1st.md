@@ -59,8 +59,8 @@
 ### 🗄️ 2.2 단계 1: 데이터베이스 & 데이터 가공 (Database & ETL Layer)
 *   **데이터베이스 DDL 스크립트** (`c:/Repo/bist-mini-2/backend/database/schema.sql`):
     *   *역할*: pgvector 인덱스 설정, 대화 기록 저장용 `PostgresSaver` 스키마 및 요약 보관함/아카이브 저장 테이블 정의.
-*   **MTEB 벌크 데이터 로더** (`c:/Repo/bist-mini-2/scripts/data_loader.py`):
-    *   *역할*: 의학(NFCorpus), 컴퓨터과학(SCIDOCS), 자연과학(SciFact) 데이터를 다운로드 및 파싱하여 DB에 업로드하는 자동화 스크립트.
+*   **ArXiv 벌크 데이터 로더 및 필터** (`c:/Repo/bist-mini-2/scripts/data_loader.py`):
+    *   *역할*: Kaggle ArXiv 메타데이터 JSON을 스트리밍 파싱하여 생명공학(q-bio), 컴퓨터과학(cs), 천문학(astro-ph) 카테고리별로 분류 및 적재하는 자동화 스크립트.
 *   **텍스트 청커 및 전처리기** (`c:/Repo/bist-mini-2/scripts/chunker.py`):
     *   *역할*: 문단 분실 없이 500자 단위로 논문을 절단하고 메타데이터와 벡터 임베딩을 결합하는 가공 유틸리티.
 

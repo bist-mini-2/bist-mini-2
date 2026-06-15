@@ -1,71 +1,70 @@
-# 📊 MTEB 데이터셋 EDA 및 PostgreSQL/pgvector 스키마 설계서 (Dataset EDA & DB Schema Design)
+# 📊 ArXiv 데이터셋 EDA 및 PostgreSQL/pgvector 스키마 설계서 (Dataset EDA & DB Schema Design)
 
-본 문서는 **'논문 AI 에이전트 채팅 플랫폼 (Paper Agent Chat Platform)'**에서 활용할 MTEB(Massive Text Embedding Benchmark) 3대 데이터셋(의학, 컴퓨터 과학, 자연 과학)의 탐색적 데이터 분석(EDA) 결과와 이를 영구 저장하고 RAG 및 다중 에이전트 작업에 활용하기 위한 PostgreSQL 17 및 pgvector 기반 관계형 데이터베이스 스키마 명세서입니다.
+본 문서는 **'논문 AI 에이전트 채팅 플랫폼 (Paper Agent Chat Platform)'**에서 RAG 및 검색 엔진의 소스로 활용할 **Kaggle ArXiv 논문 메타데이터셋**의 탐색적 데이터 분석(EDA) 결과와 이를 영구 저장하고 3대 도메인(생명공학, 컴퓨터 과학, 천문학)의 벡터 RAG 연산에 활용하기 위한 PostgreSQL 17 및 pgvector 기반 관계형 데이터베이스 스키마 명세서입니다.
+
+> [!NOTE]
+> 본 플랫폼은 MTEB 벤치마크 데이터셋을 활용한 별도의 모델 검증(Evaluation) 파이프라인을 구현하지 않으며, 실서비스 구현 및 RAG 검색 데이터 제공에 집중하기 위해 **Kaggle ArXiv 데이터셋**의 카테고리 필터링 데이터를 원천 데이터셋으로 채택합니다.
 
 ---
 
-## 🔍 1. MTEB 3대 데이터셋 탐색적 데이터 분석 (Dataset EDA)
+## 🔍 1. Kaggle ArXiv 데이터셋 탐색적 데이터 분석 (Dataset EDA)
 
-플랫폼은 학술 연구의 도메인 특수성을 다루기 위해 MTEB(Massive Text Embedding Benchmark)에 포함된 의학, 컴퓨터 과학, 자연 과학 분야의 대표 데이터셋 3종을 학습 및 RAG 검색 소스로 활용합니다.
+플랫폼은 학술 연구의 도메인 특수성을 다루기 위해 약 200만 편 이상의 학술 논문 메타데이터를 포함하고 있는 Kaggle의 **ArXiv Dataset (`arxiv-metadata-oai-snapshot.json`)**을 기본 원천 데이터로 사용합니다.
 
-### 1.1 생명공학 도메인 (Biotechnology): TREC-COVID & NFCorpus
-*   **데이터셋 개요 및 목적**:
-    - **TREC-COVID**: SARS-CoV-2 및 COVID-19 관련 생명 의학 임상 검색 성능을 평가하기 위한 정보 검색 벤치마크 데이터셋입니다. 임상 질의(Clinical Query)에 부합하는 PubMed 기반의 대규모 문헌(CORD-19)을 효과적으로 검색하는 능력을 테스트합니다.
-    - **NFCorpus**: NutritionFacts.org 웹사이트에서 추출한 비전문가 수준의 일반 자연어 의학/영양 질문(Query)과 PubMed 학술 논문 초록(Document) 간의 연관성을 평가하는 전문 검색 벤치마크 데이터셋입니다.
-*   **구조 분석**:
-    -   `corpus.jsonl` (PubMed & CORD-19 Documents):
-        -   `_id` (str): 문헌 고유 식별자 (PubMed ID 또는 CORD-19 UID, 예: `MED-10`, `trec-covid-doc-39`)
-        -   `title` (str): 논문 제목
-        -   `text` (str): 초록 본문 (Abstract)
-        -   `metadata` (json): `{ "url": "...", "pubmed_id": "..." }`
-    -   `queries.jsonl` (User/Clinical Queries):
-        -   `_id` (str): 질의 고유 식별자 (예: `PLAIN-1`, `trec-covid-q-12`)
-        -   `text` (str): 자연어로 작성된 영양/의학/임상 질문
-*   **RAG 최적화 및 활용 전략**:
-    -   일반 자연어 질문이나 임상 키워드는 비정형적이고 일상 표현이 섞여 있는 반면, 타겟 문헌들은 학술적 용어로 쓰여 있어 **어휘적 장벽(Vocabulary Barrier)**이 있습니다.
-    -   이를 극복하기 위해 `text-embedding-3-small` 모델 기반의 1536차원 고밀도 벡터 임베딩 시맨틱 검색 파이프라인을 구축하고, 질병명 및 약물 명칭의 엄격한 키워드 필터링을 조화시킨 하이브리드 RAG 방식을 활용합니다.
-    -   파싱된 청크 데이터와 임베딩 정보는 `bio_embeddings` 테이블에 저장되어 `POST /similarity-search/bio`를 통해 사용됩니다.
+### 1.1 데이터셋 필드 명세 및 가공 전략
+JSON 라인 포맷의 각 원본 논문 데이터는 다음과 같은 필드로 구성되어 있습니다.
 
-### 1.2 컴퓨터 과학 도메인 (Computer Science): SCIDOCS
-*   **데이터셋 개요 및 목적**:
-    - 컴퓨터 과학 분야 논문들의 의미 관계 분석 및 서지 네트워크(Bibliographic Network) 추천 성능을 검증하는 벤치마크 데이터셋입니다. 논문 상호 인용(Citation), 공동 저자(Co-authorship), 게재 학술지(Venue) 정보 등의 유기적 관계 정보를 갖추고 있습니다.
-*   **구조 분석**:
-    -   `corpus.jsonl` (CS Documents):
-        -   `_id` (str): Semantic Scholar 논문 ID
-        -   `title` (str): 논문 제목
-        -   `abstract` (str): 초록 내용
-        -   `authors` (list[str]): 공동 저자 목록
-        -   `year` (int): 출판/발표 연도
-        -   `venue` (str): 학회 또는 저널명 (예: CVPR, NeurIPS)
-        -   `out_citations` (list[str]): 해당 논문이 참조(인용)한 타 논문 ID 배열
-        -   `in_citations` (list[str]): 해당 논문을 인용한 타 논문 ID 배열
-*   **RAG 최적화 및 활용 전략**:
-    -   `F-01-A-5: 인용 관계망 조회 API`에서 D3.js 노드-링크 구조로 계보 시각화 기능을 실시간 제공하기 위해, 인용 네트워크 데이터를 DB 레벨에서 `paper_citation` 테이블로 분리 및 매핑하여 정규화합니다.
-    -   컴퓨터 과학 도메인은 최신 학회(Venue) 및 저자 검색 니즈가 크므로, 연도/저자/컨퍼런스 정보를 별도의 관계형 컬럼으로 매핑해 벡터 검색 시 메타데이터 필터링 조건으로 적극 바인딩합니다.
-    -   임베딩 및 청크 데이터는 `cs_embeddings` 테이블에 저장되어 `POST /similarity-search/cs`를 통해 서비스됩니다.
+| 원본 필드명 | 데이터 타입 | 설명 | DB 매핑 필드 |
+| :--- | :---: | :--- | :--- |
+| `id` | `str` | ArXiv 논문 고유 식별자 (예: `0704.0001`, `1910.12345`) | `doc_id` (PK) |
+| `title` | `str` | 논문 제목 (텍스트 및 줄바꿈 기호 포함 가능) | `title` |
+| `authors` | `str` | 모든 저자의 이름을 나열한 단일 텍스트 | `authors` |
+| `categories` | `str` | 공백으로 구분된 ArXiv 학술 카테고리 코드 (예: `cs.AI q-bio.BM`) | `categories` |
+| `abstract` | `str` | 논문의 초록 본문 텍스트 (RAG 청킹의 대상) | `abstract` |
+| `doi` | `str` | 디지털 객체 식별자 (Digital Object Identifier) | `doi` |
+| `journal-ref` | `str` | 논문이 게재된 학술지/저널 또는 학회 정보 | `journal_ref` |
 
-### 1.3 천문학 도메인 (Astronomy): SciFact
-*   **데이터셋 개요 및 목적**:
-    - 다중 물리학 및 천문/우주 과학 분야를 포함한 복잡한 과학적 주장(Claim)을 과학 논문 초록들을 근거로 검증하고, 지지(SUPPORT) 또는 반박(CONTRADICT) 여부를 식별하며 그 세부 증거 문장(Evidence Sentence)을 추출하는 팩트 체크 벤치마크 데이터셋입니다.
-*   **구조 분석**:
-    -   `corpus.jsonl` (Scientific Documents):
-        -   `doc_id` (int): 논문 고유 ID
-        -   `title` (str): 논문 제목
-        -   `abstract` (list[str]): 문장 단위로 분할된 초록 본문 리스트
-    -   `claims.jsonl` (User Hypotheses):
-        -   `id` (int): 주장 고유 식별 키
-        -   `claim` (str): 우주과학/물리 관련 과학적 주장 텍스트
-        -   `citations` (list[json]): 지지/반박 증명 관계 및 논문 초록 상의 정확한 증거 문장 인덱스
-*   **RAG 최적화 및 활용 전략**:
-    -   보안 샌드박스의 **가설 검증 알림 구독(`F-02-A-6`)** 및 **자기 일관성 검증(Majority Voting)** 수행 시 핵심 백본 데이터로 기능합니다.
-    -   본 데이터셋은 논문 초록이 문장별(`list[str]`)로 나누어져 있으므로, 텍스트 청커에서 일반적인 글자 수 슬라이딩 윈도우가 아닌 **문장 단위를 엄격히 보존하는 문장 단위 청커(Sentence-preserving Chunker)**를 적용하고, 각 문장별 고유 임베딩을 `astronomy_embeddings`에 저장하여 정확한 증거 문장 인덱스를 가리키도록 구조화합니다.
-    -   임베딩 및 문장 청크 정보는 `astronomy_embeddings` 테이블에 저장되어 `POST /similarity-search/astronomy`를 통해 검색됩니다.
+### 1.2 3대 타겟 도메인 카테고리 필터링 규칙
+Kaggle ArXiv 전체 데이터셋에서 플랫폼이 지원하는 3대 타겟 영역에 해당하는 데이터를 분류하기 위해, `categories` 문자열의 서브클래스 접두사를 활용하여 데이터를 스트리밍 필터링합니다.
+
+1.  **🧬 생명공학 도메인 (Biotechnology)**:
+    *   **카테고리 매핑**: `q-bio.*` (Quantitative Biology) 전체 카테고리 매핑
+    *   **주요 서브카테고리**:
+        *   `q-bio.BM` (Biomolecules - 분자생물학, 단백질 구조)
+        *   `q-bio.GN` (Genomics - 유전체학, 시퀀싱)
+        *   `q-bio.MN` (Molecular Networks - 신호전달 경로, 대사망)
+        *   `q-bio.TO` (Tissues and Organs - 생체 조직, 이식 생명공학)
+    *   **DB 적재 타겟**: `paper_bio` 메타데이터 테이블 및 `bio_embeddings` 벡터 테이블
+2.  **📄 컴퓨터 과학 도메인 (Computer Science)**:
+    *   **카테고리 매핑**: `cs.*` (Computer Science) 카테고리 매핑
+    *   **주요 서브카테고리**:
+        *   `cs.AI` (Artificial Intelligence - 인공지능)
+        *   `cs.CL` (Computation and Language - 자연어 처리, LLM)
+        *   `cs.CV` (Computer Vision - 컴퓨터 비전, 이미지 처리)
+        *   `cs.LG` (Machine Learning - 머신러닝, 딥러닝)
+    *   **DB 적재 타겟**: `paper_cs` 메타데이터 테이블 및 `cs_embeddings` 벡터 테이블
+3.  **🔬 천문학 도메인 (Astronomy)**:
+    *   **카테고리 매핑**: `astro-ph.*` (Astrophysics) 카테고리 매핑
+    *   **주요 서브카테고리**:
+        *   `astro-ph.CO` (Cosmology and Nongalactic Astrophysics - 우주론 및 은하 천문학)
+        *   `astro-ph.GA` (Astrophysics of Galaxies - 은하 천체물리)
+        *   `astro-ph.HE` (High Energy Astrophysical Phenomena - 고에너지 우주 입자, 블랙홀)
+        *   `astro-ph.SR` (Solar and Stellar Astrophysics - 태양 및 항성 물리)
+    *   **DB 적재 타겟**: `paper_astronomy` 메타데이터 테이블 및 `astronomy_embeddings` 벡터 테이블
+
+### 1.3 RAG 전처리 및 텍스트 청킹 스키마
+*   **텍스트 분할 규칙 (Chunking)**:
+    - RAG 파이프라인의 성능과 컨텍스트 유지 비용 최적화를 위해, 각 논문의 `abstract` 텍스트를 **500자(Characters) 단위**의 슬라이딩 윈도우 방식으로 분할합니다.
+    - 단락의 문맥 손실을 방지하기 위해 청크 간 **50자의 중첩 영역(Overlap)**을 부여합니다.
+*   **임베딩 벡터 생성**:
+    - 분할된 각 청크 텍스트에 대해 OpenAI `text-embedding-3-small` API를 통과시켜 **1536차원 조밀 벡터(Dense Vector)**를 추출합니다.
+    - 데이터베이스의 각 도메인별 임베딩 스토어 테이블에 외래키(`doc_id`), 청크 텍스트(`chunk_text`), 벡터(`embedding`), 순서 정렬용 인덱스(`chunk_index`)를 구조화하여 벌크 적재합니다.
 
 ---
 
 ## 🗄️ 2. 데이터베이스 논리적/물리적 설계 (Database ERD & Schema)
 
-전체 테이블은 데이터 무결성을 유지하기 위한 관계형 테이블(Member, Citations, Thread, Message)과 고성능 벡터 유사도 연산을 지원하기 위한 pgvector 테이블(Embeddings), 그리고 보안 샌드박스의 30분 소거 로직을 지원하는 격리 임시 테이블로 이원화하여 구성되었습니다.
+3대 학술 영역의 원본 테이블 구조를 동일하게 정형화(Uniform Structure)함으로써 데이터 로더 스크립트와 백엔드 API RAG 검색 함수가 일관된 쿼리 및 매핑 로직을 재사용할 수 있도록 설계했습니다.
 
 ### 2.1 관계형 스키마 ERD 및 테이블 연동 관계
 
@@ -81,27 +80,33 @@ erDiagram
     }
 
     PAPER_CS {
-        string doc_id PK "논문 고유 ID"
+        string doc_id PK "논문 고유 ID (ArXiv ID)"
         string title "논문 제목"
         text abstract "초록"
         string authors "저자 목록"
-        integer year "출판 연도"
-        string venue "발표 컨퍼런스"
+        string journal_ref "저널/학회 정보"
+        string doi "DOI"
+        string categories "카테고리 문자열"
     }
 
     PAPER_BIO {
-        string doc_id PK "논문 고유 ID"
-        string title "논문 제목"
-        text abstract "초록"
-        string url "출처 링크"
-    }
-
-    PAPER_ASTRONOMY {
-        string doc_id PK "논문 고유 ID"
+        string doc_id PK "논문 고유 ID (ArXiv ID)"
         string title "논문 제목"
         text abstract "초록"
         string authors "저자 목록"
-        integer year "출판 연도"
+        string journal_ref "저널/학회 정보"
+        string doi "DOI"
+        string categories "카테고리 문자열"
+    }
+
+    PAPER_ASTRONOMY {
+        string doc_id PK "논문 고유 ID (ArXiv ID)"
+        string title "논문 제목"
+        text abstract "초록"
+        string authors "저자 목록"
+        string journal_ref "저널/학회 정보"
+        string doi "DOI"
+        string categories "카테고리 문자열"
     }
 
     PAPER_CITATION {
@@ -210,33 +215,39 @@ CREATE TABLE member (
 );
 
 -- =========================================================================
--- 3. 도메인별 원본 학술 논문 메타데이터 테이블
+-- 3. 도메인별 ArXiv 원본 학술 논문 메타데이터 테이블 (균일화된 스펙)
 -- =========================================================================
--- 컴퓨터 과학 논문
+-- 컴퓨터 과학 논문 테이블
 CREATE TABLE paper_cs (
     doc_id VARCHAR(50) PRIMARY KEY,
     title TEXT NOT NULL,
     abstract TEXT,
     authors TEXT,
-    year INTEGER,
-    venue VARCHAR(100)
+    journal_ref TEXT,
+    doi VARCHAR(100),
+    categories VARCHAR(100)
 );
 
--- 의학/생명공학 논문
+-- 의학/생명공학 논문 테이블
 CREATE TABLE paper_bio (
     doc_id VARCHAR(50) PRIMARY KEY,
     title TEXT NOT NULL,
     abstract TEXT,
-    url TEXT
+    authors TEXT,
+    journal_ref TEXT,
+    doi VARCHAR(100),
+    categories VARCHAR(100)
 );
 
--- 천문학/자연과학 논문
+-- 천문학/자연과학 논문 테이블
 CREATE TABLE paper_astronomy (
     doc_id VARCHAR(50) PRIMARY KEY,
     title TEXT NOT NULL,
     abstract TEXT,
     authors TEXT,
-    year INTEGER
+    journal_ref TEXT,
+    doi VARCHAR(100),
+    categories VARCHAR(100)
 );
 
 -- =========================================================================
