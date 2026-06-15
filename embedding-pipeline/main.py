@@ -10,10 +10,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 설정 변수 로드
-MAC_MINI_IP = os.getenv("MAC_MINI_IP", "192.168.5.13")
+MAC_MINI_IP = os.getenv("MAC_MINI_IP", "127.0.0.1")
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3-embedding")
 OLLAMA_EMBED_URL = f"http://{MAC_MINI_IP}:11434/api/embeddings"
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "30"))
+EMBEDDING_DIM = os.getenv("EMBEDDING_DIM")
+EMBEDDING_DIM = int(EMBEDDING_DIM) if EMBEDDING_DIM else None
+
 
 app = FastAPI(
     title="Local Distributed Embedding API Server",
@@ -67,6 +70,9 @@ def fetch_single_embedding(text_prompt: str, model_name: str) -> List[float]:
         if response.status_code == 200:
             embedding = response.json().get("embedding")
             if embedding:
+                # 지정된 차원이 있다면 슬라이싱하여 반환 (Matryoshka 임베딩 지원)
+                if EMBEDDING_DIM and len(embedding) > EMBEDDING_DIM:
+                    embedding = embedding[:EMBEDDING_DIM]
                 return embedding
         raise HTTPException(
             status_code=response.status_code, 
