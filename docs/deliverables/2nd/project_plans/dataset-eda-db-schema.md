@@ -24,6 +24,18 @@ JSON 라인 포맷의 각 원본 논문 데이터는 다음과 같은 필드로 
 | `doi` | `str` | 디지털 객체 식별자 (Digital Object Identifier) | `doi` |
 | `journal-ref` | `str` | 논문이 게재된 학술지/저널 또는 학회 정보 | `journal_ref` |
 
+#### 1.1.1 ArXiv 데이터프레임 구조 예시 (`df.head(3)`)
+파이썬 Pandas 라이브러리로 데이터셋을 읽어들였을 때 로드되는 데이터프레임의 상위 3개 행(`df.head(3)`)의 실측 구조 예시입니다.
+
+| Index | doc_id | title | authors | categories | abstract | doi | journal_ref |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **0** | `0704.0001` | Calculation of prompt diphoton... | C. Balázs, E. L. Berger... | `hep-ph` | A fully differential calculation... | `10.1103/PhysRevD.76.013009` | `Phys.Rev.D76:013009,2007` |
+| **1** | `0704.0002` | Sparsity-certifying Graph... | Ileana Streinu, Louis Theran | `math.CO cs.CG` | We describe a new algorithm, the (k,l)-pebble... | *None* | *None* |
+| **2** | `0704.0003` | The evolution of the Earth-Moon... | Hongjun Pan | `physics.gen-ph` | The evolution of Earth-Moon system is... | *None* | *None* |
+
+> [!NOTE]
+> 실제 `abstract` 및 `title` 필드는 장문의 텍스트 데이터가 적재되어 있으나, 본 표에서는 가독성을 극대화하기 위해 일부 문자열을 생략(`...`) 처리하여 표현했습니다.
+
 ### 1.2 3대 타겟 도메인 카테고리 필터링 규칙
 Kaggle ArXiv 전체 데이터셋에서 플랫폼이 지원하는 3대 타겟 영역에 해당하는 데이터를 분류하기 위해, `categories` 문자열의 서브클래스 접두사를 활용하여 데이터를 스트리밍 필터링합니다.
 
