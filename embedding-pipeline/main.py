@@ -1,27 +1,54 @@
 import os
-import requests
+import time
+import torch
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Union, List, Optional
-from concurrent.futures import ThreadPoolExecutor
+from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
 # .env 로드
 load_dotenv()
 
 # 설정 변수 로드
-MAC_MINI_IP = os.getenv("MAC_MINI_IP", "127.0.0.1")
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3-embedding")
-OLLAMA_EMBED_URL = f"http://{MAC_MINI_IP}:11434/api/embeddings"
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "30"))
 EMBEDDING_DIM = os.getenv("EMBEDDING_DIM")
-EMBEDDING_DIM = int(EMBEDDING_DIM) if EMBEDDING_DIM else None
+EMBEDDING_DIM = int(EMBEDDING_DIM) if EMBEDDING_DIM else 3072 # 기본 3072차원 슬라이싱
+
+# Hugging Face 로컬 모델 디렉토리 경로
+HF_MODEL_NAME = os.path.abspath(os.path.join(os.path.dirname(__file__), "models/Qwen3-Embedding-4B"))
+
+# 전역 모델 변수
+embedding_model = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global embedding_model
+    # Apple Silicon GPU(MPS) 우선 가속 설정
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    print(f"📡 [Lifespan] 로컬 GPU 가속 장치 설정: {device}")
+    print(f"🤖 [Lifespan] 모델 로드 시작: {HF_MODEL_NAME}...")
+    start_time = time.time()
+    try:
+        embedding_model = SentenceTransformer(HF_MODEL_NAME, device=device, trust_remote_code=True)
+        print(f"✅ [Lifespan] 모델 메모리 적재 성공! (소요시간: {time.time() - start_time:.2f}초)")
+    except Exception as e:
+        print(f"❌ [Lifespan] 모델 로드 중 심각한 에러 발생: {e}")
+        raise e
+    yield
+    # 종료 시 메모리 반환
+    del embedding_model
+    if device == "mps":
+        torch.mps.empty_cache()
+    print("💤 [Lifespan] 모델 언로드 및 리소스 해제 완료.")
 
 
 app = FastAPI(
-    title="Local Distributed Embedding API Server",
-    description="Mac Mini M4 Ollama 중계를 위한 임베딩 전용 프록시 API 서버",
-    version="1.0.0"
+    title="Local High-Performance Embedding API Server",
+    description="Mac Mini M4 GPU(MPS) 가속을 이용해 직접 추론 및 슬라이싱을 수행하는 고성능 임베딩 API 서버",
+    version="2.0.0",
+    lifespan=lifespan
 )
 
 # --- Pydantic 스키마 정의 ---
@@ -57,108 +84,73 @@ class OpenAIEmbedResponse(BaseModel):
     usage: OpenAIEmbedUsage
 
 
-# --- 내부 유틸리티 함수 ---
+# --- 임베딩 추론 헬퍼 함수 ---
 
-def fetch_single_embedding(text_prompt: str, model_name: str) -> List[float]:
-    """맥미니 Ollama 서버로 단일 텍스트의 임베딩 요청을 전송하고 벡터를 가져옵니다."""
-    payload = {
-        "model": model_name,
-        "prompt": text_prompt
-    }
+def compute_embeddings(prompts: List[str]) -> List[List[float]]:
+    """로드된 SentenceTransformer 모델을 통해 다이렉트 GPU 추론을 수행하고 차원을 슬라이싱합니다."""
+    if embedding_model is None:
+        raise HTTPException(status_code=503, detail="임베딩 모델이 아직 준비되지 않았거나 로드에 실패했습니다.")
+    
     try:
-        response = requests.post(OLLAMA_EMBED_URL, json=payload, timeout=15)
-        if response.status_code == 200:
-            embedding = response.json().get("embedding")
-            if embedding:
-                # 지정된 차원이 있다면 슬라이싱하여 반환 (Matryoshka 임베딩 지원)
-                if EMBEDDING_DIM and len(embedding) > EMBEDDING_DIM:
-                    embedding = embedding[:EMBEDDING_DIM]
-                return embedding
-        raise HTTPException(
-            status_code=response.status_code, 
-            detail=f"Ollama 서버 에러: {response.text}"
-        )
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(
-            status_code=503, 
-            detail=f"맥미니 Ollama 서버 연결 실패: {e}"
-        )
-
-
-def get_embeddings_concurrently(prompts: List[str], model_name: str) -> List[List[float]]:
-    """멀티스레드를 사용하여 리스트 형태의 프롬프트 임베딩을 병렬로 신속하게 추출합니다."""
-    # 단일 쓰레드로만 연산이 막히지 않도록 ThreadPoolExecutor 활용
-    with ThreadPoolExecutor(max_workers=min(MAX_WORKERS, len(prompts))) as executor:
-        # 원래 순서를 보장하기 위해 인덱스를 포함해 처리
-        futures = {
-            executor.submit(fetch_single_embedding, prompt, model_name): i 
-            for i, prompt in enumerate(prompts)
-        }
+        # GPU MPS 가속 일괄 추론 진행 (sentence-transformers 자체 배치 병렬화 활용)
+        embeddings = embedding_model.encode(prompts, batch_size=32, show_progress_bar=False)
         
-        results = [None] * len(prompts)
-        for future in futures:
-            idx = futures[future]
-            try:
-                results[idx] = future.result()
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"임베딩 병렬 처리 에러 (Index {idx}): {e}")
-                
+        results = []
+        for vec in embeddings:
+            vector_list = vec.tolist()
+            # Matryoshka 슬라이싱 및 부족할 시 제로 패딩(Zero Padding) 처리
+            if EMBEDDING_DIM:
+                if len(vector_list) > EMBEDDING_DIM:
+                    vector_list = vector_list[:EMBEDDING_DIM]
+                elif len(vector_list) < EMBEDDING_DIM:
+                    # 차원이 부족한 경우 뒤를 0.0으로 채워 target dimension(3072)을 맞춤
+                    # 코사인 유사도 점수는 수학적으로 완전히 동일하게 유지됨
+                    vector_list += [0.0] * (EMBEDDING_DIM - len(vector_list))
+            results.append(vector_list)
         return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"GPU 임베딩 연산 중 에러 발생: {e}")
 
 
 # --- API 엔드포인트 정의 ---
 
-@app.get("/health", summary="서버 헬스 체크 및 맥미니 통신 진단")
+@app.get("/health", summary="서버 헬스 체크 및 GPU 상태 진단")
 def health_check():
-    """임베딩 API 서버가 구동 중인지 및 맥미니 Ollama 서버와 정상 통신 중인지 확인합니다."""
-    base_url = f"http://{MAC_MINI_IP}:11434"
-    ollama_status = "UNKNOWN"
-    try:
-        r = requests.get(base_url, timeout=3)
-        if r.status_code == 200:
-            ollama_status = "UP"
-        else:
-            ollama_status = f"DOWN (HTTP {r.status_code})"
-    except Exception as e:
-        ollama_status = f"UNREACHABLE ({str(e)})"
-        
+    """서버 작동 상태와 GPU(MPS) 장치 사용 여부를 모니터링합니다."""
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    model_loaded = embedding_model is not None
     return {
         "status": "UP",
-        "mac_mini_ip": MAC_MINI_IP,
-        "ollama_status": ollama_status,
-        "target_model": DEFAULT_MODEL
+        "device": device,
+        "model_loaded": model_loaded,
+        "model_name": HF_MODEL_NAME,
+        "embedding_dim": EMBEDDING_DIM
     }
 
 
-@app.post("/api/embeddings", response_model=OllamaEmbedResponse, summary="Ollama 호환 규격 임베딩 반환 API")
+@app.post("/api/embeddings", response_model=OllamaEmbedResponse, summary="Ollama 호환 규격 직접 임베딩 반환 API")
 def get_ollama_embeddings(request: OllamaEmbedRequest):
-    """Ollama와 동일한 형태의 요청/응답 규격을 따르는 엔드포인트입니다.
-    
-    LangChain의 `OllamaEmbeddings` 클래스에서 이 주소를 바라보도록 연동 가능합니다.
-    """
-    model_name = request.model or DEFAULT_MODEL
-    
+    """Ollama API와 규격이 일치하며, 내부적으로는 직접 GPU 추론 후 3072차원으로 슬라이싱하여 고속 반환합니다."""
     if isinstance(request.prompt, str):
-        # 단일 텍스트 처리
-        vector = fetch_single_embedding(request.prompt, model_name)
-        return OllamaEmbedResponse(embedding=vector)
+        prompts = [request.prompt]
+        is_single = True
     elif isinstance(request.prompt, list):
-        # 다중 텍스트 병렬 처리
-        vectors = get_embeddings_concurrently(request.prompt, model_name)
-        return OllamaEmbedResponse(embedding=vectors)
+        prompts = request.prompt
+        is_single = False
     else:
         raise HTTPException(status_code=400, detail="prompt 타입이 올바르지 않습니다 (str 또는 List[str] 필요).")
 
+    vectors = compute_embeddings(prompts)
+    
+    if is_single:
+        return OllamaEmbedResponse(embedding=vectors[0])
+    else:
+        return OllamaEmbedResponse(embedding=vectors)
 
-@app.post("/v1/embeddings", response_model=OpenAIEmbedResponse, summary="OpenAI 호환 규격 임베딩 반환 API")
+
+@app.post("/v1/embeddings", response_model=OpenAIEmbedResponse, summary="OpenAI 호환 규격 직접 임베딩 반환 API")
 def get_openai_embeddings(request: OpenAIEmbedRequest):
-    """OpenAI 임베딩 API와 동일한 형태의 규격을 따르는 엔드포인트입니다.
-    
-    LangChain의 `OpenAIEmbeddings` 클래스에서 `openai_api_base`를 이 서버로 설정하여 연동 가능합니다.
-    """
-    model_name = request.model or DEFAULT_MODEL
-    
-    # 입력 파싱
+    """OpenAI API 규격과 일치하며, 직접 GPU(MPS) 추론을 수행하여 OpenAIEmbeddings 플러그인과 호환 작동합니다."""
     if isinstance(request.input, str):
         prompts = [request.input]
     elif isinstance(request.input, list):
@@ -166,10 +158,8 @@ def get_openai_embeddings(request: OpenAIEmbedRequest):
     else:
         raise HTTPException(status_code=400, detail="input 타입이 올바르지 않습니다 (str 또는 List[str] 필요).")
 
-    # 병렬 임베딩 계산
-    vectors = get_embeddings_concurrently(prompts, model_name)
+    vectors = compute_embeddings(prompts)
     
-    # OpenAI 응답 양식 빌드
     data_list = []
     total_chars = 0
     for idx, vec in enumerate(vectors):
@@ -180,13 +170,13 @@ def get_openai_embeddings(request: OpenAIEmbedRequest):
         ))
         total_chars += len(prompts[idx])
         
-    # 간략한 토큰 추정 (문자 수 기반 대략치 설정)
+    # 간략한 토큰 추정
     estimated_tokens = int(total_chars / 4) + 1
     
     return OpenAIEmbedResponse(
         object="list",
         data=data_list,
-        model=model_name,
+        model=request.model or DEFAULT_MODEL,
         usage=OpenAIEmbedUsage(
             prompt_tokens=estimated_tokens,
             total_tokens=estimated_tokens
