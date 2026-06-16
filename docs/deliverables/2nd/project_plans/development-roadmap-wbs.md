@@ -1,63 +1,79 @@
-# 📅 3인 기준 2주 단기 집중 개발 일정 및 R&R 계획 (Development Roadmap & WBS)
+# 📅 3인 전담제 기반 2주 단기 집중 개발 일정 및 R&R 계획 (Development Roadmap & WBS)
 
-본 문서는 **6월 30일 프로젝트 완료 및 최종 배포**를 목표로, 평일 작업(총 11영업일) 기준으로 3명의 팀원(A, B, C)에게 태스크를 유기적으로 분담한 단기 집중 로드맵입니다.
-
----
-
-## 👥 1. 팀원 구성 및 R&R (Role & Responsibility)
-
-*   **Developer A (AI & Agent)**: RAG 데이터 가공(청킹, 임베딩), LangGraph 상태 그래프 및 라우팅 오케스트레이션, 프롬프트 엔지니어링, RAG 정확도/성능 평가 총괄.
-*   **Developer B (Backend & DB)**: PostgreSQL DB 물리 스케마 반영, 벌크 데이터 로더/가공 스크립트 작성, FastAPI API 엔드포인트(Auth, Member, Chat, Sandbox, Subscription) 구현, 보안 파쇄 스케줄러 구현.
-*   **Developer C (Frontend)**: Next.js App Router UI 컴포넌트화, Axios API 연동, SSE 실시간 토큰/CoT 스트리밍 리스너 구현, D3.js 기반 인터랙티브 인용 관계망 렌더러 개발.
+본 문서는 **6월 30일 프로젝트 완료 및 최종 배포**를 목표로, 3명의 팀원(승현, 지환, 동원)이 **각각 1개의 RAG 파이프라인과 1개의 핵심 MVP 기능군을 전담(E2E)**하여 개발하는 평일 작업(총 11영업일) WBS 일정 및 R&R 계획서입니다.
 
 ---
 
-## 🗓️ 2. 상세 WBS (일자별 마일스톤)
+## 👥 1. 역할 분담 및 책임 명세 (R&R)
 
-### 📅 [1주차] 데이터셋 구축, DB 적재 및 기본 API/UI 마운트 (6/16 ~ 6/19, 4영업일)
+### 🧬 승현 (생명공학 RAG + 📊 대규모 문헌 비교 분석)
+*   **RAG 파이프라인**: 생명공학 카테고리(`q-bio.BM`) 5,000건 추출 가공 및 `bio_embeddings` DB 적재, 유사도 검색 API 구현.
+*   **핵심 MVP 기능**: 대규모 문헌 비교 및 Research Gap 분석기 (비동기 배치 태스크 관리, Pydantic Structured Output 기반 한계점/해결과제 추출, 공백 제안 LLM 노드 합성, 전용 대시보드 UI 연동).
 
-*   **6/16 (화)**
-    *   **Developer A**: ArXiv 1.5만 건 경량 도메인 필터링 조건 설정 및 `chunker.py` 텍스트 분할 초안 완성.
-    *   **Developer B**: PostgreSQL pgvector 확장 반영 및 `schema.sql` 데이터베이스 테이블 신설 완료.
-    *   **Developer C**: 2차 고도화 와이어프레임(HTML/CSS) 마크업을 Next.js(React) 구조로 이관 및 Sage/Warm 테마 시스템 마운트.
-*   **6/17 (수)**
-    *   **Developer A**: `local_batch_embed.py` 구동을 통한 Apple Silicon M4 GPU 기반 1.5만 건 논문 임베딩 생성 (JSONL 저장).
-    *   **Developer B**: `bulk_load_to_db.py` 완성 및 5,000건 단위의 pgvector 고속 DB 벌크 적재(Copy) 실행 완료.
-    *   **Developer C**: `AuthContext.js` 연동을 통한 로그인/회원가입 API 연동 및 클라이언트 세션 관리 구현.
-*   **6/18 (목)**
-    *   **Developer A**: LangGraph 상태 그래프(StateGraph) 정의 및 도메인 분기 조건부 에지(Conditional Edge) 설계.
-    *   **Developer B**: FastAPI `BaseDTO` 정의 및 `/auth` (인증), `/member` (회원 CRUD) 백엔드 API 핸들러 완수.
-    *   **Developer C**: 일반 챗 허브 (W2-01) UI 컴포넌트 구현 및 백엔드 SSE 응답 마운트 준비.
-*   **6/19 (금)**
-    *   **Developer A**: RAG 유사도 검색 연동 노드 구현 및 LangGraph 오케스트레이터 기본 파이프라인 작동 테스트.
-    *   **Developer B**: `/chat` 계열 스레드/메시지 데이터 저장 API 및 FastAPI SSE(Server-Sent Events) 스트리밍 채널 구현.
-    *   **Developer C**: Next.js 내 실시간 SSE 토큰 수신 리스너 Hook 개발 및 Chat UI에 생각의 흐름(CoT) 실시간 타이핑 렌더링 연동.
+### 📄 지환 (컴퓨터 과학 RAG + 🔒 보안 샌드박스 & 디펜스)
+*   **RAG 파이프라인**: 컴퓨터 과학 카테고리(`cs.NE`) 5,000건 추출 가공 및 `cs_embeddings` DB 적재, 유사도 검색 API 구현.
+*   **핵심 MVP 기능**: 보안 샌드박스 피어 리뷰 및 가설 디펜스 아레나 (격리 PDF 업로드 및 임시 테이블 인덱스, 30분 소거 스케줄러 데몬, 3대 에이전트 피어 리뷰 토론 그래프, 다수결 가설 검증, 가설 구독 알림).
 
-### 📅 [2주차] 샌드박스 보안 데몬, 다중 에이전트 및 UI 인터랙션 고도화 (6/22 ~ 6/26, 5영업일)
+### 🔬 동원 (천문학 RAG + 💎 맞춤형 연구 비서 Gem 팩토리)
+*   **RAG 파이프라인**: 천문학 카테고리(`astro-ph.EP`) 5,000건 추출 가공 및 `astronomy_embeddings` DB 적재, 유사도 검색 API 구현.
+*   **핵심 MVP 기능**: 맞춤형 연구 비서 Gem 팩토리 & 스토어 (다중 RAG 소스 매핑 및 시스템 프롬프트 바인딩 젬 생성, 젬 카드 보관함 조회, 젬 1:1 격리 대화 API 구현, 1:1 대화방 UI 연동).
 
-*   **6/22 (월)**
-    *   **Developer A**: 문헌 비교 및 Gap 분석용 Multi-Query / Step-Back 프롬프트 설계 및 분석 요약 노드 구축.
-    *   **Developer B**: `/sandbox` 임시 세션 개설 및 격리 PDF 업로드 처리 API 구현.
-    *   **Developer C**: 대규모 문헌 비교 및 Gap 분석기 (W2-02) UI 렌더링 및 비동기 상태 진행바 연동.
-*   **6/23 (화)**
-    *   **Developer A**: 보안 리뷰 및 가설 디펜스용 3대 가상 에이전트(리뷰어) 페르소나 설계 및 의견 취합 노드 개발.
-    *   **Developer B**: 30분 소거 타이머를 검증하는 스케줄러 (`purge_expired_sandboxes`) 구현 및 CASCADE 테이블 삭제 기능 연동.
-    *   **Developer C**: 보안 리뷰 및 가설 디펜스 아레나 (W2-03) UI 연동 및 30분 소거 타이머 배너 기능 구현.
-*   **6/24 (수)**
-    *   **Developer A**: 가설 구독 정기 백그라운드 크론 태스크 및 논문 의미론적 지지/반박(PRO/CONTRA) 판별 LLM 가이드라인 적용.
-    *   **Developer B**: 가설 알림 수신 인박스 API 구현 및 SMTP 모듈 연동을 통한 이메일 발송 데몬 완성.
-    *   **Developer C**: 맞춤형 연구 비서 Gem 팩토리 (W2-04) UI 연동 (RAG 소스 및 시스템 프롬프트 데이터 전송 및 생성 테스트).
-*   **6/25 (목)**
-    *   **Developer A**: 다중 에이전트 및 RAG 전체 질의에 대한 테스트 데이터셋 빌드 및 품질 정확도 측정 (PyTest).
-    *   **Developer B**: `/subscriptions`, `/gem_agent` API 마이너 버그 튜닝 및 pgvector 검색 속도 인덱스 최적화.
-    *   **Developer C**: D3.js 연동을 통한 논문 인용망 시각화(W2-01 내 팝업 관계망) 컴포넌트 개발 및 그래프 데이터 연계.
-*   **6/26 (금)**
-    *   **공통**: 프론트엔드와 백엔드 간의 E2E 통합 테스트 수행, API 런타임 예외 처리(4xx/5xx) 디버깅 및 UI 마이크로 애니메이션 폴리싱.
+---
 
-### 📅 [3주차] 최종 통합 성능 검증, 릴리즈 마감 및 배포 (6/29 ~ 6/30, 2영업일)
+## 🗓️ 2. 개인별 2주 WBS 상세 일정 (평일 기준)
 
-*   **6/29 (월)**
-    *   **Developer A**: RAG 데이터셋 누수 및 가설 오분류율 검증 후 `test-report-2nd.md` 통합 성능 분석 보고서 마감.
-    *   **Developer B/C**: Next.js 프로덕션 빌드 최적화 및 FastAPI ASGI 다중 커넥션 부하 테스트 수행.
-*   **6/30 (화)**
-    *   **공통**: 플랫폼 구동 및 시연용 화면 녹화/가이드북을 정리한 `walkthrough-2nd.md` 갱신. 로컬 `dev` 브랜치를 `main` 브랜치로 최종 풀리퀘스트(PR) 병합 후 릴리즈 배포 완료.
+### 🧑‍💻 2.1 승현: 생명공학 RAG & 문헌 비교 분석
+
+#### 📅 [1주차] 생명공학 RAG 파이프라인 구축 및 DB 적재 (6/16 ~ 6/19)
+*   **6/16 (화)**: ArXiv `q-bio.BM` 카테고리 5,000건 추출 스트리밍 파싱 및 `chunker.py` 텍스트 분할 규칙 정의.
+*   **6/17 (수)**: 로컬 GPU(Apple Silicon M4) 배치 가속 구동을 통한 q-bio 임베딩 생성 및 `local_embeddings_output.jsonl` 백업.
+*   **6/18 (목)**: `bulk_load_to_db.py` 완성 및 `bio_embeddings` pgvector 테이블 벌크 적재(Copy) 실행.
+*   **6/19 (금)**: 생명공학 RAG 유사도 검색 API (`POST /similarity-search/bio`) 구현 및 전형적인 학술 질문 유사도 응답 품질 테스트.
+
+#### 📅 [2주차] 대규모 문헌 비교 및 Research Gap 분석기 완성 (6/22 ~ 6/26)
+*   **6/22 (월)**: 비동기 배치 분석 작업 요청 API (`POST /research-gap/analyze`) 및 작업 상태 조회 API 구현.
+*   **6/23 (화)**: Pydantic Structured Output을 연동해 논문 문맥에서 해결된 문제/한계점을 정형화하여 추출하는 모듈 개발.
+*   **6/24 (수)**: 일괄 추출된 매트릭스 데이터를 기반으로 학계의 연구 공백(Research Gap)을 추론하는 LLM Synthesis Node 개발.
+*   **6/25 (목)**: Next.js 기반 대규모 문헌 비교 대시보드(W2-02) 매트릭스 테이블 및 비동기 상태 진행바 UI 구현.
+*   **6/26 (금)**: 비동기 큐 작업 연계 E2E 통합 테스트 수행 및 API 예외 처리 구조 리팩토링.
+
+---
+
+### 🧑‍💻 2.2 지환: 컴퓨터 과학 RAG & 보안 샌드박스 및 디펜스
+
+#### 📅 [1주차] 컴퓨터 과학 RAG 파이프라인 구축 및 DB 적재 (6/16 ~ 6/19)
+*   **6/16 (화)**: ArXiv `cs.NE` 카테고리 5,000건 추출 파싱 및 `cs_embeddings` pgvector 테이블 DDL 마운트.
+*   **6/17 (수)**: 로컬 GPU 배치 가속 구동을 통한 cs 임베딩 생성 및 `local_embeddings_output.jsonl` 백업 완료.
+*   **6/18 (목)**: 컴퓨터 과학 RAG 유사도 검색 API (`POST /similarity-search/cs`) 구현 및 JWT 토큰 보안 가드 연동.
+*   **6/19 (금)**: 일반 챗 허브 (W2-01) UI 컴포넌트 마운트 및 `/chat/threads` 조회/등록 API 연동.
+
+#### 📅 [2주차] 보안 샌드박스, 피어 리뷰 및 가설 디펜스 아레나 완성 (6/22 ~ 6/26)
+*   **6/22 (월)**: PDF 격리 업로드 및 임시 테이블 적재 API (`POST /validation/upload-isolated`) 및 30분 소거 배치 데몬 개발.
+*   **6/23 (화)**: LangGraph 기반 3대 에이전트(방법론, 신규성, 학술문체) 피어 리뷰 토론 그래프 (`POST /academic-peer-review`) 구현.
+*   **6/24 (수)**: 가설 자가 검증(Self-Consistency Majority Voting) 노드 및 심사위원 압박 디펜스 API 구현.
+*   **6/25 (목)**: 보안 리뷰 및 가설 디펜스 아레나 (W2-03) UI 개발 (30분 소거 배너, PDF 드롭존, 디펜스 챗창 연동).
+*   **6/26 (금)**: OS Path 파일 파쇄(Shredding) 데몬 구동 및 pgvector 임시 인덱스 ON DELETE CASCADE 트랜잭션 검증.
+
+---
+
+### 🧑‍💻 2.3 동원: 천문학 RAG & 맞춤형 연구 비서 Gem 팩토리
+
+#### 📅 [1주차] 천문학 RAG 파이프라인 구축 및 DB 적재 (6/16 ~ 6/19)
+*   **6/16 (화)**: ArXiv `astro-ph.EP` 카테고리 5,000건 추출 파싱 및 `astronomy_embeddings` DDL 스케마 정의.
+*   **6/17 (수)**: 로컬 GPU 배치 가속 구동을 통한 천문학 임베딩 생성 및 `local_embeddings_output.jsonl` 백업 완료.
+*   **6/18 (목)**: 천문학 RAG 유사도 검색 API (`POST /similarity-search/astronomy`) 구현 및 코사인 유사도 튜닝.
+*   **6/19 (금)**: FastAPI와 Next.js 간 SSE(Server-Sent Events) 커넥션 및 실시간 토큰/CoT 로그 스트리밍 채널 구현.
+
+#### 📅 [2주차] 맞춤형 연구 비서 Gem 팩토리 & 스토어 완성 (6/22 ~ 6/26)
+*   **6/22 (월)**: 지정한 RAG 소스 및 시스템 프롬프트를 바인딩해 저장하는 젬 생성 API (`POST /gems`) 개발.
+*   **6/23 (화)**: 생성 및 스토어에 보관된 사용자 정의 젬 카드 리스트 호출 API (`GET /gems`) 구현.
+*   **6/24 (수)**: 특정 젬과 격리된 1:1 대화를 수행하는 전용 SSE 스트리밍 라우터 (`POST /gems/{gem_id}/chat`) 완성.
+*   **6/25 (목)**: Gem 팩토리 (W2-04) UI 연동 (RAG 소스 필터 체크박스, 프롬프트 에디터, 젬 카드 그리드 렌더링).
+*   **6/26 (금)**: 젬 1:1 대화방 입장 시뮬레이터 및 모달 팝업 상태 관리 UI 기능 완성.
+
+---
+
+### 🧑‍🤝‍🧑 2.4 공통 마무리 (6/29 ~ 6/30, 2영업일)
+
+*   **6/29 (월)**: 프론트엔드와 백엔드 간의 E2E 통합 테스트 수행, API 런타임 예외 처리 디버깅, Next.js 프로덕션 최적화 빌드 수행.
+*   **6/30 (화)**: `walkthrough-2nd.md` 시연 비디오 캡처 및 설명서 갱신. 로컬 `dev` 브랜치를 `main` 브랜치로 최종 Pull Request 병합 및 프로젝트 릴리즈 배포 완료.
