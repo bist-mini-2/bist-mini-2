@@ -1,11 +1,11 @@
 import logging
-from typing import Annotated, Type
+from typing import Annotated
 from fastapi import Depends
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import BaseTool
+from langchain_core.tools import tool
+from langchain_core.runnables import RunnableConfig
 from langgraph.prebuilt import create_react_agent
-from pydantic import BaseModel, Field
 
 from api.common.config import settings
 from api.v1.cs.dao import CsDaoDep
@@ -18,44 +18,29 @@ from api.v1.cs.models import (
 )
 
 
-class CsPaperSearchInput(BaseModel):
-    """CsPaperSearchTool의 입력 데이터 스키마입니다."""
-    
-    search_query: str = Field(description="컴퓨터 과학 논문 데이터베이스에서 검색할 질문 또는 핵심 키워드.")
+@tool
+async def search_cs_papers(
+    search_query: str,
+    config: RunnableConfig
+) -> str:
+    """컴퓨터 과학(Neural and Evolutionary Computing, cs.NE 카테고리) 관련 학술 논문 데이터베이스에서 검색을 수행합니다.
+    인공신경망, 진화 컴퓨팅, 유전 알고리즘, 신경망 학습 다이내믹스 등의 개념에 대한 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요.
+    입력값(search_query)은 검색어 텍스트여야 합니다.
+    """
+    cs_service: "CsService" = config.get("configurable", {}).get("cs_service")
+    if not cs_service:
+        return "오류: cs_service가 설정에 제공되지 않았습니다."
 
-
-class CsPaperSearchTool(BaseTool):
-    """컴퓨터 과학(cs.NE) 논문 데이터베이스 검색을 수행하는 LangChain 사용자 정의 툴 클래스입니다."""
-    
-    name: str = "search_cs_papers"
-    description: str = (
-        "컴퓨터 과학(Neural and Evolutionary Computing, cs.NE 카테고리) 관련 학술 논문 데이터베이스에서 검색을 수행합니다. "
-        "인공신경망, 진화 컴퓨팅, 유전 알고리즘, 신경망 학습 다이내믹스 등의 개념에 대한 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요."
-    )
-    args_schema: Type[BaseModel] = CsPaperSearchInput
-    
-    # DB 세션 바인딩을 가지고 있는 CsService 인스턴스를 주입받아 사용합니다.
-    cs_service: "CsService" = Field(exclude=True)
-
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
-
-    async def _arun(self, search_query: str) -> str:
-        """비동기로 데이터베이스 논문 검색을 수행하고 텍스트 결과를 반환합니다."""
-        search_res = await self.cs_service.search_similar_papers(search_query, top_k=3)
-        if not search_res.results:
-            return "검색 결과가 데이터베이스에 존재하지 않습니다."
-            
-        formatted_results = []
-        for idx, item in enumerate(search_res.results):
-            formatted_results.append(
-                f"[문서 {idx+1}]\n논문 ID: {item.doc_id}\n제목: {item.title}\n내용 청크: {item.text_chunk}\n"
-            )
-        return "\n".join(formatted_results)
-
-    def _run(self, search_query: str) -> str:
-        raise NotImplementedError("Use async run (_arun) instead.")
+    search_res = await cs_service.search_similar_papers(search_query, top_k=3)
+    if not search_res.results:
+        return "검색 결과가 데이터베이스에 존재하지 않습니다."
+        
+    formatted_results = []
+    for idx, item in enumerate(search_res.results):
+        formatted_results.append(
+            f"[문서 {idx+1}]\n논문 ID: {item.doc_id}\n제목: {item.title}\n내용 청크: {item.text_chunk}\n"
+        )
+    return "\n".join(formatted_results)
 
 
 class CsService:
@@ -177,8 +162,8 @@ class CsService:
         """
         self.logger.info("run_agent_with_rag_tool 실행")
 
-        # 1. 툴(Tool) 인스턴스화 (외부에 모듈 레벨로 선언된 클래스 사용)
-        tools = [CsPaperSearchTool(cs_service=self)]
+        # 1. 모듈 레벨 툴 목록 정의
+        tools = [search_cs_papers]
 
         # 2. Agent 구성
         llm = ChatOpenAI(
@@ -189,10 +174,11 @@ class CsService:
         
         agent = create_react_agent(llm, tools)
         
-        # 3. Agent 실행
-        response = await agent.ainvoke({
-            "messages": [("user", query)]
-        })
+        # 3. Agent 실행 (config를 전달하여 cs_service 의존성 주입)
+        response = await agent.ainvoke(
+            {"messages": [("user", query)]},
+            config={"configurable": {"cs_service": self}}
+        )
         
         messages = response["messages"]
         final_answer = messages[-1].content
