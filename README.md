@@ -39,6 +39,34 @@ bist-mini-2/
 
 ---
 
+## 🛠️ 기술 스택 및 버전 사양 (Technology Stack & Versions)
+
+플랫폼 구동 및 빌드 안정성을 위해 검증된 기술 스택과 라이브러리 명세입니다.
+
+### 💻 백엔드 (Backend API)
+- **Runtime Engine**: Python `3.12` (uv 가상환경 격리 지원)
+- **Framework**: FastAPI `0.116.1`
+- **ASGI Server**: Uvicorn `0.35.0`
+- **ORM**: SQLAlchemy `2.0.43`
+- **Database Driver**: psycopg `3.3.3` (asyncpg `0.30.0` 병행)
+- **Semantic Search**: pgvector `0.3.6` (HNSW 인덱싱 지원)
+- **AI / Agentic Workflow**:
+  - LangChain `1.2.10`
+  - LangGraph `1.0.10`
+  - OpenAI SDK `2.24.0`
+
+### 🌐 프론트엔드 (Frontend Web)
+- **Framework**: Next.js `16.2.9` (App Router 규격 채택)
+- **Library**: React `19.2.4` / React-DOM `19.2.4`
+- **HTTP Client**: Axios `1.17.0`
+- **UI Styling**: Bootstrap `5.3.8` (Bootstrap Icons `@1.11.3` 표준 활용)
+
+### 🗄️ 데이터베이스 및 인프라 (Database & Infrastructure)
+- **Database**: PostgreSQL `17.x` (pgvector Extension 활성화 필수)
+- **Cache / Context Store**: Redis (RAG 캐싱 레이어)
+
+---
+
 ## 🛠️ 2. 로컬 개발 환경 세팅 (Getting Started)
 
 ### ① 데이터베이스 준비
