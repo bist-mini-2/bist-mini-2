@@ -101,11 +101,7 @@
 *   **D3/인터랙티브 그래프 렌더러** (`c:/Repo/bist-mini-2/frontend/src/components/`):
     *   *역할*: `GET /graph-structure` 및 `GET /papers/{id}/citations` 데이터 기반으로 관계망(LangGraph 및 Citation Graph) 노드-링크 시각화 컴포넌트 구현.
 
-### 🧪 2.6 단계 5: 테스트 & 제품 완료 보고 (Validation & Final Deliverables)
-*   **통합 및 단위 테스트 스크립트** (`c:/Repo/bist-mini-2/backend/tests/`):
-    *   *역할*: RAG 유사도 성능, Pydantic Structured Output 규격, 다중 에이전트 가설 검증 결과의 정확도를 검증하는 PyTest 코드.
-*   **테스트 검증 완료 보고서** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/test-report-2nd.md`):
-    *   *역할*: API 및 도구 연동 단위 테스트 성공 기록 및 RAG 정확도 팩트체크 테스트 스코어.
+### 🖥️ 2.6 단계 5: 제품 완료 보고 (Final Deliverables)
 *   **제품 시연 가이드 & 완료 보고서** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/walkthrough-2nd.md` 업데이트):
     *   *역할*: 개발이 완수된 최종 플랫폼 구동 및 시연 가이드라인과 릴리즈 버전의 산출물 현황 보고서.
 *   **3인 기준 2주 단기 집중 개발 로드맵 (WBS)** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/development-roadmap-wbs.md`):
