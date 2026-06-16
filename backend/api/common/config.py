@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Database Configuration
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
 
+    # OpenAI API Key Configuration
+    OPENAI_API_KEY: str = ""
+
     # Automatically load from .env file if it exists
     model_config = SettingsConfigDict(
         env_file=".env",

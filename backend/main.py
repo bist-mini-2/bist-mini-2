@@ -47,6 +47,10 @@ async def lifespan(app: FastAPI):
     from api.v1.member.entity import MemberEntity
     
     async with engine.begin() as conn:
+        # PostgreSQL인 경우 pgvector 익스텐션 자동 활성화
+        if "postgresql" in settings.DATABASE_URL:
+            from sqlalchemy import text
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
         
     yield
