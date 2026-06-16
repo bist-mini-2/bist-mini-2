@@ -6,12 +6,12 @@
 
 ## 👥 1. 역할 분담 및 책임 명세 (R&R)
 
-### 🧩 1.1 공통 RAG 파이프라인 구축 (6/16 ~ 6/18, 3일)
+### 🧩 1.1 공통 RAG 파이프라인 구축 (6/16 ~ 6/17, 2일)
 *   **승현**: 생명공학 RAG 파이프라인 (`q-bio.BM` 5,000건 추출 가공, `bio_embeddings` 테이블 적재, RAG 유사도 검색 API)
 *   **지환**: 컴퓨터 과학 RAG 파이프라인 (`cs.NE` 5,000건 추출 가공, `cs_embeddings` 테이블 적재, RAG 유사도 검색 API)
 *   **동원**: 천문학 RAG 파이프라인 (`astro-ph.EP` 5,000건 추출 가공, `astronomy_embeddings` 테이블 적재, RAG 유사도 검색 API)
 
-### 🛠️ 1.2 4대 핵심 기능 전담 구현 (6/19 ~ 6/26, 6일)
+### 🛠️ 1.2 4대 핵심 기능 전담 구현 (6/18 ~ 6/26, 7일)
 *   **동원 (기능 A & 기능 D)**: 
     - **기능 A (일반 챗 허브)**: 기본 RAG 채팅 질의응답 및 토큰/CoT 실시간 SSE 스트리밍 연동.
     - **기능 D (맞춤형 연구 비서 Gem 팩토리)**: RAG 소스 매핑 및 시스템 프롬프트 조합 젬 생성, 젬 카드 보관함 조회, 젬 1:1 격리 대화 API 구현.
@@ -24,32 +24,34 @@
 
 ## 🗓️ 2. 상세 WBS 및 일자별 마일스톤
 
-### 📅 [1단계] 3대 도메인 RAG 파이프라인 공동 구축 (6/16 ~ 6/18, 3영업일)
+### 📅 [1단계] 3대 도메인 RAG 파이프라인 공동 구축 (6/16 ~ 6/17, 2영업일)
 
 *   **6/16 (화)**
     *   **공통**: ArXiv 대용량 데이터셋 스트리밍 파싱 및 `chunker.py` 텍스트 500자 분할 로직 표준화.
-    *   **승현**: 생명공학(`q-bio.BM` 5,000건), **지환**: 컴퓨터 과학(`cs.NE` 5,000건), **동원**: 천문학(`astro-ph.EP` 5,000건) 원천 텍스트 추출 완료.
+    *   **승현**: 생명공학(`q-bio.BM` 5,000건), **지환**: 컴퓨터 과학(`cs.NE` 5,000건), **동원**: 천문학(`astro-ph.EP` 5,000건) 원천 데이터 추출 및 로컬 가공.
+    *   **공통**: 로컬 M4 GPU 배치 가속 임베더(`local_batch_embed.py`) 구동 및 각 도메인별 3072차원 벡터 연산 시작.
 *   **6/17 (수)**
-    *   **공통**: 로컬 GPU(Apple Silicon M4) 배치 가속 임베더(`local_batch_embed.py`) 구동 및 각 도메인별 3072차원 벡터 연산 진행.
-    *   **승현/지환/동원**: 각자 데이터셋에 대한 임베딩 생성 및 `local_embeddings_output.jsonl` 백업 완료.
-*   **6/18 (목)**
     *   **공통**: 데이터베이스 DDL(`schema.sql`) 반영 및 pgvector HNSW 인덱스 매핑.
-    *   **승현**: `bio_embeddings` 테이블 벌크 적재 및 유사도 검색 API (`POST /similarity-search/bio`) 구현.
-    *   **지환**: `cs_embeddings` 테이블 벌크 적재 및 유사도 검색 API (`POST /similarity-search/cs`) 구현.
-    *   **동원**: `astronomy_embeddings` 테이블 벌크 적재 및 유사도 검색 API (`POST /similarity-search/astronomy`) 구현.
+    *   **승현**: `bio_embeddings` 테이블 벌크 적재 및 유사도 검색 API (`POST /similarity-search/bio`) 구현 완료.
+    *   **지환**: `cs_embeddings` 테이블 벌크 적재 및 유사도 검색 API (`POST /similarity-search/cs`) 구현 완료.
+    *   **동원**: `astronomy_embeddings` 테이블 벌크 적재 및 유사도 검색 API (`POST /similarity-search/astronomy`) 구현 완료.
 
 ---
 
-### 📅 [2단계] 4대 핵심 기능 (기능 A, B, C, D) 전담 개발 (6/19 ~ 6/26, 6영업일)
+### 📅 [2단계] 4대 핵심 기능 (기능 A, B, C, D) 전담 개발 (6/18 ~ 6/26, 7영업일)
 
+*   **6/18 (목)**
+    *   **동원 (기능 A)**: 일반 챗 허브 백엔드 `/chat/threads` API 구현 및 Next.js UI 마운트 시작.
+    *   **승현 (기능 B)**: 비동기 배치 분석 작업 요청 API (`POST /research-gap/analyze`) 및 Celery/Async 태스크 상태 조회 API 설계.
+    *   **지환 (기능 C)**: PDF 격리 업로드 및 임시 테이블 적재 API (`POST /validation/upload-isolated`) 설계.
 *   **6/19 (금)**
-    *   **동원 (기능 A)**: 일반 챗 허브 백엔드 `/chat/threads` API 구현 및 Next.js UI 마운트.
-    *   **승현 (기능 B)**: 비동기 배치 분석 작업 요청 API (`POST /research-gap/analyze`) 및 Celery/Async 태스크 상태 조회 API 초안 완성.
-    *   **지환 (기능 C)**: PDF 격리 업로드 및 임시 테이블 적재 API (`POST /validation/upload-isolated`) 구현.
-*   **6/22 (월)**
     *   **동원 (기능 A)**: FastAPI SSE(Server-Sent Events) 스트리밍 토큰 채널 및 React SSE 수신 렌더러 Hook 연동.
-    *   **승현 (기능 B)**: Pydantic Structured Output 연동 논문 한계점/해결과제 추출 모듈 (`solved_problems`, `limitations`) 구현.
-    *   **지환 (기능 C)**: 30분 소거 타이머 스케줄러 (`purge_expired_sandboxes`) 구현 및 CASCADE 삭제 연쇄 트랜잭션 검증.
+    *   **승현 (기능 B)**: Pydantic Structured Output 연동 논문 한계점/해결과제 추출 모듈 (`solved_problems`, `limitations`) 구현 시작.
+    *   **지환 (기능 C)**: 30분 소거 타이머 스케줄러 (`purge_expired_sandboxes`) 및 CASCADE 삭제 연쇄 트랜잭션 검증.
+*   **6/22 (월)**
+    *   **동원 (기능 A)**: 인용 출처 DTO(`CitationSource`) 정의 및 구조화 출력 변환 에이전트 완성.
+    *   **승현 (기능 B)**: 문헌 비교용 비동기 작업 큐 실 연동 및 백엔드 배치 가공 스크립트 작성.
+    *   **지환 (기능 C)**: LangGraph 기반 3대 에이전트(방법론, 신규성, 학술문체) 피어 리뷰 토론 그래프 (`POST /academic-peer-review`) 구현.
 *   **6/23 (화)**
     *   **동원 (기능 D)**: RAG 소스 참조 및 시스템 프롬프트 바인딩 젬 생성 API (`POST /gems`) 개발.
     *   **승현 (기능 B)**: 매트릭스 취합 데이터를 기반으로 학계의 연구 공백(Research Gap)을 추론하는 LLM Synthesis Node 개발.
