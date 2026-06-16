@@ -51,3 +51,41 @@ class SimilaritySearchResponse(BaseDTO):
         ...,
         description="검색 결과 유사도 순위 리스트"
     )
+
+
+class CsRagQueryRequest(BaseDTO):
+    """컴퓨터 과학 논문 RAG 질의 및 텍스트 생성 요청 DTO 클래스입니다.
+
+    Attributes:
+        query (str): 질문할 본문 텍스트.
+        top_k (int): 참고할 상위 텍스트 청크 개수 (기본값: 3).
+        llm_model (str): 생성에 활용할 LLM 모델명 (기본값: "gpt-4o-mini").
+    """
+
+    query: str = Field(
+        ...,
+        description="질문할 질문 내용",
+        examples=["How does evolutionary computing work?"]
+    )
+    top_k: int = Field(
+        3,
+        description="참고할 유사 논문 청크 상위 개수",
+        ge=1,
+        le=10
+    )
+    llm_model: str = Field(
+        "gpt-4o-mini",
+        description="사용할 LLM 모델명 (예: gpt-4o-mini, gpt-4o)"
+    )
+
+
+class CsRagQueryResponse(BaseDTO):
+    """컴퓨터 과학 논문 RAG 답변 및 출처 정보 응답 DTO 클래스입니다.
+
+    Attributes:
+        answer (str): 생성된 최종 답변 텍스트.
+        sources (List[SimilaritySearchResult]): 답변 작성에 참고한 유사 논문 청크 목록.
+    """
+
+    answer: str = Field(..., description="생성된 답변 텍스트")
+    sources: List[SimilaritySearchResult] = Field(..., description="참고한 논문 출처 리스트")

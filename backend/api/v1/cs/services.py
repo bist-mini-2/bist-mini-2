@@ -1,9 +1,17 @@
 import logging
 from typing import Annotated
 from fastapi import Depends
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+
+from api.common.config import settings
 from api.v1.cs.dao import CsDaoDep
 from api.v1.cs.embedding import embedding_helper
-from api.v1.cs.models import SimilaritySearchResult, SimilaritySearchResponse
+from api.v1.cs.models import (
+    SimilaritySearchResult,
+    SimilaritySearchResponse,
+    CsRagQueryResponse,
+)
 
 
 class CsService:
@@ -43,6 +51,73 @@ class CsService:
             )
 
         return SimilaritySearchResponse(results=results_list)
+
+    async def answer_question_with_rag(
+        self, query: str, top_k: int, llm_model: str = "gpt-4o-mini"
+    ) -> CsRagQueryResponse:
+        """RAG 파이프라인을 활용하여 질의에 대한 유사 논문 출처를 찾고, 이를 참고하여 답변을 생성합니다.
+
+        Args:
+            query (str): 사용자의 질문 텍스트.
+            top_k (int): 참고할 유사 논문 청크 상위 개수.
+            llm_model (str, optional): 사용할 OpenAI LLM 모델명. Defaults to "gpt-4o-mini".
+
+        Returns:
+            CsRagQueryResponse: 생성된 답변과 참고한 논문 청크 출처 리스트 DTO.
+        """
+        self.logger.info("answer_question_with_rag 실행")
+
+        # 1. 유사 논문 청크 검색
+        search_response = await self.search_similar_papers(query, top_k)
+        sources = search_response.results
+
+        # 2. 콘텍스트 생성
+        context_parts = []
+        for idx, src in enumerate(sources):
+            context_parts.append(
+                f"[Document {idx + 1}]\n"
+                f"Title: {src.title}\n"
+                f"Content: {src.text_chunk}\n"
+            )
+        context = "\n".join(context_parts)
+
+        # 3. LLM 프롬프트 빌드 및 실행
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", (
+                "You are an expert AI assistant specialized in Computer Science, specifically in "
+                "Neural and Evolutionary Computing (cs.NE).\n"
+                "Your task is to answer the user's question as accurately as possible based on the provided "
+                "scientific paper context.\n\n"
+                "Constraints:\n"
+                "- Write the response in Korean.\n"
+                "- Make your response polite, professional, and well-structured.\n"
+                "- Base your answer primarily on the provided context. If the context does not contain "
+                "enough information to answer, formulate a reasonable answer using your general knowledge, "
+                "but clearly mention that it was not found in the retrieved documents."
+            )),
+            ("user", "Context:\n{context}\n\nQuestion: {question}")
+        ])
+
+        # ChatOpenAI 인스턴스 획득 (API Key는 settings에서 주입)
+        llm = ChatOpenAI(
+            model=llm_model,
+            openai_api_key=settings.OPENAI_API_KEY,
+            temperature=0.2
+        )
+
+        # 프롬프트 구성 및 비동기 호출 실행
+        chain = prompt_template | llm
+        llm_response = await chain.ainvoke({
+            "context": context,
+            "question": query
+        })
+
+        answer_text = str(llm_response.content).strip()
+
+        return CsRagQueryResponse(
+            answer=answer_text,
+            sources=sources
+        )
 
 
 CsServiceDep = Annotated[CsService, Depends(CsService)]
