@@ -1,6 +1,6 @@
-from sqlalchemy import Column, String, Text, Integer, ForeignKey
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, Index
 from sqlalchemy.orm import relationship
-from pgvector.sqlalchemy import Vector
+from pgvector.sqlalchemy import Vector, HALFVEC
 from api.database.config.entity_base import Base
 
 
@@ -56,7 +56,17 @@ class CsEmbeddingEntity(Base):
         nullable=False
     )
     chunk_text = Column(Text, nullable=False)
-    embedding = Column(Vector(3072), nullable=False)
+    embedding = Column(HALFVEC(3072), nullable=False)
     chunk_index = Column(Integer, nullable=False)
 
     paper = relationship("PaperCsEntity", back_populates="embeddings")
+
+    __table_args__ = (
+        Index(
+            "ix_cs_embeddings_embedding",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "halfvec_cosine_ops"},
+        ),
+    )
