@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import Depends
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
 
 from api.common.config import settings
 from api.v1.cs.dao import CsDaoDep
@@ -11,6 +13,7 @@ from api.v1.cs.models import (
     SimilaritySearchResult,
     SimilaritySearchResponse,
     CsRagQueryResponse,
+    CsAgentQueryResponse,
 )
 
 
@@ -117,6 +120,72 @@ class CsService:
         return CsRagQueryResponse(
             answer=answer_text,
             sources=sources
+        )
+
+    async def run_agent_with_rag_tool(
+        self, query: str, llm_model: str = "gpt-4o-mini"
+    ) -> CsAgentQueryResponse:
+        """RAG 파이프라인을 툴(Tool)로 정의하고, LangGraph React Agent를 통해 에이전트 답변을 생성합니다.
+
+        Args:
+            query (str): 사용자의 질문 텍스트.
+            llm_model (str, optional): 사용할 OpenAI LLM 모델명. Defaults to "gpt-4o-mini".
+
+        Returns:
+            CsAgentQueryResponse: 생성된 답변과 실행된 툴 정보 목록이 담긴 응답 DTO.
+        """
+        self.logger.info("run_agent_with_rag_tool 실행")
+
+        # 1. 툴(Tool) 정의
+        @tool
+        async def search_cs_papers(search_query: str) -> str:
+            """컴퓨터 과학(Neural and Evolutionary Computing, cs.NE 카테고리) 관련 학술 논문 데이터베이스에서 검색을 수행합니다.
+            인공신경망, 진화 컴퓨팅, 유전 알고리즘, 신경망 학습 다이내믹스 등의 개념에 대한 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요.
+            입력값(search_query)은 검색어 텍스트여야 합니다.
+            """
+            search_res = await self.search_similar_papers(search_query, top_k=3)
+            if not search_res.results:
+                return "검색 결과가 데이터베이스에 존재하지 않습니다."
+                
+            formatted_results = []
+            for idx, item in enumerate(search_res.results):
+                formatted_results.append(
+                    f"[문서 {idx+1}]\n논문 ID: {item.doc_id}\n제목: {item.title}\n내용 청크: {item.text_chunk}\n"
+                )
+            return "\n".join(formatted_results)
+
+        # 2. Agent 구성
+        llm = ChatOpenAI(
+            model=llm_model,
+            openai_api_key=settings.OPENAI_API_KEY,
+            temperature=0
+        )
+        
+        tools = [search_cs_papers]
+        agent = create_react_agent(llm, tools)
+        
+        # 3. Agent 실행
+        response = await agent.ainvoke({
+            "messages": [("user", query)]
+        })
+        
+        messages = response["messages"]
+        final_answer = messages[-1].content
+        
+        # 4. 사용된 툴 콜(Tool Calls) 수집
+        tool_calls = []
+        for msg in messages:
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    tool_calls.append({
+                        "name": tc.get("name"),
+                        "args": tc.get("args"),
+                        "id": tc.get("id")
+                    })
+                    
+        return CsAgentQueryResponse(
+            answer=str(final_answer).strip(),
+            tool_calls=tool_calls
         )
 
 

@@ -89,3 +89,34 @@ class CsRagQueryResponse(BaseDTO):
 
     answer: str = Field(..., description="생성된 답변 텍스트")
     sources: List[SimilaritySearchResult] = Field(..., description="참고한 논문 출처 리스트")
+
+
+class CsAgentQueryRequest(BaseDTO):
+    """컴퓨터 과학 논문 RAG 툴 바인딩 에이전트 요청 DTO 클래스입니다.
+
+    Attributes:
+        query (str): 에이전트에게 전달할 질문 본문.
+        llm_model (str): 생성에 활용할 LLM 모델명 (기본값: "gpt-4o-mini").
+    """
+
+    query: str = Field(
+        ...,
+        description="에이전트에게 질문할 질문 내용",
+        examples=["Explain neural network training dynamics and what papers discuss it."]
+    )
+    llm_model: str = Field(
+        "gpt-4o-mini",
+        description="사용할 LLM 모델명 (예: gpt-4o-mini, gpt-4o)"
+    )
+
+
+class CsAgentQueryResponse(BaseDTO):
+    """컴퓨터 과학 논문 RAG 툴 바인딩 에이전트 응답 DTO 클래스입니다.
+
+    Attributes:
+        answer (str): 에이전트가 생성한 최종 답변 텍스트.
+        tool_calls (List[dict]): 에이전트가 답변을 생성하기 위해 호출한 툴 정보 리스트.
+    """
+
+    answer: str = Field(..., description="에이전트가 생성한 답변 텍스트")
+    tool_calls: List[dict] = Field(default=[], description="실행된 툴 호출 내역 정보 리스트")
