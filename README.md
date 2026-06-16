@@ -157,4 +157,3 @@ bist-mini-2/
 - 변경 사항을 커밋하거나 PR(Pull Request)을 제출하기 전에 반드시 다음 체크리스트를 정독하고 자가 체크를 완료해야 합니다.
   - [frontend-checklist.md](file:///c:/Repo/bist-mini-2/frontend-checklist.md)
   - [backend-checklist.md](file:///c:/Repo/bist-mini-2/backend-checklist.md)
-  - 상세 개발 컨벤션 및 규칙: [.agents/rules/antigravity_rules.md](file:///c:/Repo/bist-mini-2/.agents/rules/antigravity_rules.md)
