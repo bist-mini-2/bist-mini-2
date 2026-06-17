@@ -1,0 +1,85 @@
+import logging
+from fastapi import APIRouter
+from api.common.auth import LoginCheckDep
+from api.database.config.dto_base import SuccessResponse
+from api.v1.chat.models import (
+    ChatSessionCreateRequest,
+    ChatSessionResponse,
+    ChatSessionResponseWrapper,
+    ChatSessionListResponseWrapper,
+    ChatMessageRequest,
+    ChatMessageResponse,
+    ChatMessageResponseWrapper,
+    ChatHistoryItem,
+    ChatHistoryResponseWrapper,
+)
+from api.v1.chat.service import ChatServiceDep
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/chat", tags=["chat"])
+
+
+@router.post("/sessions")
+async def create_session(
+    user: LoginCheckDep,
+    request: ChatSessionCreateRequest,
+    service: ChatServiceDep,
+) -> ChatSessionResponseWrapper:
+    """새로운 채팅방을 생성합니다."""
+    chat_session_entity = await service.create_session(user["sub"], request.title)
+    return ChatSessionResponseWrapper(
+        data=ChatSessionResponse.model_validate(chat_session_entity)
+    )
+
+
+@router.get("/sessions")
+async def list_sessions(
+    user: LoginCheckDep,
+    service: ChatServiceDep,
+) -> ChatSessionListResponseWrapper:
+    """현재 로그인한 사용자의 채팅방 목록을 조회합니다."""
+    sessions = await service.list_sessions(user["sub"])
+    return ChatSessionListResponseWrapper(
+        data=[ChatSessionResponse.model_validate(s) for s in sessions]
+    )
+
+
+@router.delete("/sessions/{session_id}")
+async def delete_session(
+    user: LoginCheckDep,
+    session_id: str,
+    service: ChatServiceDep,
+) -> SuccessResponse:
+    """채팅방을 삭제합니다(대화 기록 포함)."""
+    await service.delete_session(user["sub"], session_id)
+    return SuccessResponse(
+        data={"message": f"삭제된 채팅방 ID: {session_id}"}
+    )
+
+
+@router.post("/sessions/{session_id}/messages")
+async def send_message(
+    user: LoginCheckDep,
+    session_id: str,
+    request: ChatMessageRequest,
+    service: ChatServiceDep,
+) -> ChatMessageResponseWrapper:
+    """채팅방에 메시지를 보내고 RAG 기반 답변을 받습니다(대화 기록 자동 저장)."""
+    result = await service.send_message(user["sub"], session_id, request.message)
+    return ChatMessageResponseWrapper(
+        data=ChatMessageResponse(answer=result["answer"], sources=result["sources"])
+    )
+
+
+@router.get("/sessions/{session_id}/messages")
+async def get_messages(
+    user: LoginCheckDep,
+    session_id: str,
+    service: ChatServiceDep,
+) -> ChatHistoryResponseWrapper:
+    """채팅방의 대화 내역을 순서대로 조회합니다."""
+    history = await service.get_messages(user["sub"], session_id)
+    return ChatHistoryResponseWrapper(
+        data=[ChatHistoryItem(**item) for item in history]
+    )
