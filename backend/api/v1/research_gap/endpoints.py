@@ -62,4 +62,20 @@ async def get_task_result(
     return SuccessResponse(data=result_info)
 
 
+@router.post(
+    "/tasks/{task_id}/translate",
+    response_model=SuccessResponse,
+    summary="연구 공백 분석 결과 한글 번역 및 캐싱"
+)
+async def translate_task(
+    task_id: str,
+    service: ResearchGapServiceDep,
+    current_user: LoginCheckDep
+):
+    """영문으로 완료된 특정 배치 분석 태스크 결과를 한국어로 번역하고 서버에 영구 캐싱 보관합니다."""
+    mid = current_user["sub"]
+    translated = await service.translate_matrix(task_id, mid)
+    return SuccessResponse(data=translated)
+
+
 

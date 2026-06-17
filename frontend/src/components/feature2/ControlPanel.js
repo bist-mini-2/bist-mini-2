@@ -20,7 +20,10 @@ export default function ControlPanel({
   statusText,
   taskId,
   error,
-  papersCount
+  papersCount,
+  isTranslated = false,
+  onTranslateToggle,
+  translateLoading = false
 }) {
   return (
     <div className={`${styles.controlPanel} mb-4`}>
@@ -99,6 +102,30 @@ export default function ControlPanel({
           <span className={styles.monoBadge}>
             Task ID: {taskId || "none"}
           </span>
+
+          {status === "COMPLETED" && (
+            <button
+              type="button"
+              onClick={onTranslateToggle}
+              className={styles.translateBtn}
+              disabled={translateLoading}
+            >
+              {translateLoading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  번역 중...
+                </>
+              ) : isTranslated ? (
+                <>
+                  <i className="bi bi-globe2 me-1"></i> 원문 보기 (EN)
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-translate me-1"></i> 한글 번역 (KO)
+                </>
+              )}
+            </button>
+          )}
 
           {status === "COMPLETED" && papersCount !== undefined ? (
             <span className="text-muted small ms-auto">

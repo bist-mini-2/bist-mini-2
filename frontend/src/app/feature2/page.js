@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useContext, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
-import { startAnalysis, getTaskStatus, getTaskResult } from "@/apis/researchGap";
+import { startAnalysis, getTaskStatus, getTaskResult, translateMatrix } from "@/apis/researchGap";
 import { AuthContext } from "@/contexts/AuthContext";
 import { NotificationContext } from "@/contexts/NotificationContext";
 import ControlPanel from "@/components/feature2/ControlPanel";
@@ -34,6 +34,11 @@ function ResearchGapPageContent() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  // 번역 관련 상태
+  const [isTranslated, setIsTranslated] = useState(false);
+  const [translatedResult, setTranslatedResult] = useState(null);
+  const [translateLoading, setTranslateLoading] = useState(false);
+
   // useRef를 활용해 비동기 콜백에서 최신 taskId 및 폴링 제어를 참조합니다.
   const currentTaskIdRef = useRef(null);
   const pollingIntervalRef = useRef(null);
@@ -43,6 +48,8 @@ function ResearchGapPageContent() {
     if (queryTaskId) {
       setResult(null);
       setError(null);
+      setIsTranslated(false);
+      setTranslatedResult(null);
       setTaskId(queryTaskId);
       currentTaskIdRef.current = queryTaskId;
       setLoading(true);
@@ -90,6 +97,9 @@ function ResearchGapPageContent() {
       const res = await getTaskResult(id);
       if (res.status === "success" && res.data) {
         setResult(res.data.result);
+        if (res.data.translated_result) {
+          setTranslatedResult(res.data.translated_result);
+        }
         setStatus("COMPLETED");
         setProgress(100);
       } else {
@@ -147,6 +157,35 @@ function ResearchGapPageContent() {
     }, 1500);
   };
 
+  // 번역 토글 핸들러
+  const handleTranslateToggle = async () => {
+    if (!result || !taskId) return;
+    
+    if (isTranslated) {
+      setIsTranslated(false);
+    } else {
+      if (translatedResult) {
+        setIsTranslated(true);
+      } else {
+        setTranslateLoading(true);
+        try {
+          const res = await translateMatrix(taskId);
+          if (res.status === "success" && res.data) {
+            setTranslatedResult(res.data);
+            setIsTranslated(true);
+          } else {
+            setError("번역 데이터를 불러오지 못했습니다.");
+          }
+        } catch (err) {
+          console.error("Translation error:", err);
+          setError("번역 진행 중 오류가 발생했습니다.");
+        } finally {
+          setTranslateLoading(false);
+        }
+      }
+    }
+  };
+
   // 분석 시작 요청 실행
   const handleAnalyze = async (e) => {
     e.preventDefault();
@@ -155,6 +194,8 @@ function ResearchGapPageContent() {
     setLoading(true);
     setResult(null);
     setError(null);
+    setIsTranslated(false);
+    setTranslatedResult(null);
     setProgress(5);
     setStatus("PENDING");
     setStatusText("태스크 초기화 및 작업 시작 요청 중...");
@@ -178,6 +219,8 @@ function ResearchGapPageContent() {
     }
   };
 
+  const displayResult = isTranslated ? translatedResult : result;
+
   return (
     <div className={styles.container}>
       {/* Control Header & Task Submission Panel */}
@@ -194,16 +237,19 @@ function ResearchGapPageContent() {
         taskId={taskId}
         error={error}
         papersCount={result ? result.papers?.length : undefined}
+        isTranslated={isTranslated}
+        onTranslateToggle={handleTranslateToggle}
+        translateLoading={translateLoading}
       />
 
       {/* Bottom Layout Grid */}
       <div className={styles.gapContainer}>
         {/* Left Column: Spec Matrix Table */}
-        <MatrixTable result={result} />
+        <MatrixTable result={displayResult} />
 
         {/* Right Column: AI Synthesis */}
         <div className="d-flex flex-column gap-4">
-          <ResearchGapSynthesis result={result} />
+          <ResearchGapSynthesis result={displayResult} />
         </div>
       </div>
     </div>

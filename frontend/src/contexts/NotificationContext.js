@@ -2,6 +2,12 @@
 
 import { createContext, useState, useEffect, useContext, useRef } from "react";
 import { AuthContext } from "./AuthContext";
+import {
+  listNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteAllNotifications
+} from "@/apis/notification";
 
 export const NotificationContext = createContext();
 
@@ -33,26 +39,45 @@ export function NotificationContextProvider({ children }) {
     }
   }, []);
 
-  // 2. 로그인 유저 전환 시 해당 유저의 알림 히스토리 로컬스토리지에서 복원
+  // 2. 로그인 유저 전환 시 백엔드에서 알림 목록 로드 및 로컬스토리지 복원(동기화)
   useEffect(() => {
-    if (typeof window !== "undefined" && user) {
-      const stored = localStorage.getItem(`notifications_${user}`);
-      if (stored) {
-        try {
-          setNotifications(JSON.parse(stored));
-        } catch (e) {
-          console.error("Failed to parse notifications from localStorage", e);
-          setNotifications([]);
-        }
-      } else {
+    const loadNotifications = async () => {
+      if (!accessToken || !user) {
         setNotifications([]);
+        return;
       }
-    } else {
-      setNotifications([]);
-    }
-  }, [user]);
+      try {
+        const res = await listNotifications();
+        if (res.status === "success" && res.data) {
+          const fetchedNotifs = res.data.map(n => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: n.type,
+            timestamp: n.created_at,
+            read: n.read,
+            task_id: n.task_id
+          }));
+          setNotifications(fetchedNotifs);
+        }
+      } catch (err) {
+        console.error("Failed to load notifications from backend", err);
+        // Fallback to localStorage if backend is offline or errors
+        const stored = localStorage.getItem(`notifications_${user}`);
+        if (stored) {
+          try {
+            setNotifications(JSON.parse(stored));
+          } catch (e) {
+            setNotifications([]);
+          }
+        }
+      }
+    };
 
-  // 3. 알림 상태 변화 시 로컬스토리지에 동기화 저장
+    loadNotifications();
+  }, [user, accessToken]);
+
+  // 3. 알림 상태 변화 시 로컬스토리지에 동기화 저장 (백업용)
   useEffect(() => {
     if (typeof window !== "undefined" && user) {
       localStorage.setItem(`notifications_${user}`, JSON.stringify(notifications));
@@ -203,18 +228,36 @@ export function NotificationContextProvider({ children }) {
   }, [accessToken, user]);
 
   // 7. 유틸리티 제어 메서드
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    if (!accessToken) return;
+    try {
+      await markAllNotificationsAsRead();
+    } catch (err) {
+      console.error("Failed to mark all notifications as read in backend", err);
+    }
   };
 
-  const markAsRead = (id) => {
+  const markAsRead = async (id) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    if (!accessToken) return;
+    try {
+      await markNotificationAsRead(id);
+    } catch (err) {
+      console.error(`Failed to mark notification ${id} as read in backend`, err);
+    }
   };
 
-  const clearAll = () => {
+  const clearAll = async () => {
     setNotifications([]);
+    if (!accessToken) return;
+    try {
+      await deleteAllNotifications();
+    } catch (err) {
+      console.error("Failed to delete all notifications in backend", err);
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;

@@ -158,3 +158,29 @@ def test_unauthorized_access():
         # 다른 테스트를 위해 재등록
         from api.common.auth import verify_access_token
         app.dependency_overrides[verify_access_token] = lambda: {"sub": "test-user", "mrole": "ROLE_USER"}
+
+
+@patch("api.v1.research_gap.services.ResearchGapService.translate_matrix")
+def test_translate_matrix_endpoint(mock_translate_matrix):
+    """결과 번역 API가 정상적으로 번역된 결과를 반환하는지 테스트합니다."""
+    mock_translate_matrix.return_value = {
+        "papers": [
+            {
+                "title": "번역된 제목",
+                "arxiv_id": "1234.5678",
+                "problems_solved": ["해결된 문제"],
+                "limitations": ["한계점"]
+            }
+        ],
+        "common_limitations": ["공통 한계점"],
+        "suggested_directions": ["추천 방향"]
+    }
+
+    response = client.post("/api/v1/research-gap/tasks/test-uuid/translate")
+
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["status"] == "success"
+    assert json_data["data"]["papers"][0]["title"] == "번역된 제목"
+    mock_translate_matrix.assert_called_once_with("test-uuid", "test-user")
+

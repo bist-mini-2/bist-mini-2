@@ -89,5 +89,26 @@ class ResearchGapDao:
             await self.orm_session.flush()
         return task
 
+    async def update_task_translation(
+        self,
+        task_id: str,
+        translated_result: dict
+    ) -> Optional[ResearchGapTaskEntity]:
+        """분석 태스크의 한글 번역 결과를 업데이트합니다.
+
+        Args:
+            task_id (str): 태스크 고유 ID.
+            translated_result (dict): 한글 번역된 JSON 결과 데이터.
+
+        Returns:
+            Optional[ResearchGapTaskEntity]: 갱신된 태스크 ORM 객체 또는 None.
+        """
+        self.logger.info(f"update_task_translation: {task_id}")
+        task = await self.get_task(task_id)
+        if task:
+            task.translated_result = translated_result
+            await self.orm_session.flush()
+        return task
+
 
 ResearchGapDaoDep = Annotated[ResearchGapDao, Depends(ResearchGapDao)]

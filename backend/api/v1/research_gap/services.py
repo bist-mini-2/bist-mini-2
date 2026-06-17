@@ -77,6 +77,7 @@ class ResearchGapService:
             "status": task.status,
             "progress": task.progress,
             "result": task.result,
+            "translated_result": task.translated_result,
             "error_message": task.error_message
         }
 
@@ -188,7 +189,7 @@ class ResearchGapService:
                         "You are an academic researcher analyzing a scientific paper abstract.\n"
                         "Extract the problems solved (or core methodologies proposed) and the limitations (or future gaps) "
                         "discussed in the provided text.\n"
-                        "Response must be structured in the requested format."
+                        "Response must be in English and structured in the requested format."
                     )),
                     ("user", "Title: {title}\nArXiv ID: {arxiv_id}\n\nContent:\n{content}")
                 ])
@@ -225,7 +226,7 @@ class ResearchGapService:
                     "You are a visionary research scientist overseeing the research gap matrix of a specific domain.\n"
                     "Review the analysis results of multiple papers, identify the common limitations (underlying gaps), "
                     "and propose 3 highly innovative and concrete future research topics (suggested directions) to address those gaps.\n"
-                    "Respond in Korean. Structure the response strictly according to the format."
+                    "Respond in English. Structure the response strictly according to the format."
                 )),
                 ("user", "Research Gap Matrix:\n{matrix_data}\n\nTarget Domain: {domain}\nTarget Query/Topic: {query}")
             ])
@@ -253,15 +254,39 @@ class ResearchGapService:
 
             self.logger.info(f"Batch task {task_id} completed successfully.")
 
+            import uuid
+            notif_id = str(uuid.uuid4())
+            notif_title = "연구 공백 분석 완료"
+            notif_msg = f"[{domain.upper()}] \"{query}\" 주제의 문헌 비교 분석이 완료되었습니다."
+            notif_type = "success"
+
+            # DB에 알림 저장
+            async with session_maker() as session:
+                from api.v1.notification.dao import NotificationDao
+                notif_dao = NotificationDao(session)
+                await notif_dao.create_notification(
+                    id=notif_id,
+                    mid=mid,
+                    title=notif_title,
+                    message=notif_msg,
+                    type=notif_type,
+                    task_id=task_id
+                )
+                await session.commit()
+
             # 7. SSE 완료 브로드캐스트 전송
             await notification_broadcaster.broadcast({
+                "id": notif_id,
                 "event": "task_completed",
                 "task_id": task_id,
                 "domain": domain,
                 "query": query,
                 "status": "COMPLETED",
                 "progress": 100,
-                "mid": mid
+                "mid": mid,
+                "title": notif_title,
+                "message": notif_msg,
+                "type": notif_type
             })
 
         except Exception as e:
@@ -276,8 +301,29 @@ class ResearchGapService:
                 )
                 await session.commit()
 
+            import uuid
+            notif_id = str(uuid.uuid4())
+            notif_title = "연구 공백 분석 실패"
+            notif_msg = f"[{domain.upper()}] \"{query}\" 분석 중 에러가 발생했습니다: {str(e)}"
+            notif_type = "danger"
+
+            # DB에 알림 저장
+            async with session_maker() as session:
+                from api.v1.notification.dao import NotificationDao
+                notif_dao = NotificationDao(session)
+                await notif_dao.create_notification(
+                    id=notif_id,
+                    mid=mid,
+                    title=notif_title,
+                    message=notif_msg,
+                    type=notif_type,
+                    task_id=task_id
+                )
+                await session.commit()
+
             # SSE 실패 브로드캐스트 전송
             await notification_broadcaster.broadcast({
+                "id": notif_id,
                 "event": "task_failed",
                 "task_id": task_id,
                 "domain": domain,
@@ -285,8 +331,86 @@ class ResearchGapService:
                 "status": "FAILED",
                 "progress": 100,
                 "error_message": str(e),
-                "mid": mid
+                "mid": mid,
+                "title": notif_title,
+                "message": notif_msg,
+                "type": notif_type
             })
+
+    async def translate_matrix(self, task_id: str, mid: str) -> dict:
+        """주어진 태스크 ID의 영문 분석 결과를 한국어로 번역하고 DB에 캐싱합니다.
+
+        이미 번역된 결과가 존재하는 경우 DB에서 바로 반환합니다.
+
+        Args:
+            task_id (str): 태스크 고유 ID.
+            mid (str): 사용자의 식별자 ID.
+
+        Returns:
+            dict: 한국어로 번역된 분석 결과 객체 딕셔너리.
+        """
+        # 1. DB에서 태스크 정보 로드 및 검증
+        task = await self.research_gap_dao.get_task(task_id, mid=mid)
+        if not task:
+            from api.common.exceptions import TaskNotFoundError
+            raise TaskNotFoundError(
+                message=f"요청하신 태스크 ID를 찾을 수 없습니다: {task_id}"
+            )
+            
+        # 2. 이미 번역된 결과가 있다면 바로 반환 (Cache Hit)
+        if task.translated_result:
+            self.logger.info(f"Returning cached translation for task: {task_id}")
+            return task.translated_result
+
+        # 3. 영문 분석 결과가 아직 없는 경우 예외 처리
+        if not task.result or task.status != "COMPLETED":
+            from api.common.exceptions import BusinessException
+            raise BusinessException(
+                message="분석이 아직 완료되지 않았거나 결과가 존재하지 않아 번역을 진행할 수 없습니다.",
+                error_code="TRANSLATION_NOT_READY"
+            )
+
+        # 4. LLM을 통해 번역 수행
+        from api.v1.research_gap.models import ResearchGapMatrix
+        matrix = ResearchGapMatrix.model_validate(task.result)
+        
+        self.logger.info(f"Translating ResearchGapMatrix for task {task_id} to Korean...")
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            openai_api_key=settings.OPENAI_API_KEY,
+            temperature=0
+        )
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", (
+                "You are an expert academic translator specializing in computer science.\n"
+                "Translate the given Research Gap Matrix (including paper titles, problems solved, limitations, common limitations, and suggested directions) into natural and professional Korean.\n"
+                "Maintain the academic context and terminology accurately (e.g. keep common technical terms like RAG, LLM, prompt caching in English or use standard Korean translations).\n"
+                "Response must be structured in the requested format."
+            )),
+            ("user", "{matrix_json}")
+        ])
+        
+        structured_llm = llm.with_structured_output(ResearchGapMatrix)
+        chain = prompt | structured_llm
+        
+        translated = await chain.ainvoke({
+            "matrix_json": json.dumps(matrix.model_dump(), ensure_ascii=False)
+        })
+        
+        if not isinstance(translated, ResearchGapMatrix):
+            raise TypeError(f"Expected ResearchGapMatrix, got {type(translated)}")
+            
+        translated_dict = translated.model_dump()
+        
+        # 5. DB에 번역본 저장 및 커밋
+        async with session_maker() as session:
+            from api.v1.research_gap.dao import ResearchGapDao
+            dao = ResearchGapDao(session)
+            await dao.update_task_translation(task_id, translated_dict)
+            await session.commit()
+            
+        return translated_dict
 
 
 ResearchGapServiceDep = Annotated[ResearchGapService, Depends(ResearchGapService)]

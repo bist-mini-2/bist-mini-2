@@ -33,3 +33,15 @@ export async function getTaskResult(taskId) {
   const response = await apiClient.get(`/research-gap/tasks/${taskId}/result`);
   return response.data;
 }
+
+/**
+ * 영어로 완성된 매트릭스 데이터를 한국어로 번역 요청 및 캐싱합니다.
+ * 
+ * @param {string} taskId 작업 고유 UUID
+ * @returns {Promise<object>} 번역된 매트릭스 데이터
+ */
+export async function translateMatrix(taskId) {
+  const response = await apiClient.post(`/research-gap/tasks/${taskId}/translate`);
+  return response.data;
+}
+

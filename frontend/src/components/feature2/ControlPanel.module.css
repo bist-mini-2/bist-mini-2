@@ -135,3 +135,40 @@
   border-color: rgba(140, 135, 125, 0.25);
   color: #7a756b;
 }
+
+.translateBtn {
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.translateBtn:hover:not(:disabled) {
+  background-color: var(--card-border);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.translateBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.translateBtn :global(.spinner-border) {
+  border-width: 1.5px;
+  width: 0.72rem;
+  height: 0.72rem;
+}
+
