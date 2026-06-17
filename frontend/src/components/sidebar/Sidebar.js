@@ -81,9 +81,9 @@ export default function Sidebar({ isCollapsed, onToggle }) {
             <div className={styles.logoCircle}>P</div>
             <span className={styles.logoText}>Paper Agent</span>
           </div>
-          <button 
-            className={styles.toggleButton} 
-            onClick={onToggle} 
+          <button
+            className={styles.toggleButton}
+            onClick={onToggle}
             title={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
             aria-label="Toggle Sidebar"
           >
