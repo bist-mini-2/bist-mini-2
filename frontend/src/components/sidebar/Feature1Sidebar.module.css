@@ -91,10 +91,6 @@
   background: var(--menu-item-hover-bg);
 }
 
-.sessionItem:hover .deleteBtn {
-  opacity: 1;
-}
-
 .sessionItemActive {
   background: var(--menu-item-active-bg);
   border-color: var(--card-border);
@@ -116,12 +112,17 @@
   min-width: 0;
 }
 
+.sessionItem:hover .menuBtn {
+  opacity: 1;
+}
+
 .sessionItemActive .sessionTitle {
   color: var(--foreground);
   font-weight: 500;
 }
 
-.deleteBtn {
+/* ---- ⋮ 메뉴 버튼 ---- */
+.menuBtn {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
@@ -134,13 +135,82 @@
   justify-content: center;
   cursor: pointer;
   opacity: 0;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   transition: opacity 0.1s ease, color 0.1s ease, background 0.1s ease;
 }
 
-.deleteBtn:hover {
+.menuBtn:hover {
+  color: var(--foreground);
+  background: var(--menu-item-hover-bg);
+}
+
+.sessionItemActive .menuBtn {
+  opacity: 1;
+}
+
+.sessionItemMenuOpen .menuBtn {
+  opacity: 1;
+  color: var(--foreground);
+  background: var(--menu-item-hover-bg);
+}
+
+/* ---- 드롭다운 (fixed: 목록 overflow에 잘리지 않음) ---- */
+.dropdown {
+  position: fixed;
+  min-width: 140px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border: none;
+  background: transparent;
+  color: var(--menu-item-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-align: left;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.dropdownItem:hover {
+  background: var(--menu-item-hover-bg);
+  color: var(--foreground);
+}
+
+.dropdownItem i {
+  font-size: 0.82rem;
+}
+
+.dropdownItemDanger:hover {
   color: #C2694E;
   background: rgba(194, 105, 78, 0.1);
+}
+
+/* ---- 인라인 편집 입력창 ---- */
+.editInput {
+  flex: 1;
+  min-width: 0;
+  background: var(--background);
+  border: 1px solid var(--accent-color);
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 3px 6px;
+  outline: none;
 }
 
 /* ---- 빈 상태 ---- */

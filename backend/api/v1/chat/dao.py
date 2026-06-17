@@ -40,6 +40,13 @@ class ChatSessionDao:
             text("DELETE FROM chat_session WHERE session_id = :session_id"),
             {"session_id": session_id},
         )
+    
+    async def update_title(self, session_id: str, title: str) -> None:
+        """채팅방 제목을 수정합니다."""
+        chat_session_entity = await self.orm_session.get(ChatSessionEntity, session_id)
+        if chat_session_entity:
+            chat_session_entity.title = title
+            await self.orm_session.flush()
 
 
 ChatSessionDaoDep = Annotated[ChatSessionDao, Depends(ChatSessionDao)]

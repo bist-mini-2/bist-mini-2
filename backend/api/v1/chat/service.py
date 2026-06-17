@@ -45,6 +45,14 @@ class ChatService:
         await self.chat_session_dao.delete(session_id)
         await self.chat_agent.clear_history(session_id)
 
+    async def rename_session(self, member_id: str, session_id: str, title: str) -> ChatSessionEntity:
+        """채팅방 제목을 변경한다. 소유자만 가능."""
+        chat_session_entity = await self._get_owned_session(member_id, session_id)
+        await self.chat_session_dao.update_title(session_id, title)
+        chat_session_entity.title = title
+        return chat_session_entity
+    
+
     async def send_message(self, member_id: str, session_id: str, message: str) -> dict:
         """채팅방에 메시지를 보내 RAG 기반 답변을 받는다(대화 기록 자동 저장). 소유자만 가능."""
         await self._get_owned_session(member_id, session_id)

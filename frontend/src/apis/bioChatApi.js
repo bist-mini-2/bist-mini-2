@@ -45,6 +45,18 @@ export async function sendMessage(sessionId, message) {
 }
 
 /**
+ * 채팅방 제목을 변경합니다.
+ *
+ * @param {string} sessionId 채팅방 고유 ID
+ * @param {string} title 새 제목
+ * @returns {Promise<object>} API 응답 객체 (data: { session_id, title, created_at })
+ */
+export async function renameSession(sessionId, title) {
+  const response = await apiClient.patch(`/chat/sessions/${sessionId}`, { title });
+  return response.data;
+}
+
+/**
  * 채팅방의 대화 내역을 순서대로 조회합니다.
  *
  * @param {string} sessionId 채팅방 고유 ID
