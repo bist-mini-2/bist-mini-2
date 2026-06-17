@@ -7,10 +7,12 @@ from langchain.embeddings import init_embeddings
 from langchain.tools import tool
 from langchain_postgres import PGVector
 
+from api.common.config import settings
+
 logger = logging.getLogger(__name__)
 
 COLLECTION_NAME = "astro-ph-EP"
-CONNECTION = "postgresql+psycopg_async://postgres:postgres@localhost:5432/postgres"
+CONNECTION = settings.PGVECTOR_URL
 EMBED_MODEL = "openai:text-embedding-3-large"
 
 
