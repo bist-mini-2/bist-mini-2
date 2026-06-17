@@ -72,40 +72,56 @@ class ChatAgent:
                 checkpointer=self.checkpointer,
                 state_schema=BioAgentState,   # 출처 추적 위해 bio의 state 패턴 활용
             )
-            await self.checkpointer.setup()
+
+            # checkpoint 테이블이 이미 있으면 setup()을 건너뛴다.
+            # (이미 존재하는 테이블에 대해 setup()이 hang 될 수 있으므로 멱등 처리)
+            async with chat_psycopg_pool.connection() as conn:
+                cur = await conn.execute(
+                    "SELECT 1 FROM pg_tables "
+                    "WHERE schemaname='public' AND tablename='checkpoints'"
+                )
+                exists = await cur.fetchone()
+            if not exists:
+                await self.checkpointer.setup()
+
             self._initialized = True
             self.logger.info("ChatAgent checkpointer 초기화 완료")
 
     async def run(self, message: str, conversation_id: str) -> dict:
         """메시지를 처리하여 answer와 sources를 반환한다(대화 기록 자동 저장/복원).
 
-        Args:
-            message (str): 사용자 질문.
-            conversation_id (str): 대화 스레드 ID(= 채팅방 session_id).
-
-        Returns:
-            dict: {"answer": 답변 텍스트, "sources": 참고 출처 리스트}.
+        대화 처리 중 오류(OpenAI 장애, 네트워크 실패 등) 발생 시 예외를 잡아
+        사용자에게 재시도를 안내한다. LangGraph 체크포인터는 단계별 즉시 저장
+        구조라 단일 트랜잭션으로 원자성을 보장하기 어려우므로, 예외 처리로
+        깨진 상태가 사용자에게 노출되지 않게 방어한다.
         """
         await self._initialize()
-        result = await self.agent.ainvoke(
-            {
-                "messages": [{"role": "user", "content": message}],
-                "sources": [],   # 이번 턴의 출처 초기값
-            },
-            {"configurable": {"thread_id": conversation_id}},
-        )
-        # 출처 중복 제거 (arxiv_id 기준, 순서 유지)
-        seen = set()
-        unique_sources = []
-        for s in result.get("sources", []):
-            if s["arxiv_id"] not in seen:
-                seen.add(s["arxiv_id"])
-                unique_sources.append(s)
-        
-        return {
-            "answer": result["messages"][-1].content,
-            "sources": unique_sources
-        }
+        try:
+            result = await self.agent.ainvoke(
+                {
+                    "messages": [{"role": "user", "content": message}],
+                    "sources": [],
+                },
+                {"configurable": {"thread_id": conversation_id}},
+            )
+            # 출처 중복 제거 (arxiv_id 기준, 순서 유지)
+            seen = set()
+            unique_sources = []
+            for s in result.get("sources", []):
+                if s["arxiv_id"] not in seen:
+                    seen.add(s["arxiv_id"])
+                    unique_sources.append(s)
+
+            return {
+                "answer": result["messages"][-1].content,
+                "sources": unique_sources,
+            }
+        except Exception as e:
+            self.logger.error(f"대화 처리 실패 (conversation_id={conversation_id}): {e}")
+            return {
+                "answer": "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                "sources": [],
+            }
 
     async def get_history(self, conversation_id: str) -> list[dict]:
         """대화 스레드의 사용자/어시스턴트 메시지 내역을 순서대로 반환한다.

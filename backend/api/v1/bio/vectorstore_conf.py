@@ -3,5 +3,5 @@
 # connection string을 별도로 관리한다.
 
 COLLECTION_NAME = "q-bio-GN"
-CONNECTION = "postgresql+psycopg_async://postgres:postgres@localhost:5432/postgres"
+CONNECTION = "postgresql+psycopg_async://postgres:postgres@kosa165.iptime.org:50003/postgres"
 EMBED_MODEL = "openai:text-embedding-3-large"
