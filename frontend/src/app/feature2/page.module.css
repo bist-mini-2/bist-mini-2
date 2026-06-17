@@ -1,14 +1,18 @@
 .container {
-  min-height: 100vh;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
 }
 
-.card {
-  max-width: 480px;
-  width: 100%;
-  margin: 20px;
+.gapContainer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 2.5rem;
 }
 
-.details {
-  font-family: var(--mono-font);
-  font-size: 0.85rem;
+@media (min-width: 992px) {
+  .gapContainer {
+    grid-template-columns: 2fr 1fr;
+  }
 }

@@ -3,6 +3,7 @@ import json
 import time
 import sys
 import asyncio
+import uuid
 from dotenv import load_dotenv
 
 # 콘솔 출력 인코딩 강제 설정 (윈도우 cp949 환경 대응)
@@ -48,12 +49,11 @@ if backend_dir_from_script not in sys.path:
     sys.path.insert(0, backend_dir_from_script)
 
 from api.database.config.dbsession import session_maker
-from api.v1.cs.entity import PaperCsEntity, CsEmbeddingEntity
+from api.v1.cs.entity import CsCollectionEntity, CsEmbeddingEntity
 from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # 데이터 경로 및 출력 경로 설정 (스크립트 위치 기준 5레벨 위가 workspace root)
-ROOT_DIR = os.path.abspath(os.path.join(script_dir, "../../../../.."))
+ROOT_DIR = os.path.abspath(os.path.join(script_dir, "../../../../../"))
 INPUT_FILE_PATH = os.path.abspath(os.path.join(ROOT_DIR, "data/raw/archive/local_embeddings_output.jsonl"))
 
 BATCH_SIZE = 100  # 데이터베이스 벌크 인서트 배치 단위
@@ -87,60 +87,76 @@ async def process_and_insert() -> None:
         return
 
     async with session_maker() as session:
-        # 2. 데이터베이스 내 이미 존재하는 doc_id들 조회 (중복 데이터 삽입 방지)
-        doc_ids = [paper["doc_id"] for paper in collected_papers]
-        existing_doc_ids = set()
+        # 2. cs.NE 컬렉션 획득 및 검증
+        stmt = select(CsCollectionEntity).where(CsCollectionEntity.name == "cs.NE")
+        result = await session.execute(stmt)
+        collection = result.scalar_one_or_none()
         
-        # SQL IN 연산 최대 바인딩 한계(65535) 및 성능 상의 이유로 1000건 단위 분할 조회
-        for i in range(0, len(doc_ids), 1000):
-            batch_ids = doc_ids[i:i+1000]
-            stmt = select(PaperCsEntity.doc_id).where(PaperCsEntity.doc_id.in_(batch_ids))
-            result = await session.execute(stmt)
-            for doc_id in result.scalars():
-                existing_doc_ids.add(doc_id)
-                
-        print(f"  > {YELLOW}DB에 이미 존재하는 CS 논문:{RESET} {len(existing_doc_ids):,}건 (중복 스킵 처리 예정)")
-        
-        papers_to_insert = []
-        embeddings_to_insert = []
-        
-        # 3. 데이터베이스 적재 객체 리스트 빌드
+        if not collection:
+            print("  > cs.NE 컬렉션이 존재하지 않아 신규 생성합니다.")
+            collection = CsCollectionEntity(
+                uuid=uuid.uuid4(),
+                name="cs.NE",
+                cmetadata={}
+            )
+            session.add(collection)
+            await session.flush()
+            
+        collection_uuid = collection.uuid
+        print(f"  > Target Collection UUID: {collection_uuid}")
+
+        # 3. 중복 체크용 custom_id 목록 추출
+        custom_ids = []
         for paper in collected_papers:
             doc_id = paper["doc_id"]
-            if doc_id in existing_doc_ids:
-                continue
+            for chunk_idx, _ in enumerate(paper.get("chunks", [])):
+                custom_ids.append(f"{doc_id}_chunk_{chunk_idx}")
                 
-            paper_entity = PaperCsEntity(
-                doc_id=doc_id,
-                title=paper["title"],
-                abstract=paper["abstract"],
-                authors=paper["authors"],
-                journal_ref=paper["journal_ref"],
-                doi=paper["doi"],
-                categories=paper["categories"]
-            )
-            papers_to_insert.append(paper_entity)
+        # 4. 데이터베이스 내 이미 존재하는 custom_id들 조회 (중복 데이터 삽입 방지)
+        existing_custom_ids = set()
+        for i in range(0, len(custom_ids), 1000):
+            batch_ids = custom_ids[i:i+1000]
+            stmt = select(CsEmbeddingEntity.custom_id).where(CsEmbeddingEntity.custom_id.in_(batch_ids))
+            res = await session.execute(stmt)
+            for cid in res.scalars():
+                existing_custom_ids.add(cid)
+                
+        print(f"  > {YELLOW}DB에 이미 존재하는 CS 청크 벡터:{RESET} {len(existing_custom_ids):,}건 (중복 스킵 처리 예정)")
+        
+        embeddings_to_insert = []
+        
+        # 5. 데이터베이스 적재 객체 리스트 빌드
+        for paper in collected_papers:
+            doc_id = paper["doc_id"]
             
-            for chunk in paper["chunks"]:
+            for chunk in paper.get("chunks", []):
+                chunk_idx = chunk["chunk_index"]
+                cid = f"{doc_id}_chunk_{chunk_idx}"
+                
+                if cid in existing_custom_ids:
+                    continue
+                
                 embedding_entity = CsEmbeddingEntity(
-                    doc_id=doc_id,
-                    text_chunk=chunk["chunk_text"],
+                    id=uuid.uuid4(),
+                    collection_id=collection_uuid,
                     embedding=chunk["embedding"],
-                    chunk_index=chunk["chunk_index"]
+                    document=chunk["chunk_text"],
+                    cmetadata={
+                        "arxiv_id": doc_id,
+                        "title": paper["title"],
+                        "categories": paper["categories"],
+                        "authors": paper["authors"],
+                        "doi": paper["doi"],
+                        "journal_ref": paper["journal_ref"]
+                    },
+                    custom_id=cid
                 )
                 embeddings_to_insert.append(embedding_entity)
                 
-        # 4. 벌크 저장 실행
-        if papers_to_insert:
-            print(f"  > {CYAN}신규 데이터 적재 시작:{RESET} 논문 {len(papers_to_insert):,}건, 임베딩 청크 {len(embeddings_to_insert):,}개")
+        # 6. 벌크 저장 실행
+        if embeddings_to_insert:
+            print(f"  > {CYAN}신규 데이터 적재 시작:{RESET} 임베딩 청크 {len(embeddings_to_insert):,}개")
             
-            # 부모(paper_cs) 테이블 벌크 인서트 진행
-            session.add_all(papers_to_insert)
-            # flush를 수행하여 DB 제약 조건상 FK 대상 PK(doc_id)를 미리 반영시킴
-            await session.flush()
-            
-            # 자식(cs_embeddings) 테이블 벌크 인서트 진행
-            # 1000개 단위로 세션 분할 add 및 flush 진행하여 메모리 관리 및 네트워크 부하 감소
             for i in range(0, len(embeddings_to_insert), 1000):
                 batch_embeddings = embeddings_to_insert[i:i+1000]
                 session.add_all(batch_embeddings)
@@ -151,7 +167,6 @@ async def process_and_insert() -> None:
             total_elapsed = time.time() - start_time
             print(f"\n{BOLD}======================================================================{RESET}")
             print(f"{BOLD}{GREEN}🎉 [SUCCESS] pgvector 데이터베이스 벌크 적재 완료!{RESET}")
-            print(f"  - 적재 완료 논문: {len(papers_to_insert):,} 건")
             print(f"  - 적재 완료 청크: {len(embeddings_to_insert):,} 개")
             print(f"  - 총 소요 시간: {total_elapsed:.2f} 초")
             print(f"{BOLD}======================================================================{RESET}")

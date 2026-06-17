@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import select
 from api.database.config.dbsession import OrmSessionDep
-from api.v1.cs.entity import CsEmbeddingEntity, PaperCsEntity
+from api.v1.cs.entity import CsEmbeddingEntity
 
 
 class CsDao:
@@ -18,6 +18,8 @@ class CsDao:
     ) -> list[dict]:
         """임베딩 벡터를 기준으로 코사인 유사도가 가장 높은 상위 K개의 논문 청크를 딕셔너리 리스트로 조회합니다.
 
+        cmetadata JSON 컬럼에서 서지 정보를 추출하여 기존 DTO 규격과 완벽히 호환되도록 구성합니다.
+
         Args:
             query_vector (list[float]): 질의어 임베딩 벡터.
             top_k (int): 반환할 상위 결과 개수.
@@ -31,18 +33,29 @@ class CsDao:
 
         stmt = (
             select(
-                CsEmbeddingEntity.doc_id,
-                PaperCsEntity.title,
-                CsEmbeddingEntity.text_chunk,
+                CsEmbeddingEntity.cmetadata,
+                CsEmbeddingEntity.document.label("text_chunk"),
                 score_expr
             )
-            .join(PaperCsEntity, CsEmbeddingEntity.doc_id == PaperCsEntity.doc_id)
             .order_by(distance_expr.asc())
             .limit(top_k)
         )
 
         query_result = await self.orm_session.execute(stmt)
-        return [dict(row) for row in query_result.mappings().all()]
+        raw_rows = query_result.mappings().all()
+
+        results = []
+        for row in raw_rows:
+            cmetadata = row["cmetadata"] or {}
+            # cmetadata 안에서 title, arxiv_id/doc_id 등을 획득
+            results.append({
+                "doc_id": cmetadata.get("arxiv_id") or cmetadata.get("doc_id") or "",
+                "title": cmetadata.get("title", ""),
+                "text_chunk": row["text_chunk"],
+                "score": float(row["score"])
+            })
+
+        return results
 
 
 CsDaoDep = Annotated[CsDao, Depends(CsDao)]

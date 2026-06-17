@@ -1,0 +1,82 @@
+.monoBadge {
+  font-family: var(--mono-font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+
+.matrixContainer {
+  overflow-x: auto;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background-color: var(--card-bg);
+  margin-top: 16px;
+}
+
+.matrixTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.matrixTh, .matrixTd {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--card-border);
+  vertical-align: top;
+}
+
+.matrixTh {
+  background-color: var(--sidebar-bg);
+  font-weight: 600;
+  color: var(--foreground);
+  border-bottom: 2px solid var(--card-border);
+  white-space: nowrap;
+}
+
+.matrixTable tr:last-child .matrixTd {
+  border-bottom: none;
+}
+
+.colPaper {
+  width: 25%;
+}
+
+.colProblems {
+  width: 38%;
+}
+
+.colLimitations {
+  width: 37%;
+}
+
+.paperTitle {
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.paperMeta {
+  font-size: 0.78rem;
+  color: var(--menu-item-color);
+}
+
+.listUnstyled {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.listIcon {
+  font-size: 0.85rem;
+}
