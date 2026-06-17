@@ -115,8 +115,10 @@ class CsAgentQueryResponse(BaseDTO):
 
     Attributes:
         answer (str): 에이전트가 생성한 최종 답변 텍스트.
+        sources (List[SimilaritySearchResult]): 답변 작성을 위해 RAG 툴이 검색한 논문 출처 리스트.
         tool_calls (List[dict]): 에이전트가 답변을 생성하기 위해 호출한 툴 정보 리스트.
     """
 
     answer: str = Field(..., description="에이전트가 생성한 답변 텍스트")
+    sources: List[SimilaritySearchResult] = Field(default=[], description="참고한 RAG 논문 출처 리스트")
     tool_calls: List[dict] = Field(default=[], description="실행된 툴 호출 내역 정보 리스트")

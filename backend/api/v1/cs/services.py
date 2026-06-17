@@ -142,9 +142,15 @@ class CsService:
         messages = response["messages"]
         final_answer = messages[-1].content
         
-        # 4. 사용된 툴 콜(Tool Calls) 수집
+        # 4. 사용된 툴 콜(Tool Calls) 및 RAG 출처(artifact) 수집
         tool_calls = []
+        sources = []
         for msg in messages:
+            # ToolMessage에서 artifact 필드에 담긴 RAG 출처 추출
+            if getattr(msg, "type", None) == "tool" and hasattr(msg, "artifact") and msg.artifact:
+                if isinstance(msg.artifact, list):
+                    sources.extend(msg.artifact)
+
             if hasattr(msg, "tool_calls") and msg.tool_calls:
                 for tc in msg.tool_calls:
                     tool_calls.append({
@@ -155,6 +161,7 @@ class CsService:
                     
         return {
             "answer": str(final_answer).strip(),
+            "sources": sources,
             "tool_calls": tool_calls
         }
 

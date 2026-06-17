@@ -92,6 +92,14 @@ def test_ask_cs_agent_endpoint(mock_run_agent):
     # Mock 응답 데이터 설정 (dict 반환)
     mock_run_agent.return_value = {
         "answer": "에이전트의 최종 모킹된 추론 결과입니다.",
+        "sources": [
+            {
+                "doc_id": "2406.12345",
+                "title": "Test Paper",
+                "text_chunk": "Content text...",
+                "score": 0.95
+            }
+        ],
         "tool_calls": [
             {
                 "name": "search_cs_papers",
@@ -110,6 +118,8 @@ def test_ask_cs_agent_endpoint(mock_run_agent):
     json_data = response.json()
     assert json_data["status"] == "success"
     assert json_data["data"]["answer"] == "에이전트의 최종 모킹된 추론 결과입니다."
+    assert len(json_data["data"]["sources"]) == 1
+    assert json_data["data"]["sources"][0]["doc_id"] == "2406.12345"
     assert len(json_data["data"]["tool_calls"]) == 1
     assert json_data["data"]["tool_calls"][0]["name"] == "search_cs_papers"
     mock_run_agent.assert_called_once_with(
