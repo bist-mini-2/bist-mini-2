@@ -2,8 +2,7 @@ import os
 import json
 import time
 import sys
-import psycopg2
-from psycopg2.extras import execute_values
+import psycopg
 
 # 콘솔 출력 인코딩 강제 설정 (윈도우 cp949 환경 대응)
 try:
@@ -25,7 +24,7 @@ def main():
         return
 
     try:
-        conn = psycopg2.connect(DB_CONN_STRING)
+        conn = psycopg.connect(DB_CONN_STRING)
         cursor = conn.cursor()
         print("[DB] PostgreSQL database connection successful.")
     except Exception as e:
@@ -56,7 +55,7 @@ def main():
             CREATE TABLE IF NOT EXISTS cs_embeddings (
                 chunk_id SERIAL PRIMARY KEY,
                 doc_id VARCHAR(50) NOT NULL REFERENCES paper_cs(doc_id) ON DELETE CASCADE,
-                chunk_text TEXT NOT NULL,
+                text_chunk TEXT NOT NULL,
                 embedding vector(3072) NOT NULL,
                 chunk_index INTEGER NOT NULL
             );
@@ -122,11 +121,10 @@ def main():
                 # 임계 배치 크기에 도달하면 벌크 적재 수행
                 if len(papers_batch) >= BATCH_INSERT_SIZE:
                     # 1) paper_cs 메타데이터 벌크 삽입 (중복 시 업데이트)
-                    execute_values(
-                        cursor,
+                    cursor.executemany(
                         """
                         INSERT INTO paper_cs (doc_id, title, abstract, authors, journal_ref, doi, categories) 
-                        VALUES %s 
+                        VALUES (%s, %s, %s, %s, %s, %s, %s) 
                         ON CONFLICT (doc_id) DO UPDATE SET 
                             title = EXCLUDED.title,
                             abstract = EXCLUDED.abstract,
@@ -139,11 +137,10 @@ def main():
                     )
 
                     # 2) cs_embeddings 청크 벌크 삽입
-                    execute_values(
-                        cursor,
+                    cursor.executemany(
                         """
-                        INSERT INTO cs_embeddings (doc_id, chunk_text, embedding, chunk_index) 
-                        VALUES %s
+                        INSERT INTO cs_embeddings (doc_id, text_chunk, embedding, chunk_index) 
+                        VALUES (%s, %s, %s, %s)
                         """,
                         chunks_batch
                     )
@@ -163,11 +160,10 @@ def main():
         # 잔여 데이터 처리
         if papers_batch:
             try:
-                execute_values(
-                    cursor,
+                cursor.executemany(
                     """
                     INSERT INTO paper_cs (doc_id, title, abstract, authors, journal_ref, doi, categories) 
-                    VALUES %s 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s) 
                     ON CONFLICT (doc_id) DO UPDATE SET 
                         title = EXCLUDED.title,
                         abstract = EXCLUDED.abstract,
@@ -179,11 +175,10 @@ def main():
                     papers_batch
                 )
 
-                execute_values(
-                    cursor,
+                cursor.executemany(
                     """
-                    INSERT INTO cs_embeddings (doc_id, chunk_text, embedding, chunk_index) 
-                    VALUES %s
+                    INSERT INTO cs_embeddings (doc_id, text_chunk, embedding, chunk_index) 
+                    VALUES (%s, %s, %s, %s)
                     """,
                     chunks_batch
                 )

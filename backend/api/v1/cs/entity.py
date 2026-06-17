@@ -1,6 +1,7 @@
-from sqlalchemy import Column, String, Text, Integer, ForeignKey
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, Index
 from sqlalchemy.orm import relationship
-from pgvector.sqlalchemy import Vector
+from pgvector.sqlalchemy import HALFVEC
+
 from api.database.config.entity_base import Base
 
 
@@ -41,7 +42,7 @@ class CsEmbeddingEntity(Base):
     Attributes:
         chunk_id (int): 청크 고유 식별자 (Primary Key, Auto increment).
         doc_id (str): 연결된 논문 메타데이터 외래 키 (ForeignKey).
-        chunk_text (str): 500자 분할된 텍스트 본문.
+        text_chunk (str): 500자 분할된 텍스트 본문.
         embedding (Vector): 3072차원 조밀 임베딩 벡터 (pgvector).
         chunk_index (int): 논문 내에서 청크 순서 번호 (0-indexed).
         paper (relationship): 부모 논문 메타데이터 엔티티 객체.
@@ -55,8 +56,18 @@ class CsEmbeddingEntity(Base):
         ForeignKey("paper_cs.doc_id", ondelete="CASCADE"),
         nullable=False
     )
-    chunk_text = Column(Text, nullable=False)
-    embedding = Column(Vector(3072), nullable=False)
+    text_chunk = Column(Text, nullable=False)
+    embedding = Column(HALFVEC(3072), nullable=False)
     chunk_index = Column(Integer, nullable=False)
 
     paper = relationship("PaperCsEntity", back_populates="embeddings")
+
+    __table_args__ = (
+        Index(
+            "ix_cs_embeddings_embedding",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "halfvec_cosine_ops"},
+        ),
+    )

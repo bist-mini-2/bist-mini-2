@@ -73,3 +73,4 @@
 - [ ] **Pytest 기반 테스트 작성 및 실행**: 백엔드 API 테스트(예: `tests/test_health.py`)가 오류 없이 구동됩니까?
   - 로컬 환경 실행 시 `main` 모듈 임포트 누수를 예방하기 위해 반드시 `PYTHONPATH=.` 환경 변수를 지정하고 pytest를 실행해야 합니다. (예: `set PYTHONPATH=.&& pytest` 또는 `python -m pytest`)
 - [ ] **CI 파이프라인 무결성**: PR(Pull Request) 발생 시 GitHub Actions CI 파이프라인(`Backend Pytest` Job)에서 테스트 스위트가 에러 없이 성공하는지 확인했습니까?
+

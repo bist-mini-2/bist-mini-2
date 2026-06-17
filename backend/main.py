@@ -139,6 +139,7 @@ handler.setFormatter(colorlog.ColoredFormatter(
 ))
 logger.addHandler(handler)
 logger.setLevel(logging.INFO if not settings.DEBUG else logging.DEBUG)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 # ============================================
 # API Routers Mounting

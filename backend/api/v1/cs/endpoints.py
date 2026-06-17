@@ -1,7 +1,15 @@
 from fastapi import APIRouter
 
 from api.database.config.dto_base import SuccessResponse
-from api.v1.cs.models import SimilaritySearchRequest
+from api.v1.cs.models import (
+    SimilaritySearchRequest,
+    SimilaritySearchResult,
+    SimilaritySearchResponse,
+    CsRagQueryRequest,
+    CsRagQueryResponse,
+    CsAgentQueryRequest,
+    CsAgentQueryResponse,
+)
 from api.v1.cs.services import CsServiceDep
 
 router = APIRouter(prefix="/similarity-search", tags=["CS RAG Pipeline"])
@@ -26,5 +34,61 @@ async def similarity_search_cs(
     Returns:
         SuccessResponse: 검색 결과 DTO 리스트가 data 영역에 담긴 성공 응답 객체.
     """
-    response_data = await cs_service.search_similar_papers(request.query, request.top_k)
+    results_list = await cs_service.search_similar_papers(request.query, request.top_k)
+    response_data = SimilaritySearchResponse.model_validate({"results": results_list})
+    return SuccessResponse(data=response_data)
+
+
+@router.post(
+    "/cs/ask",
+    response_model=SuccessResponse,
+    summary="컴퓨터 과학 논문 RAG 기반 질의응답 및 답변 생성 API"
+)
+async def ask_cs_rag(
+    request: CsRagQueryRequest,
+    cs_service: CsServiceDep
+) -> SuccessResponse:
+    """사용자가 보낸 질문(Query)에 대하여 cs.NE 논문 DB에서 유사도가 높은 문서를 검색하고,
+    검색된 내용을 바탕으로 OpenAI LLM을 사용하여 상세 답변을 생성 및 출처와 함께 반환합니다.
+
+    Args:
+        request (CsRagQueryRequest): 질의어, 참고 개수(top_k), 및 사용할 모델명 정보 DTO.
+        cs_service (CsServiceDep): CS 도메인 비즈니스 로직 처리 서비스 의존성.
+
+    Returns:
+        SuccessResponse: 생성된 답변 및 참고 출처 목록 DTO가 data 영역에 담긴 성공 응답 객체.
+    """
+    result_dict = await cs_service.answer_question_with_rag(
+        query=request.query,
+        top_k=request.top_k,
+        llm_model=request.llm_model
+    )
+    response_data = CsRagQueryResponse.model_validate(result_dict)
+    return SuccessResponse(data=response_data)
+
+
+@router.post(
+    "/cs/agent",
+    response_model=SuccessResponse,
+    summary="컴퓨터 과학 논문 RAG 툴 바인딩 에이전트 API"
+)
+async def ask_cs_agent(
+    request: CsAgentQueryRequest,
+    cs_service: CsServiceDep
+) -> SuccessResponse:
+    """사용자가 보낸 질문(Query)을 분석하여 에이전트가 데이터베이스 검색 툴을 직접 활용해
+    필요한 논문을 탐색하고 최적의 답변을 추론하여 반환합니다.
+
+    Args:
+        request (CsAgentQueryRequest): 질의어 및 사용할 모델명 정보 DTO.
+        cs_service (CsServiceDep): CS 도메인 비즈니스 로직 처리 서비스 의존성.
+
+    Returns:
+        SuccessResponse: 에이전트의 답변 및 사용한 툴 목록 정보 DTO가 data 영역에 담긴 성공 응답 객체.
+    """
+    result_dict = await cs_service.run_agent_with_rag_tool(
+        query=request.query,
+        llm_model=request.llm_model
+    )
+    response_data = CsAgentQueryResponse.model_validate(result_dict)
     return SuccessResponse(data=response_data)

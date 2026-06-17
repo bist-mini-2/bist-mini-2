@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 24 * 60  # 24 hours (1440 minutes)
 
     # Database Configuration
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@kosa165.iptime.org:50003/postgres"
 
     # OpenAI API Key Configuration
     OPENAI_API_KEY: str = ""
