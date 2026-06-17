@@ -6,6 +6,7 @@ from api.v1.cs.endpoints import router as cs_router
 from api.v1.astronomy.controller import router as astronomy_router
 from api.v1.bio.controller import router as bio_router
 from api.v1.chat.controller import router as chat_router
+from api.v1.research_gap.endpoints import router as research_gap_router
 
 api_router = APIRouter()
 
@@ -17,3 +18,5 @@ api_router.include_router(cs_router)
 api_router.include_router(astronomy_router)
 api_router.include_router(bio_router)
 api_router.include_router(chat_router)
+api_router.include_router(research_gap_router)
+

@@ -46,9 +46,9 @@ export default function Topbar() {
         </div>
 
         {/* 테마 전환 토글 버튼 */}
-        <button 
-          className={styles.iconButton} 
-          onClick={toggleTheme} 
+        <button
+          className={styles.iconButton}
+          onClick={toggleTheme}
           title={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"}
           aria-label="Toggle Theme"
         >

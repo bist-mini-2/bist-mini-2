@@ -5,16 +5,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from api.common.auth import LoginCheckDep, AdminCheckDep
 from api.database.config.dto_base import SuccessResponse
 from api.v1.auth.services import AuthServiceDep
-from api.v1.auth.models import (
-    TokenResponse,
-    UserInfoResponse,
-    UserInfoResponseWrapper,
-)
+from api.v1.auth.models import TokenResponse, UserInfoResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, summary="OAuth2 로그인 및 토큰 발급 API")
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     auth_service: AuthServiceDep
@@ -24,10 +20,10 @@ async def login(
     return TokenResponse(**login_result)
 
 
-@router.get("/me", response_model=UserInfoResponseWrapper)
+@router.get("/me", response_model=SuccessResponse, summary="현재 로그인 사용자 정보 조회 API")
 async def get_me(payload: LoginCheckDep):
     """인증된 현재 사용자의 정보를 조회합니다."""
-    return UserInfoResponseWrapper(
+    return SuccessResponse(
         data=UserInfoResponse(
             username=payload["sub"],
             role=payload["mrole"]
@@ -35,7 +31,7 @@ async def get_me(payload: LoginCheckDep):
     )
 
 
-@router.get("/admin-only", response_model=SuccessResponse)
+@router.get("/admin-only", response_model=SuccessResponse, summary="관리자 전용 리소스 조회 API")
 async def admin_only(payload: AdminCheckDep):
     """관리자 권한을 가진 사용자만 접근 가능한 보호된 리소스를 조회합니다."""
     return SuccessResponse(

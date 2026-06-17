@@ -19,3 +19,11 @@ class BusinessException(Exception):
         self.message = message
         self.error_code = error_code
         super().__init__(self.message)
+
+
+class TaskNotFoundError(Exception):
+    """요청한 분석 배치 태스크를 찾을 수 없을 때 발생하는 예외입니다."""
+    def __init__(self, message: str, error_code: str = "TASK_NOT_FOUND"):
+        self.error_code = error_code
+        super().__init__(message)
+

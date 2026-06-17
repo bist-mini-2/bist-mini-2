@@ -1,7 +1,7 @@
 import jwt
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, TypedDict
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from api.common.config import settings
@@ -67,10 +67,16 @@ def get_payload(token: str) -> dict:
         )
 
 
+class UserPayload(TypedDict):
+    """검증된 JWT 토큰 페이로드 데이터 스키마입니다."""
+    sub: str
+    mrole: str
+
+
 async def verify_access_token(
     request: Request,
     access_token: Annotated[str | None, Depends(_oauth2_scheme)] = None
-) -> dict:
+) -> UserPayload:
     """FastAPI 종속성 주입용 함수로, 요청 헤더 또는 쿼리 파라미터에서 토큰을 추출하여 검증합니다.
 
     Args:
@@ -78,7 +84,7 @@ async def verify_access_token(
         access_token (str | None): OAuth2 스키마를 통해 추출된 액세스 토큰 문자열.
 
     Returns:
-        dict: 검증이 완료된 액세스 토큰의 페이로드 데이터.
+        UserPayload: 검증이 완료된 액세스 토큰의 페이로드 데이터.
 
     Raises:
         HTTPException: 토큰이 누락되었거나 유효하지 않을 때 401 Unauthorized 에러를 발생시킵니다.
@@ -96,7 +102,10 @@ async def verify_access_token(
 
     payload = get_payload(access_token)
     logger.info(f"Verified JWT payload: {payload}")
-    return payload
+    return {
+        "sub": str(payload.get("sub", "")),
+        "mrole": str(payload.get("mrole", ""))
+    }
 
 
 def require_roles(roles: list[str]):
@@ -108,7 +117,7 @@ def require_roles(roles: list[str]):
     Returns:
         Callable: JWT 토큰의 권한(mrole) 정보가 허용 목록에 포함되는지 검증하는 비동기 함수.
     """
-    async def check_roles(payload: Annotated[dict, Depends(verify_access_token)]) -> dict:
+    async def check_roles(payload: Annotated[UserPayload, Depends(verify_access_token)]) -> UserPayload:
         user_role = payload.get("mrole")
         if user_role not in roles:
             raise HTTPException(
@@ -120,5 +129,5 @@ def require_roles(roles: list[str]):
 
 
 # Common dependency aliases
-LoginCheckDep = Annotated[dict, Depends(verify_access_token)]
-AdminCheckDep = Annotated[dict, Depends(require_roles(["ROLE_ADMIN"]))]
+LoginCheckDep = Annotated[UserPayload, Depends(verify_access_token)]
+AdminCheckDep = Annotated[UserPayload, Depends(require_roles(["ROLE_ADMIN"]))]
