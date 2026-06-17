@@ -1,0 +1,161 @@
+/* =============================================================================
+   기능 1 사이드바 — 채팅방 목록 (Sage Green / Sharp & Flat)
+   ============================================================================= */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ---- 새 채팅 버튼 ---- */
+.newChatBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--accent-color);
+  border-radius: var(--radius-md);
+  background: var(--accent-glow);
+  color: var(--accent-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.newChatBtn:hover:not(:disabled) {
+  background: var(--menu-item-active-bg);
+}
+
+.newChatBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- 목록 헤더 ---- */
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.listHeaderLabel {
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--profile-role-color);
+}
+
+.listHeaderCount {
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  background: var(--accent-glow);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+/* ---- 방 목록 ---- */
+.sessionList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.sessionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border: 1px solid transparent;
+}
+
+.sessionItem:hover {
+  background: var(--menu-item-hover-bg);
+}
+
+.sessionItem:hover .deleteBtn {
+  opacity: 1;
+}
+
+.sessionItemActive {
+  background: var(--menu-item-active-bg);
+  border-color: var(--card-border);
+}
+
+.sessionIcon {
+  font-size: 0.85rem;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.sessionTitle {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--menu-item-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sessionItemActive .sessionTitle {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.deleteBtn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--profile-role-color);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  font-size: 0.78rem;
+  transition: opacity 0.1s ease, color 0.1s ease, background 0.1s ease;
+}
+
+.deleteBtn:hover {
+  color: #C2694E;
+  background: rgba(194, 105, 78, 0.1);
+}
+
+/* ---- 빈 상태 ---- */
+.emptyHint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 12px;
+  color: var(--profile-role-color);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.emptyHint i {
+  font-size: 1.4rem;
+  opacity: 0.6;
+}
