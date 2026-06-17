@@ -3,6 +3,7 @@ import json
 import time
 import sys
 import asyncio
+import uuid
 from openai import OpenAI, RateLimitError
 from dotenv import load_dotenv
 
@@ -49,7 +50,7 @@ if backend_dir_from_script not in sys.path:
     sys.path.insert(0, backend_dir_from_script)
 
 from api.database.config.dbsession import session_maker
-from api.v1.cs.entity import PaperCsEntity, CsEmbeddingEntity
+from api.v1.cs.entity import CsCollectionEntity, CsEmbeddingEntity
 from sqlalchemy.future import select
 
 # 데이터 경로 및 출력 경로 설정 (스크립트 위치 기준 5레벨 위가 workspace root)
@@ -89,7 +90,7 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]
 
 
 async def save_to_db(collected_papers: list) -> None:
-    """수집된 논문 메타데이터와 임베딩 청크들을 DB의 paper_cs 및 cs_embeddings 테이블에 비동기로 저장합니다.
+    """수집된 논문 메타데이터와 임베딩 청크들을 DB의 cs_collections 및 cs_embeddings 테이블에 비동기로 저장합니다.
 
     Args:
         collected_papers (list): 임베딩 벡터가 포함된 논문 데이터 리스트.
@@ -98,57 +99,75 @@ async def save_to_db(collected_papers: list) -> None:
     start_time = time.time()
     
     async with session_maker() as session:
-        # 1. 대상 doc_id 목록 추출
-        doc_ids = [paper["doc_id"] for paper in collected_papers]
+        # 1. cs.NE 컬렉션 가져오거나 생성
+        stmt = select(CsCollectionEntity).where(CsCollectionEntity.name == "cs.NE")
+        result = await session.execute(stmt)
+        collection = result.scalar_one_or_none()
         
-        # 2. 이미 존재하는 doc_id들 조회 (중복 데이터 삽입 방지)
-        existing_doc_ids = set()
-        for i in range(0, len(doc_ids), 1000):
-            batch_ids = doc_ids[i:i+1000]
-            stmt = select(PaperCsEntity.doc_id).where(PaperCsEntity.doc_id.in_(batch_ids))
-            result = await session.execute(stmt)
-            for doc_id in result.scalars():
-                existing_doc_ids.add(doc_id)
+        if not collection:
+            print("  > cs.NE 컬렉션이 존재하지 않아 신규 생성합니다.")
+            collection = CsCollectionEntity(
+                uuid=uuid.uuid4(),
+                name="cs.NE",
+                cmetadata={}
+            )
+            session.add(collection)
+            await session.flush()
+            
+        collection_uuid = collection.uuid
+        print(f"  > Target Collection UUID: {collection_uuid}")
+
+        # 2. 중복 체크용 custom_id 목록 추출
+        custom_ids = []
+        for paper in collected_papers:
+            doc_id = paper["doc_id"]
+            for chunk_idx, _ in enumerate(paper["chunks"]):
+                custom_ids.append(f"{doc_id}_chunk_{chunk_idx}")
                 
-        print(f"  > {YELLOW}DB에 이미 존재하는 CS 논문:{RESET} {len(existing_doc_ids):,}건 (중복 스킵 처리 예정)")
+        # 3. 이미 존재하는 custom_id들 조회 (중복 데이터 삽입 방지)
+        existing_custom_ids = set()
+        for i in range(0, len(custom_ids), 1000):
+            batch_ids = custom_ids[i:i+1000]
+            stmt = select(CsEmbeddingEntity.custom_id).where(CsEmbeddingEntity.custom_id.in_(batch_ids))
+            res = await session.execute(stmt)
+            for cid in res.scalars():
+                existing_custom_ids.add(cid)
+                
+        print(f"  > {YELLOW}DB에 이미 존재하는 CS 청크 벡터:{RESET} {len(existing_custom_ids):,}건 (중복 스킵 처리 예정)")
         
-        # 3. 신규 저장할 PaperCsEntity 및 CsEmbeddingEntity 목록 구성
-        papers_to_insert = []
+        # 4. 신규 저장할 CsEmbeddingEntity 목록 구성
         embeddings_to_insert = []
         
         for paper in collected_papers:
             doc_id = paper["doc_id"]
-            if doc_id in existing_doc_ids:
-                continue
-                
-            paper_entity = PaperCsEntity(
-                doc_id=doc_id,
-                title=paper["title"],
-                abstract=paper["abstract"],
-                authors=paper["authors"],
-                journal_ref=paper["journal_ref"],
-                doi=paper["doi"],
-                categories=paper["categories"]
-            )
-            papers_to_insert.append(paper_entity)
             
             for chunk in paper["chunks"]:
+                chunk_idx = chunk["chunk_index"]
+                cid = f"{doc_id}_chunk_{chunk_idx}"
+                
+                if cid in existing_custom_ids:
+                    continue
+                
                 embedding_entity = CsEmbeddingEntity(
-                     doc_id=doc_id,
-                     text_chunk=chunk["chunk_text"],
+                     id=uuid.uuid4(),
+                     collection_id=collection_uuid,
                      embedding=chunk["embedding"],
-                     chunk_index=chunk["chunk_index"]
+                     document=chunk["chunk_text"],
+                     cmetadata={
+                         "arxiv_id": doc_id,
+                         "title": paper["title"],
+                         "categories": paper["categories"],
+                         "authors": paper["authors"],
+                         "doi": paper["doi"],
+                         "journal_ref": paper["journal_ref"]
+                     },
+                     custom_id=cid
                 )
                 embeddings_to_insert.append(embedding_entity)
                 
-        # 4. 벌크 저장 실행
-        if papers_to_insert:
-            print(f"  > {CYAN}신규 데이터 적재:{RESET} 논문 {len(papers_to_insert):,}건, 임베딩 청크 {len(embeddings_to_insert):,}건")
-            
-            # 부모(paper_cs) 테이블 flush 후 자식(cs_embeddings) 테이블을 추가하여 FK 제약 조건 충족
-            session.add_all(papers_to_insert)
-            await session.flush()
-            
+        # 5. 벌크 저장 실행
+        if embeddings_to_insert:
+            print(f"  > {CYAN}신규 데이터 적재:{RESET} 임베딩 청크 {len(embeddings_to_insert):,}건")
             session.add_all(embeddings_to_insert)
             await session.commit()
             print(f"  {GREEN}✓ DB 적재 완료!{RESET} (소요 시간: {time.time() - start_time:.1f}초)")

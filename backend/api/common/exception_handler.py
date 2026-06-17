@@ -62,11 +62,22 @@ def register_exception_handler(app: FastAPI):
             }
         )
 
-    from api.common.exceptions import MemberNotFoundError, InvalidPasswordError, BusinessException
+    from api.common.exceptions import MemberNotFoundError, InvalidPasswordError, BusinessException, TaskNotFoundError
 
     @app.exception_handler(MemberNotFoundError)
     async def member_not_found_handler(request: Request, exc: MemberNotFoundError) -> JSONResponse:
         logger.error(f"MemberNotFoundError: {str(exc)}")
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "status": "error",
+                "message": str(exc)
+            }
+        )
+
+    @app.exception_handler(TaskNotFoundError)
+    async def task_not_found_handler(request: Request, exc: TaskNotFoundError) -> JSONResponse:
+        logger.error(f"TaskNotFoundError: {str(exc)}")
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={
