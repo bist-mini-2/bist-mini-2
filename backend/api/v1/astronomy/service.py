@@ -1,5 +1,6 @@
 import json
 import logging
+import random
 from pathlib import Path
 from typing import Annotated
 
@@ -14,37 +15,55 @@ COLLECTION_NAME = "astro-ph-EP"
 CONNECTION = "postgresql+psycopg_async://postgres:postgres@localhost:5432/postgres"
 EMBED_MODEL = "openai:text-embedding-3-large"
 
+# 원본 데이터 경로 (프로젝트 루트 기준)
+RAW_DATA_PATH = Path(__file__).parents[4] / "data" / "raw" / "arxiv-metadata-oai-snapshot.json"
+SAMPLE_SIZE = 5000
+SAMPLE_SEED = 42
+
 
 class AstronomyService:
     def __init__(self) -> None:
         self.logger = logging.getLogger(f"{__name__}.AstronomyService")
 
     # --------------------------------------------------------------------------
-    # JSON 파일에서 논문 데이터 로드
+    # 원본 파일에서 astro-ph.EP 논문 필터링 + 샘플링 후 Document 변환
     # --------------------------------------------------------------------------
-    def load_papers(self, file_path: str) -> list[Document]:
-        path = Path(file_path)
-        if not path.exists():
-            raise FileNotFoundError(f"파일을 찾을 수 없습니다: {file_path}")
+    def load_papers(self) -> list[Document]:
+        if not RAW_DATA_PATH.exists():
+            raise FileNotFoundError(f"원본 데이터 파일을 찾을 수 없습니다: {RAW_DATA_PATH}")
 
-        documents = []
-        with open(path, "r", encoding="utf-8") as f:
+        ep_papers = []
+        with open(RAW_DATA_PATH, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:
                     continue
-                paper = json.loads(line)
-                title = (paper.get("title") or "").replace("\n", " ").strip()
-                abstract = (paper.get("abstract") or "").replace("\n", " ").strip()
-                content = f"Title: {title}\n\nAbstract: {abstract}"
-                metadata = {
-                    "arxiv_id": paper.get("id", ""),
-                    "title": title,
-                    "categories": paper.get("categories", ""),
-                    "update_date": paper.get("update_date", ""),
-                }
-                documents.append(Document(page_content=content, metadata=metadata))
+                try:
+                    paper = json.loads(line)
+                    if "astro-ph.EP" in paper.get("categories", "").split():
+                        ep_papers.append(paper)
+                except json.JSONDecodeError:
+                    continue
 
+        self.logger.info(f"astro-ph.EP 전체 논문 수: {len(ep_papers)}")
+
+        random.seed(SAMPLE_SEED)
+        sampled = random.sample(ep_papers, min(SAMPLE_SIZE, len(ep_papers)))
+
+        documents = []
+        for paper in sampled:
+            title = (paper.get("title") or "").replace("\n", " ").strip()
+            abstract = (paper.get("abstract") or "").replace("\n", " ").strip()
+            content = f"Title: {title}\n\nAbstract: {abstract}"
+            metadata = {
+                "arxiv_id": paper.get("id", ""),
+                "title": title,
+                "categories": paper.get("categories", ""),
+                "update_date": paper.get("update_date", ""),
+            }
+            documents.append(Document(page_content=content, metadata=metadata))
+
+        self.logger.info(f"샘플링 완료: {len(documents)}건")
         return documents
 
     # --------------------------------------------------------------------------
