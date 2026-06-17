@@ -1,79 +1,16 @@
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 from fastapi import Depends
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import tool
-from langchain_core.runnables import RunnableConfig
-from langchain_core.callbacks import BaseCallbackHandler
-from langchain_core.outputs import LLMResult
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 
 from api.common.config import settings
 from api.v1.cs.dao import CsDaoDep
 from api.v1.cs.embedding import embedding_helper
-from api.v1.cs.models import (
-    SimilaritySearchResult,
-    SimilaritySearchResponse,
-    CsRagQueryResponse,
-    CsAgentQueryResponse,
-)
-
-
-@tool
-async def search_cs_papers(
-    search_query: str,
-    config: RunnableConfig
-) -> str:
-    """컴퓨터 과학(Neural and Evolutionary Computing, cs.NE 카테고리) 관련 학술 논문 데이터베이스에서 검색을 수행합니다.
-    인공신경망, 진화 컴퓨팅, 유전 알고리즘, 신경망 학습 다이내믹스 등의 개념에 대한 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요.
-    입력값(search_query)은 검색어 텍스트여야 합니다.
-    """
-    cs_service: "CsService" = config.get("configurable", {}).get("cs_service")
-    if not cs_service:
-        return "오류: cs_service가 설정에 제공되지 않았습니다."
-
-    search_res = await cs_service.search_similar_papers(search_query, top_k=3)
-    if not search_res.results:
-        return "검색 결과가 데이터베이스에 존재하지 않습니다."
-        
-    formatted_results = []
-    for idx, item in enumerate(search_res.results):
-        formatted_results.append(
-            f"[문서 {idx+1}]\n논문 ID: {item.doc_id}\n제목: {item.title}\n내용 청크: {item.text_chunk}\n"
-        )
-    return "\n".join(formatted_results)
-
-
-class LlmLoggingHandler(BaseCallbackHandler):
-    """LLM의 프롬프트 입출력 내역을 표준 로거로 수집하고 기록하는 커스텀 콜백 핸들러입니다."""
-
-    def __init__(self) -> None:
-        self.logger = logging.getLogger("api.v1.cs.llm")
-
-    def on_llm_start(
-        self, serialized: dict, prompts: list[str], **kwargs
-    ) -> None:
-        """LLM 호출 시작 시 프롬프트를 로깅합니다.
-
-        Args:
-            serialized (dict): 모델 직렬화 객체 정보.
-            prompts (list[str]): 입력 프롬프트 리스트.
-            **kwargs: 추가 키워드 인자.
-        """
-        for prompt in prompts:
-            self.logger.info(f"[LLM INPUT PROMPT]\n{prompt}")
-
-    def on_llm_end(self, response: LLMResult, **kwargs) -> None:
-        """LLM 응답 완료 시 생성 결과를 로깅합니다.
-
-        Args:
-            response (LLMResult): LLM 생성 결과 객체.
-            **kwargs: 추가 키워드 인자.
-        """
-        for generation in response.generations:
-            for g in generation:
-                self.logger.info(f"[LLM OUTPUT ANSWER]\n{g.text}")
+from api.v1.cs.entity import CsEmbeddingEntity
+from api.v1.cs.handler import LlmLoggingHandler
+from api.v1.cs.tools import search_cs_papers
 
 
 class CsService:
@@ -83,7 +20,7 @@ class CsService:
         self.logger = logging.getLogger(f"{__name__}.CsService")
         self.cs_dao = cs_dao
 
-    async def search_similar_papers(self, query: str, top_k: int) -> SimilaritySearchResponse:
+    async def search_similar_papers(self, query: str, top_k: int) -> list[CsEmbeddingEntity]:
         """질의어(Query)를 임베딩으로 변환한 뒤, 유사도가 높은 상위 논문 청크 목록을 검색합니다.
 
         Args:
@@ -91,7 +28,7 @@ class CsService:
             top_k (int): 반환할 상위 결과 개수.
 
         Returns:
-            SimilaritySearchResponse: 매칭된 유사 청크 목록을 포함한 DTO 응답 객체.
+            list[CsEmbeddingEntity]: 매칭된 유사 청크 엔티티 목록.
         """
         self.logger.info("search_similar_papers 실행")
         # 1. 쿼리 텍스트 임베딩 생성 (싱글톤 helper 활용)
@@ -100,23 +37,11 @@ class CsService:
         # 2. DAO를 통해 유사도 높은 청크들 조회
         raw_results = await self.cs_dao.select_similar_chunks(query_vector, top_k)
 
-        # 3. DTO 리스트로 결과 변환
-        results_list = []
-        for doc_id, title, chunk_text, score in raw_results:
-            results_list.append(
-                SimilaritySearchResult(
-                    doc_id=doc_id,
-                    title=title,
-                    text_chunk=chunk_text,
-                    score=score
-                )
-            )
-
-        return SimilaritySearchResponse(results=results_list)
+        return raw_results
 
     async def answer_question_with_rag(
         self, query: str, top_k: int, llm_model: str = "gpt-4o-mini"
-    ) -> CsRagQueryResponse:
+    ) -> dict[str, Any]:
         """RAG 파이프라인을 활용하여 질의에 대한 유사 논문 출처를 찾고, 이를 참고하여 답변을 생성합니다.
 
         Args:
@@ -125,13 +50,12 @@ class CsService:
             llm_model (str, optional): 사용할 OpenAI LLM 모델명. Defaults to "gpt-4o-mini".
 
         Returns:
-            CsRagQueryResponse: 생성된 답변과 참고한 논문 청크 출처 리스트 DTO.
+            dict[str, Any]: 생성된 답변과 참고한 논문 청크 엔티티 리스트를 포함하는 딕셔너리.
         """
         self.logger.info("answer_question_with_rag 실행")
 
         # 1. 유사 논문 청크 검색
-        search_response = await self.search_similar_papers(query, top_k)
-        sources = search_response.results
+        sources = await self.search_similar_papers(query, top_k)
 
         # 2. 콘텍스트 생성
         context_parts = []
@@ -177,14 +101,14 @@ class CsService:
 
         answer_text = str(llm_response.content).strip()
 
-        return CsRagQueryResponse(
-            answer=answer_text,
-            sources=sources
-        )
+        return {
+            "answer": answer_text,
+            "sources": sources
+        }
 
     async def run_agent_with_rag_tool(
         self, query: str, llm_model: str = "gpt-4o-mini"
-    ) -> CsAgentQueryResponse:
+    ) -> dict[str, Any]:
         """RAG 파이프라인을 툴(Tool)로 정의하고, LangGraph React Agent를 통해 에이전트 답변을 생성합니다.
 
         Args:
@@ -192,7 +116,7 @@ class CsService:
             llm_model (str, optional): 사용할 OpenAI LLM 모델명. Defaults to "gpt-4o-mini".
 
         Returns:
-            CsAgentQueryResponse: 생성된 답변과 실행된 툴 정보 목록이 담긴 응답 DTO.
+            dict[str, Any]: 생성된 답변과 실행된 툴 정보 목록이 담긴 딕셔너리.
         """
         self.logger.info("run_agent_with_rag_tool 실행")
 
@@ -207,7 +131,7 @@ class CsService:
             callbacks=[LlmLoggingHandler()]
         )
         
-        agent = create_react_agent(llm, tools)
+        agent = create_agent(llm, tools)
         
         # 3. Agent 실행 (config를 전달하여 cs_service 의존성 주입)
         response = await agent.ainvoke(
@@ -229,10 +153,10 @@ class CsService:
                         "id": tc.get("id")
                     })
                     
-        return CsAgentQueryResponse(
-            answer=str(final_answer).strip(),
-            tool_calls=tool_calls
-        )
+        return {
+            "answer": str(final_answer).strip(),
+            "tool_calls": tool_calls
+        }
 
 
 CsServiceDep = Annotated[CsService, Depends(CsService)]

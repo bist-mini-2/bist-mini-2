@@ -1,3 +1,4 @@
+from typing import cast
 from sqlalchemy import Column, String, Text, Integer, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector, HALFVEC
@@ -60,6 +61,24 @@ class CsEmbeddingEntity(Base):
     chunk_index = Column(Integer, nullable=False)
 
     paper = relationship("PaperCsEntity", back_populates="embeddings")
+
+    @property
+    def title(self) -> str:
+        """연결된 부모 논문의 제목을 반환합니다.
+
+        Returns:
+            str: 논문 제목.
+        """
+        return self.paper.title if self.paper else ""
+
+    @property
+    def text_chunk(self) -> str:
+        """DTO 호환성을 위해 chunk_text를 text_chunk로 반환합니다.
+
+        Returns:
+            str: 청크 텍스트 본문.
+        """
+        return cast(str, self.chunk_text)
 
     __table_args__ = (
         Index(

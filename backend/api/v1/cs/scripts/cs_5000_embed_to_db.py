@@ -24,8 +24,8 @@ RESET = "\033[0m"
 
 # .env 로드 및 실행 경로 유연화 설정
 script_dir = os.path.dirname(os.path.abspath(__file__))
-# 스크립트 파일 위치 기준 backend 디렉토리 (3레벨 위)
-backend_dir_from_script = os.path.abspath(os.path.join(script_dir, "../../.."))
+# 스크립트 파일 위치 기준 backend 디렉토리 (4레벨 위)
+backend_dir_from_script = os.path.abspath(os.path.join(script_dir, "../../../.."))
 env_from_script = os.path.join(backend_dir_from_script, ".env")
 
 # 실행 위치(CWD) 기준 .env 위치 확인
@@ -52,8 +52,8 @@ from api.database.config.dbsession import session_maker
 from api.v1.cs.entity import PaperCsEntity, CsEmbeddingEntity
 from sqlalchemy.future import select
 
-# 데이터 경로 및 출력 경로 설정 (스크립트 위치 기준 4레벨 위가 workspace root)
-ROOT_DIR = os.path.abspath(os.path.join(script_dir, "../../../.."))
+# 데이터 경로 및 출력 경로 설정 (스크립트 위치 기준 5레벨 위가 workspace root)
+ROOT_DIR = os.path.abspath(os.path.join(script_dir, "../../../../../"))
 DATA_PATH = os.path.abspath(os.path.join(ROOT_DIR, "data/raw/archive/arxiv-metadata-oai-snapshot.json"))
 OUTPUT_FILE_PATH = os.path.abspath(os.path.join(ROOT_DIR, "data/raw/archive/local_embeddings_output.jsonl"))
 
@@ -320,9 +320,9 @@ async def main() -> None:
     total_elapsed = time.time() - start_time
     print(f"\n{BOLD}======================================================================{RESET}")
     print(f"{BOLD}{GREEN}🎉 [SUCCESS] RAG 임베딩 및 DB 업로드 완료!{RESET}")
-    print(f"  - 총 수집 논문: {len(collected_papers):,} 건")
-    print(f"  - 총 생성 청크: {total_chunks:,} 개")
-    print(f"  - 총 소요 시간: {total_elapsed:.2f} 초")
+    print(f"  - - 총 수집 논문: {len(collected_papers):,} 건")
+    print(f"  - - 총 생성 청크: {total_chunks:,} 개")
+    print(f"  - - 총 소요 시간: {total_elapsed:.2f} 초")
     print(f"{BOLD}======================================================================{RESET}")
 
 

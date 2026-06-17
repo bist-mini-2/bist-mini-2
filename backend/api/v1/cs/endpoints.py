@@ -3,8 +3,12 @@ from fastapi import APIRouter
 from api.database.config.dto_base import SuccessResponse
 from api.v1.cs.models import (
     SimilaritySearchRequest,
+    SimilaritySearchResult,
+    SimilaritySearchResponse,
     CsRagQueryRequest,
+    CsRagQueryResponse,
     CsAgentQueryRequest,
+    CsAgentQueryResponse,
 )
 from api.v1.cs.services import CsServiceDep
 
@@ -30,7 +34,9 @@ async def similarity_search_cs(
     Returns:
         SuccessResponse: 검색 결과 DTO 리스트가 data 영역에 담긴 성공 응답 객체.
     """
-    response_data = await cs_service.search_similar_papers(request.query, request.top_k)
+    entities = await cs_service.search_similar_papers(request.query, request.top_k)
+    results_list = [SimilaritySearchResult.model_validate(entity) for entity in entities]
+    response_data = SimilaritySearchResponse(results=results_list)
     return SuccessResponse(data=response_data)
 
 
@@ -53,11 +59,12 @@ async def ask_cs_rag(
     Returns:
         SuccessResponse: 생성된 답변 및 참고 출처 목록 DTO가 data 영역에 담긴 성공 응답 객체.
     """
-    response_data = await cs_service.answer_question_with_rag(
+    result_dict = await cs_service.answer_question_with_rag(
         query=request.query,
         top_k=request.top_k,
         llm_model=request.llm_model
     )
+    response_data = CsRagQueryResponse.model_validate(result_dict)
     return SuccessResponse(data=response_data)
 
 
@@ -80,8 +87,9 @@ async def ask_cs_agent(
     Returns:
         SuccessResponse: 에이전트의 답변 및 사용한 툴 목록 정보 DTO가 data 영역에 담긴 성공 응답 객체.
     """
-    response_data = await cs_service.run_agent_with_rag_tool(
+    result_dict = await cs_service.run_agent_with_rag_tool(
         query=request.query,
         llm_model=request.llm_model
     )
+    response_data = CsAgentQueryResponse.model_validate(result_dict)
     return SuccessResponse(data=response_data)

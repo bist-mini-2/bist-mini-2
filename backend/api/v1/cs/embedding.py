@@ -8,13 +8,8 @@ class EmbeddingModelHelper:
     내부적으로 LangChain의 OpenAIEmbeddings 인스턴스를 싱글톤 패턴으로 재사용합니다.
     """
     
-    _instance = None
-    _embeddings = None
-
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(EmbeddingModelHelper, cls).__new__(cls)
-        return cls._instance
+    def __init__(self) -> None:
+        self._embeddings = None
 
     def get_embeddings(self) -> OpenAIEmbeddings:
         """LangChain OpenAIEmbeddings 인스턴스를 획득합니다.
