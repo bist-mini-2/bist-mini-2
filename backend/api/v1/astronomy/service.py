@@ -9,10 +9,12 @@ from langchain_core.documents import Document
 from langchain_postgres import PGVector
 from langchain.embeddings import init_embeddings
 
+from api.common.config import settings
+
 logger = logging.getLogger(__name__)
 
 COLLECTION_NAME = "astro-ph-EP"
-CONNECTION = "postgresql+psycopg_async://postgres:postgres@localhost:5432/postgres"
+CONNECTION = settings.PGVECTOR_URL
 EMBED_MODEL = "openai:text-embedding-3-large"
 
 # 원본 데이터 경로 (프로젝트 루트 기준)

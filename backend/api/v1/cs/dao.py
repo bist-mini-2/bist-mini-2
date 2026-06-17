@@ -15,15 +15,15 @@ class CsDao:
 
     async def select_similar_chunks(
         self, query_vector: list[float], top_k: int
-    ) -> list[tuple[str, str, str, float]]:
-        """임베딩 벡터를 기준으로 코사인 유사도가 가장 높은 상위 K개의 논문 청크를 조회합니다.
+    ) -> list[dict]:
+        """임베딩 벡터를 기준으로 코사인 유사도가 가장 높은 상위 K개의 논문 청크를 딕셔너리 리스트로 조회합니다.
 
         Args:
             query_vector (list[float]): 질의어 임베딩 벡터.
             top_k (int): 반환할 상위 결과 개수.
 
         Returns:
-            list[tuple[str, str, str, float]]: (doc_id, title, chunk_text, score) 튜플 리스트.
+            list[dict]: doc_id, title, text_chunk, score 필드를 가진 딕셔너리 리스트.
         """
         self.logger.info("select_similar_chunks 실행")
         distance_expr = CsEmbeddingEntity.embedding.cosine_distance(query_vector)
@@ -33,7 +33,7 @@ class CsDao:
             select(
                 CsEmbeddingEntity.doc_id,
                 PaperCsEntity.title,
-                CsEmbeddingEntity.chunk_text,
+                CsEmbeddingEntity.text_chunk,
                 score_expr
             )
             .join(PaperCsEntity, CsEmbeddingEntity.doc_id == PaperCsEntity.doc_id)
@@ -42,8 +42,7 @@ class CsDao:
         )
 
         query_result = await self.orm_session.execute(stmt)
-        rows = query_result.all()
-        return [(row.doc_id, row.title, row.chunk_text, float(row.score)) for row in rows]
+        return [dict(row) for row in query_result.mappings().all()]
 
 
 CsDaoDep = Annotated[CsDao, Depends(CsDao)]

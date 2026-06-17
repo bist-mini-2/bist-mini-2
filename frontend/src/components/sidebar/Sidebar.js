@@ -1,9 +1,12 @@
 "use client"
 
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthContext } from "@/contexts/AuthContext";
+import Feature1Sidebar from "./Feature1Sidebar";
+import Feature2Sidebar from "./Feature2Sidebar";
+import Feature3Sidebar from "./Feature3Sidebar";
 import styles from "./Sidebar.module.css";
 
 /**
@@ -46,6 +49,29 @@ export default function Sidebar({ isCollapsed, onToggle }) {
     { name: "기능 3", path: "/feature3", icon: "bi-bar-chart" }
   ];
 
+  // 활성 경로에 따른 동적 서브 사이드바 렌더링 함수
+  const renderSubSidebar = () => {
+    if (isCollapsed) return null;
+    let subComponent = null;
+
+    if (pathname.startsWith("/feature1")) {
+      subComponent = <Feature1Sidebar isCollapsed={isCollapsed} />;
+    } else if (pathname.startsWith("/feature2")) {
+      subComponent = <Feature2Sidebar isCollapsed={isCollapsed} />;
+    } else if (pathname.startsWith("/feature3")) {
+      subComponent = <Feature3Sidebar isCollapsed={isCollapsed} />;
+    }
+
+    if (!subComponent) return null;
+
+    return (
+      <>
+        <div className={styles.divider}></div>
+        {subComponent}
+      </>
+    );
+  };
+
   return (
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ""}`}>
       {/* 상단 로고 및 토글 버튼 그룹 */}
@@ -85,6 +111,11 @@ export default function Sidebar({ isCollapsed, onToggle }) {
           </ul>
         </nav>
       </div>
+
+      {/* 동적 서브 사이드바 영역 */}
+      <Suspense fallback={null}>
+        {renderSubSidebar()}
+      </Suspense>
 
       {/* 하단 사용자 정보 및 세션 영역 */}
       <div className={styles.bottomSection}>
