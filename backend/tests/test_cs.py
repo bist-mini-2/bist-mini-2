@@ -20,14 +20,14 @@ def anyio_backend():
 @patch("api.v1.cs.services.CsService.search_similar_papers")
 def test_similarity_search_cs_endpoint(mock_search_papers):
     """유사도 검색 API가 정상 응답 구조를 반환하는지 테스트합니다."""
-    # Mock 응답 데이터 설정 (엔티티 리스트 반환)
-    mock_entity = MagicMock()
-    mock_entity.doc_id = "2406.12345"
-    mock_entity.title = "Test Neural Evolutionary Dynamics"
-    mock_entity.text_chunk = "This is a mocked paper abstract chunk about neural dynamics."
-    mock_entity.score = 0.95
-
-    mock_search_papers.return_value = [mock_entity]
+    mock_search_papers.return_value = [
+        {
+            "doc_id": "2406.12345",
+            "title": "Test Neural Evolutionary Dynamics",
+            "text_chunk": "This is a mocked paper abstract chunk about neural dynamics.",
+            "score": 0.95
+        }
+    ]
 
     # API 요청
     payload = {"query": "neural network training", "top_k": 3}
@@ -57,16 +57,16 @@ def test_similarity_search_cs_validation_error():
 @patch("api.v1.cs.services.CsService.answer_question_with_rag")
 def test_ask_cs_rag_endpoint(mock_ask_rag):
     """RAG 기반 질의응답 API가 정상 응답 구조를 반환하는지 테스트합니다."""
-    # Mock 응답 데이터 설정 (dict 반환)
-    mock_entity = MagicMock()
-    mock_entity.doc_id = "2406.12345"
-    mock_entity.title = "Test Neural Evolutionary Dynamics"
-    mock_entity.text_chunk = "This is a mocked paper abstract chunk."
-    mock_entity.score = 0.95
-
     mock_ask_rag.return_value = {
         "answer": "모킹된 답변 결과입니다.",
-        "sources": [mock_entity]
+        "sources": [
+            {
+                "doc_id": "2406.12345",
+                "title": "Test Neural Evolutionary Dynamics",
+                "text_chunk": "This is a mocked paper abstract chunk.",
+                "score": 0.95
+            }
+        ]
     }
 
     # API 요청
@@ -135,15 +135,17 @@ def test_ask_cs_agent_endpoint(mock_run_agent):
 @pytest.mark.anyio
 async def test_cs_service_business_logic():
     """CsService.search_similar_papers가 임베딩과 DAO를 올바르게 호출하는지 단위 테스트합니다."""
-    # Mock DAO 생성
     mock_dao = MagicMock()
-    mock_entity = MagicMock()
-    mock_entity.doc_id = "doc-101"
-    mock_entity.title = "Title A"
-    mock_entity.text_chunk = "Chunk text content"
-    mock_entity.score = 0.88
-
-    mock_dao.select_similar_chunks = AsyncMock(return_value=[mock_entity])
+    mock_dao.select_similar_chunks = AsyncMock(
+        return_value=[
+            {
+                "doc_id": "doc-101",
+                "title": "Title A",
+                "text_chunk": "Chunk text content",
+                "score": 0.88
+            }
+        ]
+    )
 
     # 임베딩 헬퍼 모킹
     with patch("api.v1.cs.services.embedding_helper") as mock_embed_helper:
@@ -161,7 +163,32 @@ async def test_cs_service_business_logic():
         
         assert len(response) == 1
         result = response[0]
-        assert result.doc_id == "doc-101"
-        assert result.title == "Title A"
-        assert result.text_chunk == "Chunk text content"
-        assert result.score == 0.88
+        assert result["doc_id"] == "doc-101"
+        assert result["title"] == "Title A"
+        assert result["text_chunk"] == "Chunk text content"
+        assert result["score"] == 0.88
+
+
+@pytest.mark.anyio
+async def test_cs_service_invalid_model_error():
+    """지원되지 않는 모델명 요청 시 BusinessException 예외가 올바르게 슬로우되는지 테스트합니다."""
+    from api.common.exceptions import BusinessException
+    mock_dao = MagicMock()
+    cs_service = CsService(cs_dao=mock_dao)
+
+    with pytest.raises(BusinessException) as exc_info:
+        await cs_service.answer_question_with_rag(query="test", top_k=3, llm_model="unsupported-model")
+    assert "지원하지 않는 LLM 모델입니다" in str(exc_info.value)
+
+    with pytest.raises(BusinessException) as exc_info:
+        await cs_service.run_agent_with_rag_tool(query="test", llm_model="unsupported-model")
+    assert "지원하지 않는 LLM 모델입니다" in str(exc_info.value)
+
+
+def test_similarity_search_cs_empty_query_validation_error():
+    """빈 쿼리 전송 시 Validation Error가 발생하는지 테스트합니다."""
+    payload = {"query": "", "top_k": 3}
+    response = client.post("/api/v1/similarity-search/cs", json=payload)
+    assert response.status_code == 400
+    assert response.json()["status"] == "error"
+

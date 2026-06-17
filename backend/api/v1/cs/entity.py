@@ -1,7 +1,7 @@
-from typing import cast
 from sqlalchemy import Column, String, Text, Integer, ForeignKey, Index
 from sqlalchemy.orm import relationship
-from pgvector.sqlalchemy import Vector, HALFVEC
+from pgvector.sqlalchemy import HALFVEC
+
 from api.database.config.entity_base import Base
 
 
@@ -42,7 +42,7 @@ class CsEmbeddingEntity(Base):
     Attributes:
         chunk_id (int): 청크 고유 식별자 (Primary Key, Auto increment).
         doc_id (str): 연결된 논문 메타데이터 외래 키 (ForeignKey).
-        chunk_text (str): 500자 분할된 텍스트 본문.
+        text_chunk (str): 500자 분할된 텍스트 본문.
         embedding (Vector): 3072차원 조밀 임베딩 벡터 (pgvector).
         chunk_index (int): 논문 내에서 청크 순서 번호 (0-indexed).
         paper (relationship): 부모 논문 메타데이터 엔티티 객체.
@@ -56,29 +56,11 @@ class CsEmbeddingEntity(Base):
         ForeignKey("paper_cs.doc_id", ondelete="CASCADE"),
         nullable=False
     )
-    chunk_text = Column(Text, nullable=False)
+    text_chunk = Column(Text, nullable=False)
     embedding = Column(HALFVEC(3072), nullable=False)
     chunk_index = Column(Integer, nullable=False)
 
     paper = relationship("PaperCsEntity", back_populates="embeddings")
-
-    @property
-    def title(self) -> str:
-        """연결된 부모 논문의 제목을 반환합니다.
-
-        Returns:
-            str: 논문 제목.
-        """
-        return self.paper.title if self.paper else ""
-
-    @property
-    def text_chunk(self) -> str:
-        """DTO 호환성을 위해 chunk_text를 text_chunk로 반환합니다.
-
-        Returns:
-            str: 청크 텍스트 본문.
-        """
-        return cast(str, self.chunk_text)
 
     __table_args__ = (
         Index(

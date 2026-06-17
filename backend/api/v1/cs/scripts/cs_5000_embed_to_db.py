@@ -134,10 +134,10 @@ async def save_to_db(collected_papers: list) -> None:
             
             for chunk in paper["chunks"]:
                 embedding_entity = CsEmbeddingEntity(
-                    doc_id=doc_id,
-                    chunk_text=chunk["chunk_text"],
-                    embedding=chunk["embedding"],
-                    chunk_index=chunk["chunk_index"]
+                     doc_id=doc_id,
+                     text_chunk=chunk["chunk_text"],
+                     embedding=chunk["embedding"],
+                     chunk_index=chunk["chunk_index"]
                 )
                 embeddings_to_insert.append(embedding_entity)
                 

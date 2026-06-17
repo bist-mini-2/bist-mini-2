@@ -124,7 +124,7 @@ async def process_and_insert() -> None:
             for chunk in paper["chunks"]:
                 embedding_entity = CsEmbeddingEntity(
                     doc_id=doc_id,
-                    chunk_text=chunk["chunk_text"],
+                    text_chunk=chunk["chunk_text"],
                     embedding=chunk["embedding"],
                     chunk_index=chunk["chunk_index"]
                 )

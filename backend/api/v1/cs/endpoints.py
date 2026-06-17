@@ -34,9 +34,8 @@ async def similarity_search_cs(
     Returns:
         SuccessResponse: 검색 결과 DTO 리스트가 data 영역에 담긴 성공 응답 객체.
     """
-    entities = await cs_service.search_similar_papers(request.query, request.top_k)
-    results_list = [SimilaritySearchResult.model_validate(entity) for entity in entities]
-    response_data = SimilaritySearchResponse(results=results_list)
+    results_list = await cs_service.search_similar_papers(request.query, request.top_k)
+    response_data = SimilaritySearchResponse.model_validate({"results": results_list})
     return SuccessResponse(data=response_data)
 
 

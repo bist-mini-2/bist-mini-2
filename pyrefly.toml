@@ -1,3 +1,5 @@
 python-interpreter-path = "/Users/pileuszu/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12"
 search-path = ["/Users/pileuszu/Repos/bist-mini-2/backend"]
 site-package-path = ["/Users/pileuszu/Repos/bist-mini-2/backend/venv/lib/python3.12/site-packages"]
+project-excludes = ["**/__pyrefly_virtual__/**", "**/inmemory/**"]
+

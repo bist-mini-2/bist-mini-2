@@ -33,14 +33,14 @@ async def search_cs_papers(
         
     formatted_results = []
     raw_sources = []
-    for idx, item in enumerate(search_res):
+    for idx, doc in enumerate(search_res):
         formatted_results.append(
-            f"[문서 {idx+1}]\n논문 ID: {item.doc_id}\n제목: {item.title}\n내용 청크: {item.text_chunk}\n"
+            f"[문서 {idx+1}]\n논문 ID: {doc['doc_id']}\n제목: {doc['title']}\n내용 청크: {doc['text_chunk']}\n"
         )
         raw_sources.append({
-            "doc_id": item.doc_id,
-            "title": item.title,
-            "text_chunk": item.text_chunk,
-            "score": item.score
+            "doc_id": doc["doc_id"],
+            "title": doc["title"],
+            "text_chunk": doc["text_chunk"],
+            "score": doc["score"]
         })
     return "\n".join(formatted_results), raw_sources

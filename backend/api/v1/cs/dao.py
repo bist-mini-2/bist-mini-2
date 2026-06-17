@@ -2,7 +2,6 @@ import logging
 from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from api.database.config.dbsession import OrmSessionDep
 from api.v1.cs.entity import CsEmbeddingEntity, PaperCsEntity
 
@@ -16,15 +15,15 @@ class CsDao:
 
     async def select_similar_chunks(
         self, query_vector: list[float], top_k: int
-    ) -> list[CsEmbeddingEntity]:
-        """임베딩 벡터를 기준으로 코사인 유사도가 가장 높은 상위 K개의 논문 청크를 조회합니다.
+    ) -> list[dict]:
+        """임베딩 벡터를 기준으로 코사인 유사도가 가장 높은 상위 K개의 논문 청크를 딕셔너리 리스트로 조회합니다.
 
         Args:
             query_vector (list[float]): 질의어 임베딩 벡터.
             top_k (int): 반환할 상위 결과 개수.
 
         Returns:
-            list[CsEmbeddingEntity]: CsEmbeddingEntity 엔티티 객체 리스트.
+            list[dict]: doc_id, title, text_chunk, score 필드를 가진 딕셔너리 리스트.
         """
         self.logger.info("select_similar_chunks 실행")
         distance_expr = CsEmbeddingEntity.embedding.cosine_distance(query_vector)
@@ -32,23 +31,18 @@ class CsDao:
 
         stmt = (
             select(
-                CsEmbeddingEntity,
+                CsEmbeddingEntity.doc_id,
+                PaperCsEntity.title,
+                CsEmbeddingEntity.text_chunk,
                 score_expr
             )
             .join(PaperCsEntity, CsEmbeddingEntity.doc_id == PaperCsEntity.doc_id)
-            .options(selectinload(CsEmbeddingEntity.paper))
             .order_by(distance_expr.asc())
             .limit(top_k)
         )
 
         query_result = await self.orm_session.execute(stmt)
-        rows = query_result.all()
-        
-        results = []
-        for entity, score in rows:
-            entity.score = float(score)
-            results.append(entity)
-        return results
+        return [dict(row) for row in query_result.mappings().all()]
 
 
 CsDaoDep = Annotated[CsDao, Depends(CsDao)]

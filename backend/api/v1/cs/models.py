@@ -13,6 +13,7 @@ class SimilaritySearchRequest(BaseDTO):
     
     query: str = Field(
         ...,
+        min_length=1,
         description="검색할 질문이나 텍스트 키워드",
         examples=["Explain neural network training dynamics."]
     )
@@ -64,6 +65,7 @@ class CsRagQueryRequest(BaseDTO):
 
     query: str = Field(
         ...,
+        min_length=1,
         description="질문할 질문 내용",
         examples=["How does evolutionary computing work?"]
     )
@@ -101,6 +103,7 @@ class CsAgentQueryRequest(BaseDTO):
 
     query: str = Field(
         ...,
+        min_length=1,
         description="에이전트에게 질문할 질문 내용",
         examples=["Explain neural network training dynamics and what papers discuss it."]
     )
