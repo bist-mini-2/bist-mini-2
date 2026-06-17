@@ -11,7 +11,7 @@ from api.common.config import settings
 from api.database.config.dbsession import session_maker
 from api.v1.research_gap.dao import ResearchGapDaoDep, ResearchGapDao
 from api.v1.research_gap.embedding import embedding_helper
-from api.v1.research_gap.notifier import notification_broadcaster
+from api.v1.notification.notifier import notification_broadcaster
 
 from api.v1.cs.entity import CsEmbeddingEntity
 from api.v1.research_gap.models import PaperAnalysisResult, ResearchGapMatrix
@@ -79,43 +79,6 @@ class ResearchGapService:
             "result": task.result,
             "error_message": task.error_message
         }
-
-    async def stream_notifications(self, request, mid: str) -> AsyncGenerator[str, None]:
-        """비동기 분석 작업 완료 소식을 실시간 SSE 스트림으로 제공하는 제너레이터입니다.
-
-        Args:
-            request: FastAPI Request 객체.
-            mid: 사용자의 식별자 ID.
-
-        Yields:
-            AsyncGenerator[str, None]: SSE 규격에 맞게 포맷팅된 문자열 데이터 스트림.
-        """
-        # 리스너 비동기 큐 등록
-        queue = notification_broadcaster.subscribe()
-        try:
-            while True:
-                # 클라이언트의 명시적 세션 단절 감지
-                if await request.is_disconnected():
-                    break
-                try:
-                    # 1초 타임아웃을 두어 지속적으로 클라이언트 접속 및 킵얼라이브 수행
-                    message = await asyncio.wait_for(queue.get(), timeout=1.0)
-                    
-                    # 유저 알림 필터링
-                    event_mid = message.get("mid")
-                    if event_mid and event_mid != mid:
-                        continue
-                        
-                    content = f"data: {json.dumps(message)}\n\n"
-                    if isinstance(content, str) and content:
-                        yield content
-                except asyncio.TimeoutError:
-                    # 리버스 프록시(Nginx 등)의 타임아웃 종료 방지를 위한 keep-alive 데이터 전송
-                    content = ": keep-alive\n\n"
-                    if isinstance(content, str) and content:
-                        yield content
-        finally:
-            notification_broadcaster.unsubscribe(queue)
 
     async def start_analysis(self, domain: str, query: str, background_tasks, mid: str) -> str:
         """분석 요청을 받아 유효성을 확인한 뒤 새 태스크를 생성하고 백그라운드 배치 연산을 예약합니다.

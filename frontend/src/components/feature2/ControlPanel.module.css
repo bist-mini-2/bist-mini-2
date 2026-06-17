@@ -19,6 +19,8 @@
   outline: none;
   transition: border-color 0.1s ease;
   width: 100%;
+  height: 38px;
+  box-sizing: border-box;
 }
 
 .devInput:focus {
@@ -39,6 +41,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  height: 38px;
+  box-sizing: border-box;
 }
 
 .devBtn:hover:not(:disabled) {
@@ -83,4 +87,51 @@
 
 .statusSpinner {
   animation-duration: 1.5s;
+}
+
+.accentText {
+  color: var(--accent-color);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono-font), monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.running {
+  background-color: rgba(223, 163, 63, 0.08);
+  border-color: rgba(223, 163, 63, 0.3);
+  color: #c98a2e;
+}
+.running :global(.spinner-border) {
+  border-width: 1.5px;
+  width: 0.72rem;
+  height: 0.72rem;
+  color: #c98a2e;
+}
+
+.success {
+  background-color: rgba(74, 133, 105, 0.08);
+  border-color: rgba(74, 133, 105, 0.3);
+  color: #3e7058;
+}
+
+.failed {
+  background-color: rgba(214, 90, 90, 0.08);
+  border-color: rgba(214, 90, 90, 0.3);
+  color: #b54545;
+}
+
+.idle {
+  background-color: rgba(140, 135, 125, 0.08);
+  border-color: rgba(140, 135, 125, 0.25);
+  color: #7a756b;
 }

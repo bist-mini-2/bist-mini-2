@@ -80,3 +80,37 @@
 .listIcon {
   font-size: 0.85rem;
 }
+
+.arxivBtn {
+  background: none;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  margin-top: auto;
+  align-self: flex-start;
+  width: fit-content;
+}
+
+.arxivBtn:hover {
+  background-color: var(--accent-color);
+  color: #ffffff !important;
+}
+
+.colPaperCell {
+  height: 1px;
+}
+
+.paperCellWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}

@@ -21,27 +21,29 @@ export default function MatrixTable({ result }) {
           <table className={styles.matrixTable}>
             <thead>
               <tr>
-                <th className={styles.colPaper}>논문 정보</th>
-                <th className={styles.colProblems}>해결된 문제 & 제안 방법론</th>
-                <th className={styles.colLimitations}>식별된 한계점 & 공백</th>
+                <th className={`${styles.matrixTh} ${styles.colPaper}`}>논문 정보</th>
+                <th className={`${styles.matrixTh} ${styles.colProblems}`}>해결된 문제 & 제안 방법론</th>
+                <th className={`${styles.matrixTh} ${styles.colLimitations}`}>식별된 한계점 & 공백</th>
               </tr>
             </thead>
             <tbody>
               {result.papers.map((paper, idx) => (
                 <tr key={idx}>
-                  <td className={styles.matrixTd}>
-                    <div className={styles.paperTitle}>{paper.title}</div>
-                    <div className={styles.paperMeta}>
-                      ArXiv ID: {paper.arxiv_id}
+                  <td className={`${styles.matrixTd} ${styles.colPaperCell}`}>
+                    <div className={styles.paperCellWrapper}>
+                      <div className={styles.paperTitle}>{paper.title}</div>
+                      <div className={styles.paperMeta}>
+                        ArXiv ID: {paper.arxiv_id}
+                      </div>
+                      <a
+                        href={`https://arxiv.org/abs/${paper.arxiv_id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`${styles.arxivBtn} mt-2`}
+                      >
+                        <i className="bi bi-link-45deg"></i> ArXiv 이동
+                      </a>
                     </div>
-                    <a
-                      href={`https://arxiv.org/abs/${paper.arxiv_id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-outline-primary btn-sm mt-2"
-                    >
-                      <i className="bi bi-link-45deg"></i> ArXiv 이동
-                    </a>
                   </td>
                   <td className={styles.matrixTd}>
                     <ul className={styles.listUnstyled}>

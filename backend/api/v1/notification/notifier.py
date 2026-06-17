@@ -1,11 +1,15 @@
 import asyncio
+import logging
 from typing import Set
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationBroadcaster:
-    """비동기 배치 태스크 완료 알림 등을 실시간 SSE 채널로 브로드캐스트하는 인메모리 퍼블리셔입니다."""
+    """비동기 배치 태스크 상태 변경 및 완료 알림 등을 실시간 SSE 채널로 브로드캐스트하는 중앙 인메모리 퍼블리셔입니다."""
 
     def __init__(self) -> None:
+        """NotificationBroadcaster의 인스턴스를 초기화합니다."""
         self._listeners: Set[asyncio.Queue] = set()
 
     def subscribe(self) -> asyncio.Queue:
@@ -16,6 +20,7 @@ class NotificationBroadcaster:
         """
         queue = asyncio.Queue()
         self._listeners.add(queue)
+        logger.info(f"New client subscribed. Active listeners: {len(self._listeners)}")
         return queue
 
     def unsubscribe(self, queue: asyncio.Queue) -> None:
@@ -26,6 +31,7 @@ class NotificationBroadcaster:
         """
         if queue in self._listeners:
             self._listeners.remove(queue)
+            logger.info(f"Client unsubscribed. Active listeners: {len(self._listeners)}")
 
     async def broadcast(self, message: dict) -> None:
         """구독 중인 모든 클라이언트 리스너 큐에 메시지 이벤트를 비동기 전송합니다.
@@ -34,7 +40,10 @@ class NotificationBroadcaster:
             message (dict): 브로드캐스트할 메시지 데이터 딕셔너리.
         """
         if not self._listeners:
+            logger.debug("No listeners subscribed. Skipping broadcast.")
             return
+        
+        logger.info(f"Broadcasting message to {len(self._listeners)} listeners: {message}")
         # 동시 전송 처리 및 개별 실패 예외 방어
         await asyncio.gather(
             *[queue.put(message) for queue in self._listeners],

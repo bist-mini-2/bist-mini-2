@@ -1,6 +1,5 @@
 import logging
-from fastapi import APIRouter, BackgroundTasks, Request, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, status
 
 from api.database.config.dto_base import SuccessResponse
 from api.common.auth import LoginCheckDep
@@ -63,24 +62,4 @@ async def get_task_result(
     return SuccessResponse(data=result_info)
 
 
-@router.get(
-    "/stream-notifications",
-    summary="실시간 SSE 푸시 알림 수신",
-    include_in_schema=False
-)
-async def stream_notifications(
-    request: Request,
-    service: ResearchGapServiceDep,
-    current_user: LoginCheckDep
-):
-    """백그라운드 비동기 연산 완료 소식을 클라이언트에 실시간 푸시하는 SSE(Server-Sent Events) 스트림 엔드포인트입니다."""
-    mid = current_user["sub"]
-    return StreamingResponse(
-        service.stream_notifications(request, mid),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
-    )
+

@@ -51,7 +51,8 @@ export default function ControlPanel({
               disabled={loading}
             />
           </div>
-          <div className="col-md-3 d-flex align-items-end">
+          <div className="col-md-3">
+            <label className="form-label text-muted small fw-bold mb-1" style={{ visibility: "hidden" }}>Spacer</label>
             <button
               type="submit"
               className={`${styles.devBtn} w-100`}
@@ -77,21 +78,21 @@ export default function ControlPanel({
         <div className="d-flex align-items-center gap-3">
           <span className="text-muted small">작업 상태:</span>
           {loading ? (
-            <span className="badge bg-warning text-dark">
-              <i className={`spinner-border spinner-border-sm border-0 me-1 d-inline-block align-middle ${styles.statusSpinner}`} role="status"></i>
+            <span className={`${styles.statusBadge} ${styles.running}`}>
+              <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
               <span>RUNNING</span>
             </span>
           ) : status === "COMPLETED" ? (
-            <span className="badge bg-success">
-              <i className="bi bi-check-circle me-1"></i> SUCCESS
+            <span className={`${styles.statusBadge} ${styles.success}`}>
+              <i className="bi bi-check-circle-fill me-1"></i> SUCCESS
             </span>
           ) : status === "FAILED" ? (
-            <span className="badge bg-danger">
+            <span className={`${styles.statusBadge} ${styles.failed}`}>
               <i className="bi bi-exclamation-triangle-fill me-1"></i> FAILED
             </span>
           ) : (
-            <span className="badge bg-secondary">
-              <i className="bi bi-dash-circle me-1"></i> IDLE
+            <span className={`${styles.statusBadge} ${styles.idle}`}>
+              <i className="bi bi-dash-circle-fill me-1"></i> IDLE
             </span>
           )}
           
@@ -114,7 +115,7 @@ export default function ControlPanel({
         {loading && (
           <div className="mt-1">
             <div className="d-flex justify-content-between mb-1">
-              <span className="text-primary fw-semibold small">{statusText}</span>
+              <span className={`${styles.accentText} fw-semibold small`}>{statusText}</span>
               <span className="text-secondary fw-semibold small">{progress}%</span>
             </div>
             <div className={styles.progressBarWrapper}>
