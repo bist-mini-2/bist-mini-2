@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/sidebar/Sidebar";
 import Topbar from "@/components/Topbar";
 import styles from "./AppLayoutWrapper.module.css";
 
