@@ -31,6 +31,13 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
+    @property
+    def PGVECTOR_URL(self) -> str:
+        """PGVector(psycopg_async) 연결 문자열 — DATABASE_URL에서 드라이버만 교체"""
+        return self.DATABASE_URL.replace(
+            "postgresql+asyncpg://", "postgresql+psycopg_async://"
+        )
+
 
 # Instantiate settings to be imported elsewhere
 settings = Settings()
