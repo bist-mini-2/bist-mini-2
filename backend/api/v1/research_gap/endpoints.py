@@ -3,7 +3,7 @@ from fastapi import APIRouter, BackgroundTasks, status
 
 from api.database.config.dto_base import SuccessResponse
 from api.common.auth import LoginCheckDep
-from api.v1.research_gap.models import AnalyzeRequest
+from api.v1.research_gap.models import AnalyzeRequest, BulkDeleteRequest
 from api.v1.research_gap.services import ResearchGapServiceDep
 
 logger = logging.getLogger(__name__)
@@ -91,6 +91,41 @@ async def list_user_tasks(
     mid = current_user["sub"]
     tasks_list = await service.list_user_tasks(mid)
     return SuccessResponse(data=tasks_list)
+
+
+@router.delete(
+    "/tasks/{task_id}",
+    response_model=SuccessResponse,
+    summary="특정 배치 분석 작업 이력 삭제"
+)
+async def delete_user_task(
+    task_id: str,
+    service: ResearchGapServiceDep,
+    current_user: LoginCheckDep
+):
+    """현재 로그인한 사용자가 소유한 특정 배치 분석 작업 데이터를 삭제합니다."""
+    mid = current_user["sub"]
+    await service.delete_user_task(task_id, mid)
+    return SuccessResponse(data={"deleted": True})
+
+
+@router.post(
+    "/tasks/bulk-delete",
+    response_model=SuccessResponse,
+    summary="여러 배치 분석 작업 이력 선택 삭제"
+)
+async def bulk_delete_user_tasks(
+    payload: BulkDeleteRequest,
+    service: ResearchGapServiceDep,
+    current_user: LoginCheckDep
+):
+    """현재 로그인한 사용자가 소유한 여러 배치 분석 작업 데이터를 일괄 삭제합니다."""
+    mid = current_user["sub"]
+    deleted_count = await service.delete_user_tasks(payload.task_ids, mid)
+    return SuccessResponse(data={"deleted_count": deleted_count})
+
+
+
 
 
 

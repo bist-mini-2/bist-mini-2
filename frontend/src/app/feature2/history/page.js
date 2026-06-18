@@ -4,7 +4,7 @@ import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./page.module.css";
-import { listUserTasks } from "@/apis/researchGap";
+import { listUserTasks, bulkDeleteTasks } from "@/apis/researchGap";
 import { AuthContext } from "@/contexts/AuthContext";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -18,6 +18,9 @@ export default function ResearchGapHistoryPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // 이력 로드
   useEffect(() => {
@@ -90,6 +93,73 @@ export default function ResearchGapHistoryPage() {
     }
   };
 
+  // 편집 모드 토글
+  const toggleEditMode = () => {
+    setIsEditMode((prev) => {
+      if (prev) {
+        setSelectedTaskIds([]);
+      }
+      return !prev;
+    });
+  };
+
+  // 개별 체크박스 토글
+  const handleCheckboxChange = (taskId) => {
+    setSelectedTaskIds((prev) => {
+      if (prev.includes(taskId)) {
+        return prev.filter((id) => id !== taskId);
+      } else {
+        return [...prev, taskId];
+      }
+    });
+  };
+
+  // 전체 선택 체크박스 토글
+  const handleSelectAllChange = (e) => {
+    if (e.target.checked) {
+      const allIds = tasks.map((t) => t.task_id);
+      setSelectedTaskIds(allIds);
+    } else {
+      setSelectedTaskIds([]);
+    }
+  };
+
+  // 행 클릭 핸들러 (편집 모드 시 체크박스 토글, 일반 모드 시 결과 페이지 이동)
+  const handleRowClick = (task, e) => {
+    if (e.target.type === "checkbox") {
+      return;
+    }
+    if (isEditMode) {
+      handleCheckboxChange(task.task_id);
+    } else {
+      router.push(`/feature2?taskId=${task.task_id}`);
+    }
+  };
+
+  // 선택 삭제 실행 핸들러
+  const handleBulkDelete = () => {
+    if (selectedTaskIds.length === 0) return;
+    setShowConfirmModal(true);
+  };
+
+  // 실제 선택 삭제 확인 핸들러
+  const handleBulkDeleteConfirm = async () => {
+    setShowConfirmModal(false);
+    try {
+      const res = await bulkDeleteTasks(selectedTaskIds);
+      if (res.status === "success") {
+        setTasks((prev) => prev.filter((t) => !selectedTaskIds.includes(t.task_id)));
+        setSelectedTaskIds([]);
+        setIsEditMode(false);
+      } else {
+        setError("선택 이력 삭제에 실패했습니다.");
+      }
+    } catch (err) {
+      console.error("Failed to delete tasks:", err);
+      setError("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center min-vh-50 p-5 text-muted">
@@ -109,9 +179,44 @@ export default function ResearchGapHistoryPage() {
           <h3 className="fw-bold text-gradient mb-1">분석 보고서 이력</h3>
           <p className="text-secondary small mb-0">지금까지 요청하신 대규모 문헌 비교 분석 및 AI Research Gap 보고서 목록입니다.</p>
         </div>
-        <Link href="/feature2" className={`btn btn-sm d-flex align-items-center gap-1 rounded-3 ${styles.outlineBtn}`}>
-          <i className="bi bi-plus-circle"></i> 새 분석 요청
-        </Link>
+        <div className="d-flex align-items-center gap-2">
+          {tasks.length > 0 && (
+            <>
+              {isEditMode ? (
+                <>
+                  <button
+                    onClick={handleBulkDelete}
+                    className={`btn btn-sm btn-danger rounded-3 py-1.5 fw-bold ${styles.bulkDeleteBtn}`}
+                    disabled={selectedTaskIds.length === 0}
+                  >
+                    <span className={styles.btnLeftArea}>
+                      <i className="bi bi-trash-fill"></i> 선택 삭제
+                    </span>
+                    <span className={styles.btnRightArea}>
+                      ({selectedTaskIds.length})
+                    </span>
+                  </button>
+                  <button
+                    onClick={toggleEditMode}
+                    className={`btn btn-sm rounded-3 px-3 py-1.5 d-flex align-items-center gap-1 ${styles.outlineSecBtn}`}
+                  >
+                    취소
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={toggleEditMode}
+                  className={`btn btn-sm rounded-3 px-3 py-1.5 d-flex align-items-center gap-1 ${styles.outlineSecBtn}`}
+                >
+                  <i className="bi bi-pencil-square"></i> 선택 삭제
+                </button>
+              )}
+            </>
+          )}
+          <Link href="/feature2" className={`btn btn-sm d-flex align-items-center gap-1 rounded-3 py-1.5 px-3 ${styles.outlineBtn}`}>
+            <i className="bi bi-plus-circle"></i> 새 분석 요청
+          </Link>
+        </div>
       </div>
 
       {error && (
@@ -128,54 +233,65 @@ export default function ResearchGapHistoryPage() {
             <table className={`table table-hover align-middle mb-0 ${styles.historyTable}`}>
               <thead className={`text-secondary ${styles.tableHeader}`}>
                 <tr>
+                  <th className={`${styles.colCheck} ${isEditMode ? styles.colCheckActive : ""}`}>
+                    <div className={styles.checkboxWrapper}>
+                      <input
+                        type="checkbox"
+                        className={`${styles.customCheckbox} cursor-pointer`}
+                        onChange={handleSelectAllChange}
+                        checked={tasks.length > 0 && selectedTaskIds.length === tasks.length}
+                      />
+                    </div>
+                  </th>
                   <th className={`px-4 py-3 ${styles.colDomain}`}>학술 도메인</th>
                   <th className={`py-3 ${styles.colQuery}`}>분석 대상 주제 / 키워드</th>
                   <th className={`py-3 ${styles.colStatus}`}>상태</th>
                   <th className={`py-3 ${styles.colTime}`}>요청 시간</th>
-                  <th className={`px-4 py-3 ${styles.colAction}`}>동작</th>
                 </tr>
               </thead>
               <tbody>
-                {tasks.map((task) => (
-                  <tr key={task.task_id} className={styles.tableRow}>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`badge px-2.5 py-1.5 rounded-pill ${styles.domainBadge} ${task.domain === "cs" ? styles.domainCs : styles.domainBio}`}
+                {tasks.map((task) => {
+                  const isSelected = selectedTaskIds.includes(task.task_id);
+                  return (
+                    <tr
+                      key={task.task_id}
+                      onClick={(e) => handleRowClick(task, e)}
+                      className={`${styles.tableRowClickable} ${isSelected ? styles.rowSelected : ""}`}
+                    >
+                      <td
+                        className={`${styles.colCheckCell} ${isEditMode ? styles.colCheckCellActive : ""}`}
                       >
-                        {task.domain}
-                      </span>
-                    </td>
-                    <td className="py-3 fw-semibold text-dark">
-                      <div className={`text-truncate ${styles.queryText}`} title={task.query}>
-                        {task.query}
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      {renderStatusBadge(task.status, task.progress)}
-                    </td>
-                    <td className="py-3 text-secondary small">
-                      <i className="bi bi-clock me-1.5"></i>{" "}
-                      {formatDate(task.created_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {task.status === "COMPLETED" ? (
-                        <button
-                          onClick={() => router.push(`/feature2?taskId=${task.task_id}`)}
-                          className={`btn btn-sm rounded-3 px-3 py-1 d-inline-flex align-items-center gap-1 ${styles.solidBtn}`}
+                        <div className={styles.checkboxWrapper}>
+                          <input
+                            type="checkbox"
+                            className={`${styles.customCheckbox} cursor-pointer`}
+                            checked={isSelected}
+                            onChange={() => handleCheckboxChange(task.task_id)}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`badge px-2.5 py-1.5 rounded-pill ${styles.domainBadge} ${task.domain === "cs" ? styles.domainCs : styles.domainBio}`}
                         >
-                          결과 보기 <i className="bi bi-chevron-right small"></i>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => router.push(`/feature2?taskId=${task.task_id}`)}
-                          className={`btn btn-sm rounded-3 px-3 py-1 d-inline-flex align-items-center gap-1 ${styles.outlineSecBtn}`}
-                        >
-                          상태 확인 <i className="bi bi-arrow-right-short"></i>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                          {task.domain}
+                        </span>
+                      </td>
+                      <td className="py-3 fw-semibold">
+                        <div className={`text-truncate ${styles.queryText}`} title={task.query}>
+                          {task.query}
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        {renderStatusBadge(task.status, task.progress)}
+                      </td>
+                      <td className="py-3 text-secondary small">
+                        <i className="bi bi-clock me-1.5"></i>{" "}
+                        {formatDate(task.created_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -185,11 +301,47 @@ export default function ResearchGapHistoryPage() {
         <div className="card shadow-sm border border-light-subtle rounded-3 p-5 text-center text-muted">
           <div className="py-5">
             <i className="bi bi-clock-history fs-1 mb-3 d-block text-secondary"></i>
-            <h5 className="fw-bold text-dark mb-2">과거 분석 이력이 없습니다.</h5>
+            <h5 className="fw-bold mb-2">과거 분석 이력이 없습니다.</h5>
             <p className="small text-secondary mb-4">학술적 공백과 미래 연구 로드맵을 도출하기 위해 첫 번째 대규모 문헌 비교 분석을 실행해 보세요.</p>
             <Link href="/feature2" className={`btn rounded-3 px-4 py-2 ${styles.solidBtn}`}>
               첫 분석 실행하기
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* 커스텀 삭제 확인 모달 (블러 및 중앙 정렬) */}
+      {showConfirmModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowConfirmModal(false)}>
+          <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.warningIconWrapper}>
+                <i className="bi bi-exclamation-triangle-fill text-danger fs-3"></i>
+              </div>
+              <h5 className={styles.modalTitle}>분석 이력 삭제</h5>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalMainText}>
+                선택한 <strong>{selectedTaskIds.length}개</strong>의 분석 보고서 이력을 삭제하시겠습니까?
+              </p>
+              <p className={styles.modalSubText}>
+                이 작업은 되돌릴 수 없으며, 모든 관련 데이터가 물리적으로 완전히 소거됩니다.
+              </p>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className={`btn btn-sm ${styles.outlineSecBtn} px-4 py-2`}
+              >
+                아니오
+              </button>
+              <button
+                onClick={handleBulkDeleteConfirm}
+                className={`btn btn-sm btn-danger px-4 py-2 rounded-3 fw-bold ${styles.confirmDeleteBtn}`}
+              >
+                삭제하기
+              </button>
+            </div>
           </div>
         </div>
       )}

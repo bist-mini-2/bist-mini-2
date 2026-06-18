@@ -128,5 +128,46 @@ class ResearchGapDao:
         result = await self.orm_session.execute(stmt)
         return list(result.scalars().all())
 
+    async def delete_task(self, task_id: str, mid: str) -> bool:
+        """주어진 ID와 사용자 ID에 해당하는 분석 태스크를 데이터베이스에서 삭제합니다.
+
+        Args:
+            task_id (str): 태스크 고유 ID.
+            mid (str): 사용자의 식별자 ID.
+
+        Returns:
+            bool: 삭제 성공 여부.
+        """
+        self.logger.info(f"delete_task: {task_id} (mid={mid})")
+        task = await self.get_task(task_id, mid)
+        if task:
+            await self.orm_session.delete(task)
+            await self.orm_session.flush()
+            return True
+        return False
+
+    async def delete_tasks(self, task_ids: list[str], mid: str) -> int:
+        """주어진 여러 ID와 사용자 ID에 해당하는 분석 태스크들을 데이터베이스에서 일괄 삭제합니다.
+
+        Args:
+            task_ids (list[str]): 삭제할 태스크 고유 ID 목록.
+            mid (str): 사용자의 식별자 ID.
+
+        Returns:
+            int: 실제 삭제된 레코드 개수.
+        """
+        self.logger.info(f"delete_tasks: {task_ids} (mid={mid})")
+        from sqlalchemy import delete
+        stmt = (
+            delete(ResearchGapTaskEntity)
+            .where(ResearchGapTaskEntity.task_id.in_(task_ids))
+            .where(ResearchGapTaskEntity.mid == mid)
+        )
+        result = await self.orm_session.execute(stmt)
+        await self.orm_session.flush()
+        return result.rowcount
+
 
 ResearchGapDaoDep = Annotated[ResearchGapDao, Depends(ResearchGapDao)]
+
+

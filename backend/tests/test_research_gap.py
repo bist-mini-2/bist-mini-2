@@ -220,3 +220,68 @@ def test_list_user_tasks_endpoint(mock_list_tasks):
     mock_list_tasks.assert_called_once_with("test-user")
 
 
+@patch("api.v1.research_gap.services.ResearchGapService.delete_user_task")
+def test_delete_user_task_endpoint_success(mock_delete_task):
+    """사용자 작업 이력 삭제 API가 성공적으로 삭제 여부를 반환하는지 테스트합니다."""
+    mock_delete_task.return_value = True
+
+    response = client.delete("/api/v1/research-gap/tasks/test-uuid")
+
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["status"] == "success"
+    assert json_data["data"]["deleted"] is True
+    mock_delete_task.assert_called_once_with("test-uuid", "test-user")
+
+
+@patch("api.v1.research_gap.services.ResearchGapService.delete_user_task")
+def test_delete_user_task_endpoint_not_found(mock_delete_task):
+    """삭제하려는 작업이 존재하지 않거나 권한이 없을 때 404 에러를 반환하는지 테스트합니다."""
+    from api.common.exceptions import TaskNotFoundError
+    mock_delete_task.side_effect = TaskNotFoundError(
+        message="요청하신 태스크 ID를 찾을 수 없거나 권한이 없습니다: missing-uuid"
+    )
+
+    response = client.delete("/api/v1/research-gap/tasks/missing-uuid")
+
+    assert response.status_code == 404
+    json_data = response.json()
+    assert json_data["status"] == "error"
+    mock_delete_task.assert_called_once_with("missing-uuid", "test-user")
+
+
+@patch("api.v1.research_gap.services.ResearchGapService.delete_user_tasks")
+def test_bulk_delete_user_tasks_endpoint_success(mock_bulk_delete):
+    """여러 작업 일괄 삭제 API가 성공적으로 삭제된 개수를 반환하는지 테스트합니다."""
+    mock_bulk_delete.return_value = 2
+
+    payload = {"task_ids": ["uuid-1", "uuid-2"]}
+    response = client.post("/api/v1/research-gap/tasks/bulk-delete", json=payload)
+
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["status"] == "success"
+    assert json_data["data"]["deleted_count"] == 2
+    mock_bulk_delete.assert_called_once_with(["uuid-1", "uuid-2"], "test-user")
+
+
+@patch("api.v1.research_gap.services.ResearchGapService.delete_user_tasks")
+def test_bulk_delete_user_tasks_endpoint_not_found(mock_bulk_delete):
+    """일괄 삭제하려는 작업들이 존재하지 않거나 권한이 없을 때 404 에러를 반환하는지 테스트합니다."""
+    from api.common.exceptions import TaskNotFoundError
+    mock_bulk_delete.side_effect = TaskNotFoundError(
+        message="요청하신 태스크 ID 목록에 대한 삭제 권한이 없거나 태스크가 존재하지 않습니다."
+    )
+
+    payload = {"task_ids": ["missing-uuid-1"]}
+    response = client.post("/api/v1/research-gap/tasks/bulk-delete", json=payload)
+
+    assert response.status_code == 404
+    json_data = response.json()
+    assert json_data["status"] == "error"
+    mock_bulk_delete.assert_called_once_with(["missing-uuid-1"], "test-user")
+
+
+
+
+

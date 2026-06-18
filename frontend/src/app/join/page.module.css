@@ -61,6 +61,15 @@
   color: var(--foreground) !important;
 }
 
+/* 비활성화(제출 중) 시 브라우저 기본 흰색/회색 튀는 스타일 방지 */
+.formInput:disabled {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+  color: var(--foreground) !important;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Chrome/Safari Auto-fill background & text overrides */
 .formInput:-webkit-autofill,
 .formInput:-webkit-autofill:hover, 
@@ -216,3 +225,27 @@
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.successIconWrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(40, 167, 69, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+

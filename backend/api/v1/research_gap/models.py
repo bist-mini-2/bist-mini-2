@@ -127,3 +127,13 @@ class TranslateRequest(BaseDTO):
     """분석 결과 번역 요청용 DTO 스키마입니다."""
     matrix: ResearchGapMatrix
 
+
+class BulkDeleteRequest(BaseDTO):
+    """일괄 삭제 요청용 DTO 스키마입니다."""
+    task_ids: List[str] = Field(
+        ...,
+        description="삭제하고자 하는 태스크 고유 ID(UUID) 목록",
+        examples=[["test-uuid-1", "test-uuid-2"]]
+    )
+
+

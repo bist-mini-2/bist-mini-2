@@ -88,7 +88,11 @@ export function NotificationContextProvider({ children }) {
   // 4. OS 알림 권한 승인 요청 함수
   const requestOSPermission = async () => {
     if (typeof window === "undefined" || !("Notification" in window)) {
-      alert("이 브라우저는 데스크톱 알림을 지원하지 않습니다.");
+      triggerNotification(
+        "데스크톱 알림 미지원",
+        "현재 브라우저는 데스크톱 알림을 지원하지 않습니다.",
+        "warning"
+      );
       return "default";
     }
 

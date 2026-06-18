@@ -458,5 +458,49 @@ class ResearchGapService:
             for t in tasks
         ]
 
+    async def delete_user_task(self, task_id: str, mid: str) -> bool:
+        """주어진 사용자 ID가 소유한 특정 분석 태스크 데이터를 삭제합니다.
+
+        Args:
+            task_id (str): 삭제할 태스크 고유 ID.
+            mid (str): 사용자의 식별자 ID.
+
+        Returns:
+            bool: 삭제 성공 여부.
+
+        Raises:
+            TaskNotFoundError: 요청한 분석 배치 태스크를 찾을 수 없거나 삭제 권한이 없을 때.
+        """
+        self.logger.info(f"delete_user_task: {task_id} (mid={mid})")
+        deleted = await self.research_gap_dao.delete_task(task_id, mid)
+        if not deleted:
+            from api.common.exceptions import TaskNotFoundError
+            raise TaskNotFoundError(
+                message=f"요청하신 태스크 ID를 찾을 수 없거나 권한이 없습니다: {task_id}"
+            )
+        return True
+
+    async def delete_user_tasks(self, task_ids: list[str], mid: str) -> int:
+        """주어진 사용자 ID가 소유한 특정 여러 분석 태스크 데이터를 일괄 삭제합니다.
+
+        Args:
+            task_ids (list[str]): 삭제할 태스크 고유 ID 목록.
+            mid (str): 사용자의 식별자 ID.
+
+        Returns:
+            int: 실제 삭제된 레코드 개수.
+
+        Raises:
+            TaskNotFoundError: 요청한 모든 분석 배치 태스크를 찾을 수 없거나 삭제 권한이 없을 때.
+        """
+        self.logger.info(f"delete_user_tasks: {task_ids} (mid={mid})")
+        deleted_count = await self.research_gap_dao.delete_tasks(task_ids, mid)
+        if deleted_count == 0:
+            from api.common.exceptions import TaskNotFoundError
+            raise TaskNotFoundError(
+                message="요청하신 태스크 ID 목록에 대한 삭제 권한이 없거나 태스크가 존재하지 않습니다."
+            )
+        return deleted_count
+
 
 ResearchGapServiceDep = Annotated[ResearchGapService, Depends(ResearchGapService)]
