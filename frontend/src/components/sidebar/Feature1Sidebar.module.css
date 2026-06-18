@@ -1,0 +1,231 @@
+/* =============================================================================
+   기능 1 사이드바 — 채팅방 목록 (Sage Green / Sharp & Flat)
+   ============================================================================= */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ---- 새 채팅 버튼 ---- */
+.newChatBtn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--accent-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.newChatBtn:hover:not(:disabled) {
+  background: var(--menu-item-active-bg);
+}
+
+.newChatBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- 목록 헤더 ---- */
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.listHeaderLabel {
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--profile-role-color);
+}
+
+.listHeaderCount {
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  background: var(--accent-glow);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+/* ---- 방 목록 ---- */
+.sessionList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.sessionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border: 1px solid transparent;
+}
+
+.sessionItem:hover {
+  background: var(--menu-item-hover-bg);
+}
+
+.sessionItemActive {
+  background: var(--menu-item-active-bg);
+  border-color: var(--card-border);
+}
+
+.sessionIcon {
+  font-size: 0.85rem;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.sessionTitle {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--menu-item-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sessionItem:hover .menuBtn {
+  opacity: 1;
+}
+
+.sessionItemActive .sessionTitle {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* ---- ⋮ 메뉴 버튼 ---- */
+.menuBtn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--profile-role-color);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  font-size: 0.85rem;
+  transition: opacity 0.1s ease, color 0.1s ease, background 0.1s ease;
+}
+
+.menuBtn:hover {
+  color: var(--foreground);
+  background: var(--menu-item-hover-bg);
+}
+
+.sessionItemActive .menuBtn {
+  opacity: 1;
+}
+
+.sessionItemMenuOpen .menuBtn {
+  opacity: 1;
+  color: var(--foreground);
+  background: var(--menu-item-hover-bg);
+}
+
+/* ---- 드롭다운 (fixed: 목록 overflow에 잘리지 않음) ---- */
+.dropdown {
+  position: fixed;
+  min-width: 140px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border: none;
+  background: transparent;
+  color: var(--menu-item-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-align: left;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.dropdownItem:hover {
+  background: var(--menu-item-hover-bg);
+  color: var(--foreground);
+}
+
+.dropdownItem i {
+  font-size: 0.82rem;
+}
+
+.dropdownItemDanger:hover {
+  color: #C2694E;
+  background: rgba(194, 105, 78, 0.1);
+}
+
+/* ---- 인라인 편집 입력창 ---- */
+.editInput {
+  flex: 1;
+  min-width: 0;
+  background: var(--background);
+  border: 1px solid var(--accent-color);
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 3px 6px;
+  outline: none;
+}
+
+/* ---- 빈 상태 ---- */
+.emptyHint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 12px;
+  color: var(--profile-role-color);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.emptyHint i {
+  font-size: 1.4rem;
+  opacity: 0.6;
+}

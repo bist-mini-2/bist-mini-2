@@ -4,6 +4,7 @@ from api.common.auth import LoginCheckDep
 from api.database.config.dto_base import SuccessResponse
 from api.v1.chat.models import (
     ChatSessionCreateRequest,
+    ChatSessionUpdateRequest,
     ChatSessionResponse,
     ChatSessionResponseWrapper,
     ChatSessionListResponseWrapper,
@@ -55,6 +56,19 @@ async def delete_session(
     await service.delete_session(user["sub"], session_id)
     return SuccessResponse(
         data={"message": f"삭제된 채팅방 ID: {session_id}"}
+    )
+
+@router.patch("/sessions/{session_id}")
+async def rename_session(
+    user: LoginCheckDep,
+    session_id: str,
+    request: ChatSessionUpdateRequest,
+    service: ChatServiceDep,
+) -> ChatSessionResponseWrapper:
+    """채팅방 제목을 변경합니다."""
+    chat_session_entity = await service.rename_session(user["sub"], session_id, request.title)
+    return ChatSessionResponseWrapper(
+        data=ChatSessionResponse.model_validate(chat_session_entity)
     )
 
 
