@@ -47,6 +47,8 @@ async def lifespan(app: FastAPI):
     from api.v1.member.entity import MemberEntity
     from api.v1.cs.entity import CsEmbeddingEntity, CsCollectionEntity
     from api.v1.research_gap.entity import ResearchGapTaskEntity
+    from api.v1.chat.entity import ChatSessionEntity
+    from api.v1.gems.entity import GemEntity
     
     async with engine.begin() as conn:
         # PostgreSQL인 경우 pgvector 익스텐션 자동 활성화
