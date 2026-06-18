@@ -43,36 +43,36 @@ export default function ControlPanel({
               <option value="astronomy">천문학 (Astronomy)</option>
             </select>
           </div>
-          <div className="col-md-6">
+          <div className="col-md-9">
             <label className="form-label text-muted small fw-bold mb-1">분석 중점 영역 (Focus Area)</label>
-            <input
-              type="text"
-              className={styles.devInput}
-              placeholder="예: '임베딩 차원에 따른 RAG 성능 공백 분석'"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-          <div className="col-md-3">
-            <label className={`form-label text-muted small fw-bold mb-1 ${styles.hiddenLabel}`}>Spacer</label>
-            <button
-              type="submit"
-              className={`${styles.devBtn} w-100`}
-              disabled={loading || !query.trim()}
-            >
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  분석 진행 중...
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-play-circle-fill me-1"></i> 비동기 배치 분석 실행
-                </>
-              )}
-            </button>
+            <div className="d-flex gap-2">
+              <input
+                type="text"
+                className={`${styles.devInput} flex-grow-1`}
+                placeholder="예: '임베딩 차원에 따른 RAG 성능 공백 분석'"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                required
+                disabled={loading}
+              />
+              <button
+                type="submit"
+                className={styles.devBtn}
+                style={{ whiteSpace: "nowrap" }}
+                disabled={loading || !query.trim()}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    분석 진행 중...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-play-circle-fill me-1"></i> 비동기 배치 분석 실행
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </form>

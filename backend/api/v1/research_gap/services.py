@@ -134,28 +134,51 @@ class ResearchGapService:
             self.logger.info("Encoding query vector...")
             query_vector = embedding_helper.encode(query)
 
-            # 3. DB 세션에서 유사 논문 리스트 검색 (Top 5) (30%)
+            # 3. DB 세션에서 유사 논문 리스트 검색 (중복 제거 적용) (30%)
             papers_list = []
             async with session_maker() as session:
                 if domain == "cs":
-                    # cs_embeddings 단일 테이블 쿼리 및 cmetadata 로드
+                    # 중복 논문 조정을 감안하여 충분한 수의 청크(25개)를 우선 조회
                     stmt = (
                         select(
                             CsEmbeddingEntity.cmetadata,
                             CsEmbeddingEntity.document.label("content")
                         )
                         .order_by(CsEmbeddingEntity.embedding.cosine_distance(query_vector).asc())
-                        .limit(5)
+                        .limit(25)
                     )
                     result = await session.execute(stmt)
                     raw_rows = result.mappings().all()
                     
+                    temp_papers = {}
                     for row in raw_rows:
                         meta = row["cmetadata"] or {}
+                        arxiv_id = meta.get("arxiv_id") or meta.get("doc_id") or ""
+                        if not arxiv_id:
+                            continue
+                        
+                        title = meta.get("title", "")
+                        content = row["content"] or ""
+                        
+                        if arxiv_id not in temp_papers:
+                            temp_papers[arxiv_id] = {
+                                "arxiv_id": arxiv_id,
+                                "title": title,
+                                "chunks": [content]
+                            }
+                        else:
+                            if content not in temp_papers[arxiv_id]["chunks"]:
+                                temp_papers[arxiv_id]["chunks"].append(content)
+                    
+                    # 가장 유사도가 높은 순서대로 고유한 5개 논문 추출 및 청크 병합
+                    for arxiv_id, p_info in temp_papers.items():
+                        if len(papers_list) >= 5:
+                            break
+                        joined_content = "\n\n".join(p_info["chunks"])
                         papers_list.append({
-                            "arxiv_id": meta.get("arxiv_id") or meta.get("doc_id") or "",
-                            "title": meta.get("title", ""),
-                            "content": row["content"]
+                            "arxiv_id": p_info["arxiv_id"],
+                            "title": p_info["title"],
+                            "content": joined_content
                         })
                 else:
                     raise ValueError(f"지원하지 않는 도메인입니다: {domain}")
