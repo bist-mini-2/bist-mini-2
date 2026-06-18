@@ -363,11 +363,16 @@
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  background: rgba(220, 53, 69, 0.1);
+  background: rgba(219, 135, 135, 0.15);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
+}
+
+.warningIcon {
+  color: #db8787 !important;
+  font-size: 1.75rem;
 }
 
 .modalTitle {
@@ -398,16 +403,42 @@
   margin-top: 1.75rem;
 }
 
-.confirmDeleteBtn {
-  background-color: #dc3545 !important;
-  border-color: #dc3545 !important;
-  color: #ffffff !important;
-  transition: background-color 0.15s ease, transform 0.1s ease !important;
+/* 모달 하단 버튼 공통 스타일 */
+.modalBtn {
+  height: 38px !important;
+  padding: 0 1.5rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
+  white-space: nowrap;
 }
 
-.confirmDeleteBtn:hover {
-  background-color: #c82333 !important;
-  border-color: #bd2130 !important;
+/* 아니오 (취소) 버튼 */
+.modalCancelBtn {
+  background-color: transparent !important;
+  border: 1px solid var(--card-border) !important;
+  color: var(--menu-item-color) !important;
+}
+
+.modalCancelBtn:hover {
+  background-color: var(--sidebar-bg) !important;
+  color: var(--foreground) !important;
+}
+
+/* 삭제하기 (확인) 버튼 */
+.modalConfirmBtn {
+  background-color: #db8787 !important;
+  border: 1px solid #db8787 !important;
+  color: #ffffff !important;
+}
+
+.modalConfirmBtn:hover {
+  background-color: #c77373 !important;
+  border-color: #c77373 !important;
 }
 
 @keyframes fadeIn {
@@ -426,6 +457,23 @@
   to {
     transform: scale(1) translateY(0);
   }
+}
+
+.tableRowDeleting {
+  opacity: 0 !important;
+  transform: translateX(-20px);
+  background-color: rgba(219, 135, 135, 0.15) !important;
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease !important;
+}
+
+.tableRowDeleting td {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  border-bottom: none !important;
+  overflow: hidden !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 

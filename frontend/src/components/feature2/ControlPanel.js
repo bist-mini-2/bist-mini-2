@@ -57,18 +57,18 @@ export default function ControlPanel({
               />
               <button
                 type="submit"
-                className={styles.devBtn}
-                style={{ whiteSpace: "nowrap" }}
+                className={`${styles.devBtn} ${loading ? styles.devBtnLoading : ""}`}
                 disabled={loading || !query.trim()}
               >
                 {loading ? (
                   <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    분석 진행 중...
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span>분석 진행 중...</span>
                   </>
                 ) : (
                   <>
-                    <i className="bi bi-play-circle-fill me-1"></i> 비동기 배치 분석 실행
+                    <i className="bi bi-play-circle-fill"></i>
+                    <span>비동기 배치 분석 실행</span>
                   </>
                 )}
               </button>

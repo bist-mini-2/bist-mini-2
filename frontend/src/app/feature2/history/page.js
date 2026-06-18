@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useContext } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./page.module.css";
@@ -21,6 +22,14 @@ export default function ResearchGapHistoryPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [deletingIds, setDeletingIds] = useState([]);
+
+  // 마운트 여부 설정 (Portal용)
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   // 이력 로드
   useEffect(() => {
@@ -148,9 +157,13 @@ export default function ResearchGapHistoryPage() {
     try {
       const res = await bulkDeleteTasks(selectedTaskIds);
       if (res.status === "success") {
-        setTasks((prev) => prev.filter((t) => !selectedTaskIds.includes(t.task_id)));
-        setSelectedTaskIds([]);
-        setIsEditMode(false);
+        setDeletingIds(selectedTaskIds);
+        setTimeout(() => {
+          setTasks((prev) => prev.filter((t) => !selectedTaskIds.includes(t.task_id)));
+          setSelectedTaskIds([]);
+          setDeletingIds([]);
+          setIsEditMode(false);
+        }, 400);
       } else {
         setError("선택 이력 삭제에 실패했습니다.");
       }
@@ -252,11 +265,12 @@ export default function ResearchGapHistoryPage() {
               <tbody>
                 {tasks.map((task) => {
                   const isSelected = selectedTaskIds.includes(task.task_id);
+                  const isDeleting = deletingIds.includes(task.task_id);
                   return (
                     <tr
                       key={task.task_id}
                       onClick={(e) => handleRowClick(task, e)}
-                      className={`${styles.tableRowClickable} ${isSelected ? styles.rowSelected : ""}`}
+                      className={`${styles.tableRowClickable} ${isSelected ? styles.rowSelected : ""} ${isDeleting ? styles.tableRowDeleting : ""}`}
                     >
                       <td
                         className={`${styles.colCheckCell} ${isEditMode ? styles.colCheckCellActive : ""}`}
@@ -311,12 +325,12 @@ export default function ResearchGapHistoryPage() {
       )}
 
       {/* 커스텀 삭제 확인 모달 (블러 및 중앙 정렬) */}
-      {showConfirmModal && (
+      {showConfirmModal && mounted && createPortal(
         <div className={styles.modalOverlay} onClick={() => setShowConfirmModal(false)}>
           <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div className={styles.warningIconWrapper}>
-                <i className="bi bi-exclamation-triangle-fill text-danger fs-3"></i>
+                <i className={`bi bi-exclamation-triangle-fill ${styles.warningIcon}`}></i>
               </div>
               <h5 className={styles.modalTitle}>분석 이력 삭제</h5>
             </div>
@@ -331,19 +345,20 @@ export default function ResearchGapHistoryPage() {
             <div className={styles.modalFooter}>
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className={`btn btn-sm ${styles.outlineSecBtn} px-4 py-2`}
+                className={`btn ${styles.modalBtn} ${styles.modalCancelBtn}`}
               >
                 아니오
               </button>
               <button
                 onClick={handleBulkDeleteConfirm}
-                className={`btn btn-sm btn-danger px-4 py-2 rounded-3 fw-bold ${styles.confirmDeleteBtn}`}
+                className={`btn ${styles.modalBtn} ${styles.modalConfirmBtn}`}
               >
                 삭제하기
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
