@@ -21,7 +21,7 @@ export default function ResearchGapSynthesis({ result }) {
       </div>
 
       {result ? (
-        <div className="d-flex flex-column gap-3">
+        <div key={common_limitations?.[0] || 'synthesis'} className={`d-flex flex-column gap-3 ${styles.fadeIn}`}>
           {/* Synthesis Gaps list */}
           <div>
             <h6 className="fw-bold text-dark mb-2">추출된 문헌 연구 공백</h6>

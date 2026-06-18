@@ -17,7 +17,7 @@ export default function MatrixTable({ result }) {
       </div>
 
       {result && result.papers && result.papers.length > 0 ? (
-        <div className={styles.matrixContainer}>
+        <div key={result.papers?.[0]?.title || 'matrix'} className={`${styles.matrixContainer} ${styles.fadeIn}`}>
           <table className={styles.matrixTable}>
             <thead>
               <tr>
