@@ -74,33 +74,3 @@
   border-color: rgba(140, 135, 125, 0.25);
   color: #7a756b;
 }
-
-/* Dark Theme adjustments */
-/* :global([data-theme="dark"]) .running {
-  background-color: rgba(223, 163, 63, 0.12);
-  border-color: rgba(223, 163, 63, 0.4);
-  color: #e59d3c;
-}
-
-:global([data-theme="dark"]) .running .statusSpinner {
-  color: #e59d3c;
-}
-
-:global([data-theme="dark"]) .success {
-  background-color: rgba(74, 133, 105, 0.12);
-  border-color: rgba(74, 133, 105, 0.4);
-  color: #4ca37b;
-}
-
-:global([data-theme="dark"]) .failed {
-  background-color: rgba(214, 90, 90, 0.12);
-  border-color: rgba(214, 90, 90, 0.4);
-  color: #d85c5c;
-}
-
-:global([data-theme="dark"]) .pending,
-:global([data-theme="dark"]) .idle {
-  background-color: rgba(160, 155, 145, 0.12);
-  border-color: rgba(160, 155, 145, 0.35);
-  color: #9c978f;
-} */

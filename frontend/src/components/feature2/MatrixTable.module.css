@@ -79,6 +79,19 @@
 
 .listIcon {
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5em; /* Match the line-height of the first line of text */
+  vertical-align: middle;
+}
+
+.iconSuccess {
+  color: #3e7058; /* Muted success green matching status badge */
+}
+
+.iconDanger {
+  color: #b54545; /* Muted danger red matching status badge */
 }
 
 .arxivBtn {

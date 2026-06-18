@@ -49,7 +49,7 @@ export default function MatrixTable({ result }) {
                     <ul className={styles.listUnstyled}>
                       {paper.problems_solved.map((item, i) => (
                         <li key={i} className="mb-2 d-flex align-items-start">
-                          <i className={`bi bi-check-circle-fill text-success me-2 mt-1 flex-shrink-0 ${styles.listIcon}`}></i>
+                          <i className={`bi bi-check-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconSuccess}`}></i>
                           <span className="text-secondary small">{item}</span>
                         </li>
                       ))}
@@ -59,7 +59,7 @@ export default function MatrixTable({ result }) {
                     <ul className={styles.listUnstyled}>
                       {paper.limitations.map((item, i) => (
                         <li key={i} className="mb-2 d-flex align-items-start">
-                          <i className={`bi bi-dash-circle-fill text-danger me-2 mt-1 flex-shrink-0 ${styles.listIcon}`}></i>
+                          <i className={`bi bi-dash-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconDanger}`}></i>
                           <span className="text-secondary small">{item}</span>
                         </li>
                       ))}

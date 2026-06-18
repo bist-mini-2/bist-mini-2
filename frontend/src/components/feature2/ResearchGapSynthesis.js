@@ -16,7 +16,7 @@ export default function ResearchGapSynthesis({ result }) {
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h5 className="fw-bold text-gradient mb-0">AI Research Gap 분석</h5>
         <span className={styles.monoBadge}>
-          <i className="bi bi-lightbulb-fill text-warning me-1"></i> Synthesis
+          <i className={`bi bi-lightbulb-fill me-1 ${styles.iconWarning}`}></i> Synthesis
         </span>
       </div>
 
@@ -30,7 +30,7 @@ export default function ResearchGapSynthesis({ result }) {
               <ul className={`${styles.listUnstyled} mb-0`}>
                 {common_limitations.map((limit, idx) => (
                   <li key={idx} className="mb-2 d-flex align-items-start">
-                    <i className={`bi bi-exclamation-circle-fill text-warning me-2 mt-1 flex-shrink-0 ${styles.listIcon}`}></i>
+                    <i className={`bi bi-exclamation-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconWarning}`}></i>
                     <span>{limit}</span>
                   </li>
                 ))}
@@ -43,17 +43,19 @@ export default function ResearchGapSynthesis({ result }) {
             <h6 className="fw-bold text-dark mb-2">추천 연구 주제 제안 (Recommended)</h6>
             {suggested_directions.map((dir, idx) => {
               // Parse direction text into title and description based on standard separators
-              const parts = dir.split(/[:：\-]/);
+              // Avoid splitting on bare hyphens to prevent issues with words like 'real-world'
+              const match = dir.match(/[:：]|\s+-\s+|\s+–\s+|\s+—\s+/);
               let title = `추천 연구 주제 #${idx + 1}`;
               let description = dir;
-              if (parts.length > 1) {
-                title = parts[0].trim();
-                description = parts.slice(1).join("-").trim();
+              if (match) {
+                const index = match.index;
+                title = dir.substring(0, index).trim();
+                description = dir.substring(index + match[0].length).trim();
               }
               return (
                 <div key={idx} className={styles.recommendedTopicCard}>
-                  <div className="fw-bold small mb-1">{title}</div>
-                  <p className="text-secondary small mb-0">{description}</p>
+                  <div className={`fw-bold small mb-1 ${styles.recommendedTopicTitle}`}>{title}</div>
+                  <p className={`small mb-0 ${styles.recommendedTopicDescription}`}>{description}</p>
                 </div>
               );
             })}
