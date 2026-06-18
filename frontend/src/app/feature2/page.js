@@ -1,22 +1,25 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
-import { startAnalysis, getTaskStatus, getTaskResult } from "@/apis/researchGap";
+import { startAnalysis, getTaskStatus, getTaskResult, translateMatrix } from "@/apis/researchGap";
+import { AuthContext } from "@/contexts/AuthContext";
+import { NotificationContext } from "@/contexts/NotificationContext";
 import ControlPanel from "@/components/feature2/ControlPanel";
 import MatrixTable from "@/components/feature2/MatrixTable";
 import ResearchGapSynthesis from "@/components/feature2/ResearchGapSynthesis";
-import TrendInbox from "@/components/feature2/TrendInbox";
+import PipelineGraph from "@/components/feature2/PipelineGraph";
 
 /**
- * 대규모 문헌 비교 분석기 (Research Gap Analyzer) 페이지 컴포넌트입니다.
- * 
- * - 비동기 분석 작업을 요청(POST /research-gap/analyze)하고,
- * - 진행 상태를 실시간 폴링하여 프로그레스 바를 갱신하며,
- * - 완료 시 최종 공백 매트릭스 테이블과 AI 제안 방향을 화려한 UI로 렌더링합니다.
- * - 또한, SSE(Server-Sent Events) 스트림을 연결하여 실시간 작업 완료 알림을 수신합니다.
+ * 대규모 문헌 비교 분석기 (Research Gap Analyzer) 내부 핵심 페이지 컨텐츠 컴포넌트입니다.
  */
-export default function ResearchGapPage() {
+function ResearchGapPageContent() {
+  const { accessToken } = useContext(AuthContext);
+  const { notifications: globalNotifications } = useContext(NotificationContext);
+  const searchParams = useSearchParams();
+  const queryTaskId = searchParams.get("taskId");
+
   // 입력 폼 상태
   const [domain, setDomain] = useState("cs");
   const [query, setQuery] = useState("");
@@ -32,50 +35,56 @@ export default function ResearchGapPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  // SSE 실시간 트렌드 인박스 알림 상태
-  const [notifications, setNotifications] = useState([]);
+  // 번역 관련 상태
+  const [isTranslated, setIsTranslated] = useState(false);
+  const [translatedResult, setTranslatedResult] = useState(null);
+  const [translateLoading, setTranslateLoading] = useState(false);
 
   // useRef를 활용해 비동기 콜백에서 최신 taskId 및 폴링 제어를 참조합니다.
   const currentTaskIdRef = useRef(null);
   const pollingIntervalRef = useRef(null);
 
-  // 컴포넌트 마운트 시 실시간 SSE 알림 스트림 연결
+  // URL 쿼리 파라미터로 taskId가 넘어온 경우 해당 태스크 자동 로드 및 폴링
   useEffect(() => {
-    const sseUrl = "http://localhost:8000/api/v1/research-gap/stream-notifications";
-    const eventSource = new EventSource(sseUrl);
+    if (queryTaskId) {
+      setResult(null);
+      setError(null);
+      setIsTranslated(false);
+      setTranslatedResult(null);
+      setTaskId(queryTaskId);
+      currentTaskIdRef.current = queryTaskId;
+      setLoading(true);
+      setStatus("PENDING");
+      setStatusText("선택된 분석 작업 데이터를 불러오는 중...");
+      startPolling(queryTaskId);
+    }
+  }, [queryTaskId]);
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("SSE push received:", data);
-
-        // 새로운 완료/실패 알림 추가
-        setNotifications((prev) => [data, ...prev].slice(0, 15)); // 최대 15개 유지
-
-        // 만약 수신된 이벤트의 task_id가 현재 실행 중인 작업의 task_id와 같다면 
-        // 폴링을 종료하고 즉각 최종 결과를 조회합니다.
-        if (data.task_id === currentTaskIdRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          if (data.status === "COMPLETED") {
-            fetchFinalResult(data.task_id);
-          } else if (data.status === "FAILED") {
-            setError(data.error_message || "분석 작업 중 에러가 발생했습니다.");
-            setStatus("FAILED");
-            setProgress(100);
-            setLoading(false);
-          }
-        }
-      } catch (err) {
-        console.error("SSE parse error:", err);
+  // 전역 실시간 알림 피드를 모니터링하여 현재 실행 중인 작업의 완료/실패 알림 수신 시 즉시 데이터 반영
+  useEffect(() => {
+    if (!taskId) return;
+    const latestNotif = globalNotifications[0];
+    
+    // 만약 현재 대기 중인 작업과 관련된 알림이 도착했다면
+    if (latestNotif && latestNotif.task_id === taskId) {
+      if (latestNotif.type === "success") {
+        console.log("Global notification completed event detected for task:", taskId);
+        clearInterval(pollingIntervalRef.current);
+        fetchFinalResult(taskId);
+      } else if (latestNotif.type === "danger") {
+        console.log("Global notification failed event detected for task:", taskId);
+        clearInterval(pollingIntervalRef.current);
+        setError(latestNotif.message || "분석 배치 작업 처리 중 에러가 발생했습니다.");
+        setStatus("FAILED");
+        setProgress(100);
+        setLoading(false);
       }
-    };
+    }
+  }, [globalNotifications, taskId]);
 
-    eventSource.onerror = (err) => {
-      console.error("SSE connection error, retrying...", err);
-    };
-
+  // 컴포넌트 언마운트 시 폴링 클리어
+  useEffect(() => {
     return () => {
-      eventSource.close();
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
@@ -89,6 +98,12 @@ export default function ResearchGapPage() {
       const res = await getTaskResult(id);
       if (res.status === "success" && res.data) {
         setResult(res.data.result);
+        if (res.data.translated_result) {
+          setTranslatedResult(res.data.translated_result);
+        }
+        if (res.data.query) {
+          setQuery(res.data.query);
+        }
         setStatus("COMPLETED");
         setProgress(100);
       } else {
@@ -146,6 +161,35 @@ export default function ResearchGapPage() {
     }, 1500);
   };
 
+  // 번역 토글 핸들러
+  const handleTranslateToggle = async () => {
+    if (!result || !taskId) return;
+    
+    if (isTranslated) {
+      setIsTranslated(false);
+    } else {
+      if (translatedResult) {
+        setIsTranslated(true);
+      } else {
+        setTranslateLoading(true);
+        try {
+          const res = await translateMatrix(taskId);
+          if (res.status === "success" && res.data) {
+            setTranslatedResult(res.data);
+            setIsTranslated(true);
+          } else {
+            setError("번역 데이터를 불러오지 못했습니다.");
+          }
+        } catch (err) {
+          console.error("Translation error:", err);
+          setError("번역 진행 중 오류가 발생했습니다.");
+        } finally {
+          setTranslateLoading(false);
+        }
+      }
+    }
+  };
+
   // 분석 시작 요청 실행
   const handleAnalyze = async (e) => {
     e.preventDefault();
@@ -154,6 +198,8 @@ export default function ResearchGapPage() {
     setLoading(true);
     setResult(null);
     setError(null);
+    setIsTranslated(false);
+    setTranslatedResult(null);
     setProgress(5);
     setStatus("PENDING");
     setStatusText("태스크 초기화 및 작업 시작 요청 중...");
@@ -177,6 +223,8 @@ export default function ResearchGapPage() {
     }
   };
 
+  const displayResult = isTranslated ? translatedResult : result;
+
   return (
     <div className={styles.container}>
       {/* Control Header & Task Submission Panel */}
@@ -193,19 +241,43 @@ export default function ResearchGapPage() {
         taskId={taskId}
         error={error}
         papersCount={result ? result.papers?.length : undefined}
+        isTranslated={isTranslated}
+        onTranslateToggle={handleTranslateToggle}
+        translateLoading={translateLoading}
       />
 
       {/* Bottom Layout Grid */}
       <div className={styles.gapContainer}>
         {/* Left Column: Spec Matrix Table */}
-        <MatrixTable result={result} />
+        <MatrixTable result={displayResult} />
 
-        {/* Right Column: AI Synthesis & Trend Inbox */}
-        <div className="d-flex flex-column gap-4">
-          <ResearchGapSynthesis result={result} />
-          <TrendInbox notifications={notifications} />
-        </div>
+        {/* Right Column: AI Synthesis */}
+        <ResearchGapSynthesis result={displayResult} />
       </div>
+
+      {/* Visual Pipeline Graph Flow */}
+      {result && (
+        <PipelineGraph result={displayResult} query={query} />
+      )}
     </div>
+  );
+}
+
+/**
+ * 대규모 문헌 비교 분석기 (Research Gap Analyzer) 페이지 컴포넌트입니다.
+ * URL 쿼리 분석용 useSearchParams 사용을 위해 Suspense 경계로 감싸 컴파일 에러를 방지합니다.
+ */
+export default function ResearchGapPage() {
+  return (
+    <Suspense fallback={
+      <div className="d-flex flex-column align-items-center justify-content-center p-5 text-muted">
+        <div className="spinner-border text-success mb-3" role="status">
+          <span className="visually-hidden">Loading page...</span>
+        </div>
+        <span>분석기 로딩 중...</span>
+      </div>
+    }>
+      <ResearchGapPageContent />
+    </Suspense>
   );
 }

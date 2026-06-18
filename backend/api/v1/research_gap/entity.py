@@ -17,6 +17,7 @@ class ResearchGapTaskEntity(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING")  # PENDING, RUNNING, COMPLETED, FAILED
     progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)           # 0 to 100
     result: Mapped[dict | None] = mapped_column(JSON, nullable=True)                    # JSON format analysis report
+    translated_result: Mapped[dict | None] = mapped_column(JSON, nullable=True)         # JSON format translated report
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)               # Error message in case of failure
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))

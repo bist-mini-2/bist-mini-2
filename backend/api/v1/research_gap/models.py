@@ -62,6 +62,8 @@ class PaperAnalysisResult(BaseDTO):
     arxiv_id: str = Field(..., description="ArXiv 논문 고유 ID")
     problems_solved: List[str] = Field(..., description="논문에서 해결한 주요 문제 및 제안한 핵심 방법론 목록")
     limitations: List[str] = Field(..., description="논문에서 언급되었거나 식별된 한계점 및 향후 과제 목록")
+    similarity: Optional[float] = Field(None, description="유사도 스코어")
+
 
 
 class ResearchGapMatrix(BaseDTO):
@@ -121,3 +123,19 @@ class TaskResultResponse(BaseDTO):
         description="작업 실패 시 에러 사유",
         examples=["지원되지 않는 도메인입니다. 현재는 'cs' 도메인만 분석을 지원합니다."]
     )
+
+
+class TranslateRequest(BaseDTO):
+    """분석 결과 번역 요청용 DTO 스키마입니다."""
+    matrix: ResearchGapMatrix
+
+
+class BulkDeleteRequest(BaseDTO):
+    """일괄 삭제 요청용 DTO 스키마입니다."""
+    task_ids: List[str] = Field(
+        ...,
+        description="삭제하고자 하는 태스크 고유 ID(UUID) 목록",
+        examples=[["test-uuid-1", "test-uuid-2"]]
+    )
+
+

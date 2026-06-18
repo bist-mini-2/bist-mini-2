@@ -1,6 +1,7 @@
 "use client"
 
 import styles from "./ControlPanel.module.css";
+import StatusBadge from "@/components/StatusBadge";
 
 /**
  * 대규모 문헌 비교 분석기의 제어판 서브 컴포넌트입니다.
@@ -20,7 +21,10 @@ export default function ControlPanel({
   statusText,
   taskId,
   error,
-  papersCount
+  papersCount,
+  isTranslated = false,
+  onTranslateToggle,
+  translateLoading = false
 }) {
   return (
     <div className={`${styles.controlPanel} mb-4`}>
@@ -39,65 +43,73 @@ export default function ControlPanel({
               <option value="astronomy">천문학 (Astronomy)</option>
             </select>
           </div>
-          <div className="col-md-6">
+          <div className="col-md-9">
             <label className="form-label text-muted small fw-bold mb-1">분석 중점 영역 (Focus Area)</label>
-            <input
-              type="text"
-              className={styles.devInput}
-              placeholder="예: '임베딩 차원에 따른 RAG 성능 공백 분석'"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-          <div className="col-md-3 d-flex align-items-end">
-            <button
-              type="submit"
-              className={`${styles.devBtn} w-100`}
-              disabled={loading || !query.trim()}
-            >
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  분석 진행 중...
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-play-circle-fill me-1"></i> 비동기 배치 분석 실행
-                </>
-              )}
-            </button>
+            <div className="d-flex gap-2">
+              <input
+                type="text"
+                className={`${styles.devInput} flex-grow-1`}
+                placeholder="예: '임베딩 차원에 따른 RAG 성능 공백 분석'"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                required
+                disabled={loading}
+              />
+              <button
+                type="submit"
+                className={`${styles.devBtn} ${loading ? styles.devBtnLoading : ""}`}
+                disabled={loading || !query.trim()}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span>분석 진행 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-play-circle-fill"></i>
+                    <span>비동기 배치 분석 실행</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </form>
 
       {/* Active Task Status Row */}
-      <div className="d-flex flex-column gap-2 mt-2 pt-2 border-top">
+      <div className={`d-flex flex-column gap-2 border-top ${styles.statusSection}`}>
         <div className="d-flex align-items-center gap-3">
           <span className="text-muted small">작업 상태:</span>
-          {loading ? (
-            <span className="badge bg-warning text-dark">
-              <i className={`spinner-border spinner-border-sm border-0 me-1 d-inline-block align-middle ${styles.statusSpinner}`} role="status"></i>
-              <span>RUNNING</span>
-            </span>
-          ) : status === "COMPLETED" ? (
-            <span className="badge bg-success">
-              <i className="bi bi-check-circle me-1"></i> SUCCESS
-            </span>
-          ) : status === "FAILED" ? (
-            <span className="badge bg-danger">
-              <i className="bi bi-exclamation-triangle-fill me-1"></i> FAILED
-            </span>
-          ) : (
-            <span className="badge bg-secondary">
-              <i className="bi bi-dash-circle me-1"></i> IDLE
-            </span>
-          )}
+          <StatusBadge status={loading ? "RUNNING" : (status || "IDLE")} />
           
           <span className={styles.monoBadge}>
             Task ID: {taskId || "none"}
           </span>
+
+          {status === "COMPLETED" && (
+            <button
+              type="button"
+              onClick={onTranslateToggle}
+              className={styles.translateBtn}
+              disabled={translateLoading}
+            >
+              {translateLoading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  번역 중...
+                </>
+              ) : isTranslated ? (
+                <>
+                  <i className="bi bi-globe2 me-1"></i> 원문 보기 (EN)
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-translate me-1"></i> 한글 번역 (KO)
+                </>
+              )}
+            </button>
+          )}
 
           {status === "COMPLETED" && papersCount !== undefined ? (
             <span className="text-muted small ms-auto">
@@ -114,7 +126,7 @@ export default function ControlPanel({
         {loading && (
           <div className="mt-1">
             <div className="d-flex justify-content-between mb-1">
-              <span className="text-primary fw-semibold small">{statusText}</span>
+              <span className={`${styles.accentText} fw-semibold small`}>{statusText}</span>
               <span className="text-secondary fw-semibold small">{progress}%</span>
             </div>
             <div className={styles.progressBarWrapper}>
