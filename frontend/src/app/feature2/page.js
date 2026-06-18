@@ -9,6 +9,7 @@ import { NotificationContext } from "@/contexts/NotificationContext";
 import ControlPanel from "@/components/feature2/ControlPanel";
 import MatrixTable from "@/components/feature2/MatrixTable";
 import ResearchGapSynthesis from "@/components/feature2/ResearchGapSynthesis";
+import PipelineGraph from "@/components/feature2/PipelineGraph";
 
 /**
  * 대규모 문헌 비교 분석기 (Research Gap Analyzer) 내부 핵심 페이지 컨텐츠 컴포넌트입니다.
@@ -99,6 +100,9 @@ function ResearchGapPageContent() {
         setResult(res.data.result);
         if (res.data.translated_result) {
           setTranslatedResult(res.data.translated_result);
+        }
+        if (res.data.query) {
+          setQuery(res.data.query);
         }
         setStatus("COMPLETED");
         setProgress(100);
@@ -250,6 +254,11 @@ function ResearchGapPageContent() {
         {/* Right Column: AI Synthesis */}
         <ResearchGapSynthesis result={displayResult} />
       </div>
+
+      {/* Visual Pipeline Graph Flow */}
+      {result && (
+        <PipelineGraph result={displayResult} query={query} />
+      )}
     </div>
   );
 }

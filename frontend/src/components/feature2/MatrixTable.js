@@ -32,15 +32,23 @@ export default function MatrixTable({ result }) {
                   <td className={`${styles.matrixTd} ${styles.colPaperCell}`}>
                     <div className={styles.paperCellWrapper}>
                       <div className={styles.paperTitle}>{paper.title}</div>
-                      <a
-                        href={`https://arxiv.org/abs/${paper.arxiv_id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`${styles.arxivLink} mt-1.5`}
-                      >
-                        <span>arXiv:{paper.arxiv_id}</span>
-                        <i className="bi bi-box-arrow-up-right"></i>
-                      </a>
+                      <div className="d-flex align-items-center gap-2 mt-1.5 flex-wrap">
+                        <a
+                          href={`https://arxiv.org/abs/${paper.arxiv_id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles.arxivLink}
+                        >
+                          <span>원문 ArXiv</span>
+                          <i className="bi bi-box-arrow-up-right ms-1"></i>
+                        </a>
+                        {paper.similarity !== undefined && paper.similarity !== null && (
+                          <span className={styles.similarityBadge}>
+                            <i className="bi bi-graph-up me-1"></i>
+                            유사도 {Math.round(paper.similarity * 100)}%
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className={styles.matrixTd}>
@@ -74,7 +82,7 @@ export default function MatrixTable({ result }) {
           <p className="mb-2 fw-bold text-dark fs-5">분석 결과가 아직 없습니다.</p>
           <div className="d-flex align-items-center justify-content-center px-3">
             <p className="small mb-0 text-secondary" style={{ maxWidth: "560px", lineHeight: "1.5" }}>
-              상단의 분석 제어판에서 비교 대상 조건 입력 후 '비동기 배치 분석 실행'을 클릭하세요.
+              상단의 분석 제어판에서 비교 대상 조건 입력 후 &apos;비동기 배치 분석 실행&apos;을 클릭하세요.
             </p>
           </div>
         </div>

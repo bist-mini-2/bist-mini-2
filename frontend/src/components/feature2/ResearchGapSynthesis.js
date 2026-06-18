@@ -24,9 +24,9 @@ export default function ResearchGapSynthesis({ result }) {
         <div key={common_limitations?.[0] || 'synthesis'} className={`d-flex flex-column gap-3 ${styles.fadeIn}`}>
           {/* Synthesis Gaps list */}
           <div>
-            <h6 className="fw-bold text-dark mb-2">추출된 문헌 연구 공백</h6>
+            {/* <h6 className="fw-bold text-dark mb-2">추출된 문헌 연구 공백</h6> */}
             <div className="text-secondary small">
-              <p className="mb-2">분석된 문헌군 전반에서 다음과 같은 공통적인 연구 한계 및 학계 공백이 추출되었습니다:</p>
+              {/* <p className="mb-2">분석된 문헌군 전반에서 다음과 같은 공통적인 연구 한계 및 학계 공백이 추출되었습니다:</p> */}
               <ul className={`${styles.listUnstyled} mb-0`}>
                 {common_limitations.map((limit, idx) => (
                   <li key={idx} className="mb-2 d-flex align-items-start">

@@ -44,9 +44,9 @@ export default function Sidebar({ isCollapsed, onToggle }) {
 
   // 네비게이션 메뉴 정의
   const menus = [
-    { name: "기능 1", path: "/feature1", icon: "bi-gear" },
-    { name: "기능 2", path: "/feature2", icon: "bi-tools" },
-    { name: "기능 3", path: "/feature3", icon: "bi-bar-chart" }
+    { name: "Chat Hub", path: "/feature1", icon: "bi-gear" },
+    { name: "Research Gap Analyzer", path: "/feature2", icon: "bi-tools" },
+    { name: "Gems", path: "/feature3", icon: "bi-bar-chart" }
   ];
 
   // 활성 경로에 따른 동적 서브 사이드바 렌더링 함수

@@ -18,11 +18,11 @@ export default function Topbar() {
   const getPageTitle = (path) => {
     switch (path) {
       case "/feature1":
-        return "기능 1 (Feature 1)";
+        return "Chat Hub";
       case "/feature2":
-        return "기능 2 (Feature 2)";
+        return "Research Gap Analyzer";
       case "/feature3":
-        return "기능 3 (Feature 3)";
+        return "Gems";
       default:
         return "Dashboard";
     }

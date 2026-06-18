@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from typing import Annotated, Optional, AsyncGenerator
+from typing import Annotated, Optional, AsyncGenerator, Any
 from fastapi import Depends
 from sqlalchemy import select
 from langchain_openai import ChatOpenAI
@@ -76,6 +76,7 @@ class ResearchGapService:
             "task_id": task.task_id,
             "status": task.status,
             "progress": task.progress,
+            "query": task.query,
             "result": task.result,
             "translated_result": task.translated_result,
             "error_message": task.error_message
@@ -138,19 +139,21 @@ class ResearchGapService:
             papers_list = []
             async with session_maker() as session:
                 if domain == "cs":
-                    # 중복 논문 조정을 감안하여 충분한 수의 청크(25개)를 우선 조회
+                    # 중복 논문 조정을 감안하여 충분한 수의 청크(25개)를 우선 조회 (코사인 유사도 거리 포함)
+                    cosine_dist = CsEmbeddingEntity.embedding.cosine_distance(query_vector).label("distance")
                     stmt = (
                         select(
                             CsEmbeddingEntity.cmetadata,
-                            CsEmbeddingEntity.document.label("content")
+                            CsEmbeddingEntity.document.label("content"),
+                            cosine_dist
                         )
-                        .order_by(CsEmbeddingEntity.embedding.cosine_distance(query_vector).asc())
+                        .order_by(cosine_dist.asc())
                         .limit(25)
                     )
                     result = await session.execute(stmt)
                     raw_rows = result.mappings().all()
                     
-                    temp_papers = {}
+                    temp_papers: dict[str, dict[str, Any]] = {}
                     for row in raw_rows:
                         meta = row["cmetadata"] or {}
                         arxiv_id = meta.get("arxiv_id") or meta.get("doc_id") or ""
@@ -159,16 +162,21 @@ class ResearchGapService:
                         
                         title = meta.get("title", "")
                         content = row["content"] or ""
+                        distance = row["distance"]
+                        # 코사인 유사도 점수 (1 - 코사인 거리)
+                        similarity = round(1.0 - float(distance), 4)
                         
                         if arxiv_id not in temp_papers:
                             temp_papers[arxiv_id] = {
                                 "arxiv_id": arxiv_id,
                                 "title": title,
+                                "similarity": similarity,
                                 "chunks": [content]
                             }
                         else:
-                            if content not in temp_papers[arxiv_id]["chunks"]:
-                                temp_papers[arxiv_id]["chunks"].append(content)
+                            chunks = temp_papers[arxiv_id]["chunks"]
+                            if isinstance(chunks, list) and content not in chunks:
+                                chunks.append(content)
                     
                     # 가장 유사도가 높은 순서대로 고유한 5개 논문 추출 및 청크 병합
                     for arxiv_id, p_info in temp_papers.items():
@@ -178,6 +186,7 @@ class ResearchGapService:
                         papers_list.append({
                             "arxiv_id": p_info["arxiv_id"],
                             "title": p_info["title"],
+                            "similarity": p_info["similarity"],
                             "content": joined_content
                         })
                 else:
@@ -206,6 +215,7 @@ class ResearchGapService:
                 paper_id = paper["arxiv_id"]
                 title = paper["title"]
                 content = paper["content"]
+                similarity = paper["similarity"]
 
                 prompt = ChatPromptTemplate.from_messages([
                     ("system", (
@@ -227,6 +237,7 @@ class ResearchGapService:
                 if not isinstance(result_obj, PaperAnalysisResult):
                     raise TypeError(f"Expected PaperAnalysisResult, got {type(result_obj)}")
 
+                result_obj.similarity = similarity
                 analyzed_papers.append(result_obj)
 
             # RUNNING 상태로 업데이트 (80%)
@@ -264,6 +275,16 @@ class ResearchGapService:
             if not isinstance(final_report, ResearchGapMatrix):
                 raise TypeError(f"Expected ResearchGapMatrix, got {type(final_report)}")
 
+            # LLM 합성 시 누락된 원본 유사도 점수를 final_report.papers에 복원 주입
+            for idx, paper_report in enumerate(final_report.papers):
+                match = next((p for p in analyzed_papers if p.arxiv_id == paper_report.arxiv_id), None)
+                if match:
+                    paper_report.similarity = match.similarity
+                elif idx < len(analyzed_papers):
+                    paper_report.similarity = analyzed_papers[idx].similarity
+
+            dumped_report = final_report.model_dump()
+
             # 6. COMPLETED 상태로 업데이트 및 결과 저장 (100%)
             async with session_maker() as session:
                 dao = ResearchGapDao(session)
@@ -271,7 +292,7 @@ class ResearchGapService:
                     task_id,
                     "COMPLETED",
                     100,
-                    result=final_report.model_dump()
+                    result=dumped_report
                 )
                 await session.commit()
 
@@ -425,6 +446,11 @@ class ResearchGapService:
             raise TypeError(f"Expected ResearchGapMatrix, got {type(translated)}")
             
         translated_dict = translated.model_dump()
+        
+        # 번역 완료 후 유사도 데이터 유실을 막기 위해 원본 유사도 스코어 복사 복원
+        for idx, paper in enumerate(translated_dict.get("papers", [])):
+            if idx < len(matrix.papers):
+                paper["similarity"] = matrix.papers[idx].similarity
         
         # 5. DB에 번역본 저장 및 커밋
         async with session_maker() as session:
