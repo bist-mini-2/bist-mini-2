@@ -66,9 +66,39 @@
   margin-bottom: 4px;
 }
 
-.paperMeta {
-  font-size: 0.78rem;
+.arxivLink {
   color: var(--menu-item-color);
+  font-family: var(--mono-font);
+  font-weight: 500;
+  font-size: 0.76rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  align-self: flex-start;
+  transition: color 0.15s ease;
+}
+
+.arxivLink:hover {
+  color: var(--accent-color) !important;
+  text-decoration: underline !important;
+}
+
+.arxivLink i {
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
+.colPaperCell {
+  height: 1px;
+}
+
+.paperCellWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .listUnstyled {
@@ -92,38 +122,4 @@
 
 .iconDanger {
   color: #b54545; /* Muted danger red matching status badge */
-}
-
-.arxivBtn {
-  background: none;
-  border: 1px solid var(--accent-color);
-  color: var(--accent-color);
-  font-weight: 600;
-  font-size: 0.78rem;
-  padding: 4px 10px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: background-color 0.15s ease, color 0.15s ease;
-  margin-top: auto;
-  align-self: flex-start;
-  width: fit-content;
-}
-
-.arxivBtn:hover {
-  background-color: var(--accent-color);
-  color: #ffffff !important;
-}
-
-.colPaperCell {
-  height: 1px;
-}
-
-.paperCellWrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 }

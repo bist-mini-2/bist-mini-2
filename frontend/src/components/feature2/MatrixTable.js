@@ -32,16 +32,14 @@ export default function MatrixTable({ result }) {
                   <td className={`${styles.matrixTd} ${styles.colPaperCell}`}>
                     <div className={styles.paperCellWrapper}>
                       <div className={styles.paperTitle}>{paper.title}</div>
-                      <div className={styles.paperMeta}>
-                        ArXiv ID: {paper.arxiv_id}
-                      </div>
                       <a
                         href={`https://arxiv.org/abs/${paper.arxiv_id}`}
                         target="_blank"
                         rel="noreferrer"
-                        className={`${styles.arxivBtn} mt-2`}
+                        className={`${styles.arxivLink} mt-1.5`}
                       >
-                        <i className="bi bi-link-45deg"></i> ArXiv 이동
+                        <span>arXiv:{paper.arxiv_id}</span>
+                        <i className="bi bi-box-arrow-up-right"></i>
                       </a>
                     </div>
                   </td>
