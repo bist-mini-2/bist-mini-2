@@ -9,9 +9,23 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 # bio 폴더는 읽기/ import만 (수정하지 않음). RAG tool과 state 스키마를 재사용한다.
 from api.v1.bio.agent_rag import BioAgentState, search_bio_papers
 from api.v1.chat.psycopg_pool_conf import chat_psycopg_pool
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+
+
+class BioPaperRef(BaseModel):
+    """답변 근거가 된 논문 한 편."""
+    arxiv_id: str = Field(description="논문의 arXiv ID (예: 2504.10388)")
+    title: str = Field(description="논문 제목")
+    summary: str = Field(description="이 논문이 질문과 어떻게 관련되는지 한 문장 요약")
+
+
+class BioAnswer(BaseModel):
+    """생명공학 RAG 답변 구조."""
+    explanation: str = Field(description="질문에 대한 자연스러운 설명. 논문 나열이 아니라 질문에 직접 답하는 서술형 설명을 작성한다.")
+    papers: list[BioPaperRef] = Field(default_factory=list, description="답변 근거가 된 논문 목록")
 
 class ChatAgent:
     """대화 히스토리 + 생명공학 논문 RAG를 통합한 에이전트.
@@ -29,23 +43,21 @@ class ChatAgent:
         self.agent = None
         # 시스템 프롬프트는 bio의 것과 동일 (유전체학 전문가 + 언어 규칙 + 출처 명시)
         self.system_prompt = """
-        당신은 생명공학·유전체학(q-bio.GN) 논문 전문가입니다.
+        당신은 생명공학·유전체학(q-bio.GN) 분야의 논문을 잘 아는 연구 조력자입니다.
 
-        사용 가능한 도구:
-        **search_bio_papers**: q-bio.GN 논문 검색
-
-        지침:
-        - 사용자의 질문에 답하기 위해 반드시 search_bio_papers 도구로 관련 논문을 검색하세요.
-        - 검색된 논문에 기반해서만 답변하고, 논문 제목과 arXiv ID를 출처로 명시하세요.
-        - 검색 결과에 없는 정보는 추측하지 말고 "해당 정보를 논문에서 찾을 수 없습니다"라고 답하세요.
-        - 생명공학·유전체학 외 주제(천문학, 컴퓨터과학 등)는 이 시스템에서 다루지 않는다고 안내하세요.
-
-        CRITICAL — 언어 규칙:
-        - 사용자 질문의 언어를 감지하세요.
-        - 항상 사용자 질문과 같은 언어로 답변하세요.
-        - 한국어 질문 → 한국어 답변, 영어 질문 → 영어 답변.
-        - 검색된 논문이나 이 프롬프트의 언어와 무관하게 언어를 바꾸지 마세요.
+        작업 방식:
+        - 모든 질문에 대해 먼저 search_bio_papers 도구로 관련 논문을 검색합니다.
+        - explanation에는 질문에 대한 설명을 마크다운으로 풍부하고 읽기 좋게 작성합니다.
+          핵심 용어나 개념은 **굵게** 강조하고, 내용이 길면 ## 소제목으로 구조를 나눠도 좋습니다.
+          사용자가 자세한 설명을 원하면 충분히 길게, 간단한 질문이면 간결하게 길이를 조절합니다.
+          단, 개별 논문을 "1. 2. 3."처럼 번호로 나열하지는 마세요. 논문 하나하나의 제목·요약은 papers가 담당합니다.
+          논문 내용을 설명에 녹일 때는 "~한 연구도 있습니다" 처럼 자연스러운 문장으로 풀어 씁니다.
+        - papers에는 답변의 근거가 된 논문 각각을 정리합니다(제목, arxiv_id, 한 줄 요약).
+        - 검색 결과에 없는 내용은 지어내지 말고, explanation에 "관련 논문을 찾지 못했습니다"라고 적습니다.
+        - 생명공학·유전체학 외 주제(천문학, 컴퓨터과학 등)는 이 시스템의 범위가 아니라고 안내합니다.
+        - 항상 사용자가 질문한 언어로 답합니다(한국어 질문이면 한국어로).
         """
+        
         self._initialized = False
         self._init_lock = asyncio.Lock()
 
@@ -71,6 +83,7 @@ class ChatAgent:
                 system_prompt=self.system_prompt,
                 checkpointer=self.checkpointer,
                 state_schema=BioAgentState,   # 출처 추적 위해 bio의 state 패턴 활용
+                response_format=BioAnswer
             )
 
             # checkpoint 테이블이 이미 있으면 setup()을 건너뛴다.
@@ -104,7 +117,7 @@ class ChatAgent:
                 },
                 {"configurable": {"thread_id": conversation_id}},
             )
-            # 출처 중복 제거 (arxiv_id 기준, 순서 유지)
+            # 출처 중복 제거 (arxiv_id 기준, 순서 유지) — 실제 검색된 출처
             seen = set()
             unique_sources = []
             for s in result.get("sources", []):
@@ -112,14 +125,26 @@ class ChatAgent:
                     seen.add(s["arxiv_id"])
                     unique_sources.append(s)
 
+            # 구조화된 답변(response_format) 꺼내기
+            structured = result.get("structured_response")
+            if structured:
+                answer = structured.explanation
+                papers = [p.model_dump() for p in structured.papers]
+            else:
+                # 혹시 구조화 실패 시 fallback (기존 방식)
+                answer = result["messages"][-1].content
+                papers = []
+
             return {
-                "answer": result["messages"][-1].content,
+                "answer": answer,
+                "papers": papers,
                 "sources": unique_sources,
             }
         except Exception as e:
             self.logger.error(f"대화 처리 실패 (conversation_id={conversation_id}): {e}")
             return {
                 "answer": "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                "papers": [],
                 "sources": [],
             }
 

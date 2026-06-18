@@ -49,12 +49,14 @@ async def lifespan(app: FastAPI):
     from api.v1.research_gap.entity import ResearchGapTaskEntity
     from api.v1.chat.entity import ChatSessionEntity
     from api.v1.gems.entity import GemEntity
+    from api.v1.notification.entity import NotificationEntity
     
     async with engine.begin() as conn:
         # PostgreSQL인 경우 pgvector 익스텐션 자동 활성화
         if "postgresql" in settings.DATABASE_URL:
             from sqlalchemy import text
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            await conn.execute(text("ALTER TABLE research_gap_task ADD COLUMN IF NOT EXISTS translated_result JSON;"))
         await conn.run_sync(Base.metadata.create_all)
         
     yield

@@ -33,3 +33,50 @@ export async function getTaskResult(taskId) {
   const response = await apiClient.get(`/research-gap/tasks/${taskId}/result`);
   return response.data;
 }
+
+/**
+ * 영어로 완성된 매트릭스 데이터를 한국어로 번역 요청 및 캐싱합니다.
+ * 
+ * @param {string} taskId 작업 고유 UUID
+ * @returns {Promise<object>} 번역된 매트릭스 데이터
+ */
+export async function translateMatrix(taskId) {
+  const response = await apiClient.post(`/research-gap/tasks/${taskId}/translate`);
+  return response.data;
+}
+
+/**
+ * 사용자가 요청한 모든 분석 작업 이력 리스트를 조회합니다.
+ * 
+ * @returns {Promise<object>} API 응답 객체 (태스크 리스트)
+ */
+export async function listUserTasks() {
+  const response = await apiClient.get("/research-gap/tasks");
+  return response.data;
+}
+
+/**
+ * 특정 배치 분석 작업 이력을 삭제합니다.
+ * 
+ * @param {string} taskId 작업 고유 UUID
+ * @returns {Promise<object>} API 응답 객체 (삭제 여부)
+ */
+export async function deleteTask(taskId) {
+  const response = await apiClient.delete(`/research-gap/tasks/${taskId}`);
+  return response.data;
+}
+
+/**
+ * 여러 배치 분석 작업 이력을 선택 일괄 삭제합니다.
+ * 
+ * @param {string[]} taskIds 작업 고유 UUID 리스트
+ * @returns {Promise<object>} API 응답 객체 (deleted_count 포함)
+ */
+export async function bulkDeleteTasks(taskIds) {
+  const response = await apiClient.post("/research-gap/tasks/bulk-delete", { task_ids: taskIds });
+  return response.data;
+}
+
+
+
+

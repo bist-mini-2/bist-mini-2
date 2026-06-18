@@ -4,6 +4,7 @@ from fastapi import Depends
 from sqlalchemy import select, text
 from api.database.config.dbsession import OrmSessionDep
 from api.v1.chat.entity import ChatSessionEntity
+from api.v1.chat.entity import ChatSessionEntity, ChatSourceEntity
 
 
 class ChatSessionDao:
@@ -40,6 +41,34 @@ class ChatSessionDao:
             text("DELETE FROM chat_session WHERE session_id = :session_id"),
             {"session_id": session_id},
         )
+    
+    async def update_title(self, session_id: str, title: str) -> None:
+        """채팅방 제목을 수정합니다."""
+        chat_session_entity = await self.orm_session.get(ChatSessionEntity, session_id)
+        if chat_session_entity:
+            chat_session_entity.title = title
+            await self.orm_session.flush()
+
+
+    async def insert_sources(self, session_id: str, message_index: int, sources: list[dict]) -> None:
+        """특정 메시지의 출처 목록을 저장합니다."""
+        for src in sources:
+            self.orm_session.add(ChatSourceEntity(
+                session_id=session_id,
+                message_index=message_index,
+                arxiv_id=src["arxiv_id"],
+                title=src["title"],
+            ))
+        await self.orm_session.flush()
+
+    async def select_sources_by_session(self, session_id: str) -> list[ChatSourceEntity]:
+        """특정 방의 모든 출처를 조회합니다(메시지 index 순)."""
+        result = await self.orm_session.execute(
+            select(ChatSourceEntity)
+            .where(ChatSourceEntity.session_id == session_id)
+            .order_by(ChatSourceEntity.message_index)
+        )
+        return list(result.scalars().all())
 
 
 ChatSessionDaoDep = Annotated[ChatSessionDao, Depends(ChatSessionDao)]

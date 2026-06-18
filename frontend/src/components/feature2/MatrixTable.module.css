@@ -66,9 +66,39 @@
   margin-bottom: 4px;
 }
 
-.paperMeta {
-  font-size: 0.78rem;
+.arxivLink {
   color: var(--menu-item-color);
+  font-family: var(--mono-font);
+  font-weight: 500;
+  font-size: 0.76rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  align-self: flex-start;
+  transition: color 0.15s ease;
+}
+
+.arxivLink:hover {
+  color: var(--accent-color) !important;
+  text-decoration: underline !important;
+}
+
+.arxivLink i {
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
+.colPaperCell {
+  height: 1px;
+}
+
+.paperCellWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .listUnstyled {
@@ -79,4 +109,44 @@
 
 .listIcon {
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5em; /* Match the line-height of the first line of text */
+  vertical-align: middle;
+}
+
+.iconSuccess {
+  color: #3e7058; /* Muted success green matching status badge */
+}
+
+.iconDanger {
+  color: #b54545; /* Muted danger red matching status badge */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.similarityBadge {
+  font-size: 0.68rem;
+  background-color: var(--accent-glow);
+  border: 1px solid var(--accent-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-color);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
 }

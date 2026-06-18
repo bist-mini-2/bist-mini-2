@@ -1,10 +1,9 @@
 import logging
-from fastapi import APIRouter, BackgroundTasks, Request, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, status
 
 from api.database.config.dto_base import SuccessResponse
 from api.common.auth import LoginCheckDep
-from api.v1.research_gap.models import AnalyzeRequest
+from api.v1.research_gap.models import AnalyzeRequest, BulkDeleteRequest
 from api.v1.research_gap.services import ResearchGapServiceDep
 
 logger = logging.getLogger(__name__)
@@ -63,24 +62,71 @@ async def get_task_result(
     return SuccessResponse(data=result_info)
 
 
-@router.get(
-    "/stream-notifications",
-    summary="실시간 SSE 푸시 알림 수신",
-    include_in_schema=False
+@router.post(
+    "/tasks/{task_id}/translate",
+    response_model=SuccessResponse,
+    summary="연구 공백 분석 결과 한글 번역 및 캐싱"
 )
-async def stream_notifications(
-    request: Request,
+async def translate_task(
+    task_id: str,
     service: ResearchGapServiceDep,
     current_user: LoginCheckDep
 ):
-    """백그라운드 비동기 연산 완료 소식을 클라이언트에 실시간 푸시하는 SSE(Server-Sent Events) 스트림 엔드포인트입니다."""
+    """영문으로 완료된 특정 배치 분석 태스크 결과를 한국어로 번역하고 서버에 영구 캐싱 보관합니다."""
     mid = current_user["sub"]
-    return StreamingResponse(
-        service.stream_notifications(request, mid),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
-    )
+    translated = await service.translate_matrix(task_id, mid)
+    return SuccessResponse(data=translated)
+
+
+@router.get(
+    "/tasks",
+    response_model=SuccessResponse,
+    summary="사용자의 모든 배치 분석 작업 이력 조회"
+)
+async def list_user_tasks(
+    service: ResearchGapServiceDep,
+    current_user: LoginCheckDep
+):
+    """현재 로그인한 사용자가 등록했던 모든 비동기 분석 배치 작업 이력 리스트를 반환합니다."""
+    mid = current_user["sub"]
+    tasks_list = await service.list_user_tasks(mid)
+    return SuccessResponse(data=tasks_list)
+
+
+@router.delete(
+    "/tasks/{task_id}",
+    response_model=SuccessResponse,
+    summary="특정 배치 분석 작업 이력 삭제"
+)
+async def delete_user_task(
+    task_id: str,
+    service: ResearchGapServiceDep,
+    current_user: LoginCheckDep
+):
+    """현재 로그인한 사용자가 소유한 특정 배치 분석 작업 데이터를 삭제합니다."""
+    mid = current_user["sub"]
+    await service.delete_user_task(task_id, mid)
+    return SuccessResponse(data={"deleted": True})
+
+
+@router.post(
+    "/tasks/bulk-delete",
+    response_model=SuccessResponse,
+    summary="여러 배치 분석 작업 이력 선택 삭제"
+)
+async def bulk_delete_user_tasks(
+    payload: BulkDeleteRequest,
+    service: ResearchGapServiceDep,
+    current_user: LoginCheckDep
+):
+    """현재 로그인한 사용자가 소유한 여러 배치 분석 작업 데이터를 일괄 삭제합니다."""
+    mid = current_user["sub"]
+    deleted_count = await service.delete_user_tasks(payload.task_ids, mid)
+    return SuccessResponse(data={"deleted_count": deleted_count})
+
+
+
+
+
+
+

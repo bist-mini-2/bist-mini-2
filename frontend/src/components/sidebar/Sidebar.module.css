@@ -197,7 +197,6 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--profile-card-border);
   cursor: pointer;
-  transition: background-color 0.2s ease;
   user-select: none;
 }
 

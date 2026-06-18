@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" data-theme="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,9 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             /* Core Colors */
@@ -416,8 +419,8 @@
             height: 100vh;
             overflow: hidden;
             position: relative;
-            background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), 
-                              linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 24px 24px;
         }
 
@@ -490,7 +493,8 @@
             text-align: left;
         }
 
-        .matrixTable th, .matrixTable td {
+        .matrixTable th,
+        .matrixTable td {
             padding: 14px 18px;
             border-bottom: 1px solid var(--card-border);
             vertical-align: top;
@@ -601,6 +605,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Left Sidebar Menu -->
@@ -704,7 +709,8 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label text-muted small fw-bold mb-1">분석 중점 영역 (Focus Area)</label>
-                        <input type="text" class="dev-input" placeholder="예: '임베딩 차원에 따른 RAG 성능 공백 분석'" value="비정형 텍스트 청킹 크기와 유사도 매칭 성능">
+                        <input type="text" class="dev-input" placeholder="예: '임베딩 차원에 따른 RAG 성능 공백 분석'"
+                            value="비정형 텍스트 청킹 크기와 유사도 매칭 성능">
                     </div>
                     <div class="col-md-3 d-flex align-items-end" style="height: 100%;">
                         <button class="dev-btn w-100" onclick="triggerTask()">
@@ -715,8 +721,9 @@
 
                 <!-- Active Task Status Badge -->
                 <div class="d-flex align-items-center gap-3 mt-2 pt-2 border-top">
-                    <span class="text-muted small">작업 상태:</span>
-                    <span class="badge bg-success" id="taskStatus"><i class="bi bi-check-circle me-1"></i> SUCCESS</span>
+                    <!-- <span class="text-muted small">작업 상태:</span> -->
+                    <span class="badge bg-success" id="taskStatus"><i class="bi bi-check-circle me-1"></i>
+                        SUCCESS</span>
                     <span class="mono-badge text-muted" id="taskId">Task ID: gap_task_9210a</span>
                     <span class="text-muted small ms-auto">분석 완료 논문 수: <strong>3편</strong></span>
                 </div>
@@ -724,7 +731,7 @@
 
             <!-- Bottom Layout Grid -->
             <div class="gapContainer">
-                
+
                 <!-- Left: Empirical Comparison Matrix Table -->
                 <div class="glass-card p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
@@ -814,22 +821,25 @@
                     <div>
                         <h6 class="fw-bold text-dark mb-2">추출된 문헌 연구 공백</h6>
                         <p class="small text-muted" style="line-height: 1.6;">
-                            세 편의 연구 데이터 분석 결과, **고정 크기 청킹의 한계**가 다수 지적되었습니다. 특히 표/수식 등 **구조화 데이터의 유실 문제**와 **언어별 청킹 왜곡**, **실시간 동적 청킹 제어판의 부재**가 학계의 공백 지점(Research Gap)으로 확인됩니다.
+                            세 편의 연구 데이터 분석 결과, **고정 크기 청킹의 한계**가 다수 지적되었습니다. 특히 표/수식 등 **구조화 데이터의 유실 문제**와 **언어별 청킹
+                            왜곡**, **실시간 동적 청킹 제어판의 부재**가 학계의 공백 지점(Research Gap)으로 확인됩니다.
                         </p>
                     </div>
 
                     <!-- Recommended Research Topics -->
                     <div>
                         <h6 class="fw-bold text-dark mb-2">추천 연구 주제 제안 (Recommended)</h6>
-                        
+
                         <div class="recommendedTopicCard">
                             <div class="fw-bold small mb-1">1. 구조 인지형 하이브리드 청커 설계</div>
-                            <p class="text-muted small mb-0">표, 그래프 및 수식 객체를 별도의 노드로 분리 보존하고, 메타데이터 연동 키를 삽입하는 청킹 파이프라인 개발.</p>
+                            <p class="text-muted small mb-0">표, 그래프 및 수식 객체를 별도의 노드로 분리 보존하고, 메타데이터 연동 키를 삽입하는 청킹 파이프라인
+                                개발.</p>
                         </div>
 
                         <div class="recommendedTopicCard">
                             <div class="fw-bold small mb-1">2. 한국어 맞춤형 토큰-형태소 가변 오버랩 모델</div>
-                            <p class="text-muted small mb-0">한국어 조사 결합 특성을 반영하여 의미 조각 분실을 방지하기 위한 동적 형태소 기반 겹침(Overlap) 알고리즘 연구.</p>
+                            <p class="text-muted small mb-0">한국어 조사 결합 특성을 반영하여 의미 조각 분실을 방지하기 위한 동적 형태소 기반 겹침(Overlap)
+                                알고리즘 연구.</p>
                         </div>
                     </div>
                 </div>
@@ -844,7 +854,7 @@
             const sidebar = document.getElementById('appSidebar');
             const toggleIcon = document.getElementById('toggleIcon');
             sidebar.classList.toggle('collapsed');
-            
+
             if (sidebar.classList.contains('collapsed')) {
                 toggleIcon.className = 'bi bi-arrow-bar-right';
             } else {
@@ -856,7 +866,7 @@
             const html = document.documentElement;
             const themeIcon = document.getElementById('themeIcon');
             const currentTheme = html.getAttribute('data-theme');
-            
+
             if (currentTheme === 'light') {
                 html.setAttribute('data-theme', 'dark');
                 themeIcon.className = 'bi bi-sun';
@@ -869,11 +879,11 @@
         function triggerTask() {
             const status = document.getElementById('taskStatus');
             const taskId = document.getElementById('taskId');
-            
+
             status.className = 'badge bg-warning';
             status.innerHTML = '<i class="bi bi-arrow-repeat spinner-border spinner-border-sm border-0" style="animation-duration: 1.5s;"></i> RUNNING';
             taskId.innerText = 'Task ID: gap_task_' + Math.random().toString(36).substr(2, 5);
-            
+
             setTimeout(() => {
                 status.className = 'badge bg-success';
                 status.innerHTML = '<i class="bi bi-check-circle me-1"></i> SUCCESS';
@@ -882,4 +892,5 @@
         }
     </script>
 </body>
+
 </html>

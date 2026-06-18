@@ -19,6 +19,7 @@ export const metadata = {
 
 import { AuthContextProvider } from "@/contexts/AuthContext";
 import { ThemeContextProvider } from "@/contexts/ThemeContext";
+import { NotificationContextProvider } from "@/contexts/NotificationContext";
 import AppLayoutWrapper from "@/components/AppLayoutWrapper";
 
 export default function RootLayout({ children }) {
@@ -28,9 +29,11 @@ export default function RootLayout({ children }) {
         <BootstrapClient />
         <ThemeContextProvider>
           <AuthContextProvider>
-            <AppLayoutWrapper>
-              {children}
-            </AppLayoutWrapper>
+            <NotificationContextProvider>
+              <AppLayoutWrapper>
+                {children}
+              </AppLayoutWrapper>
+            </NotificationContextProvider>
           </AuthContextProvider>
         </ThemeContextProvider>
       </body>

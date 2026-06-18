@@ -8,11 +8,11 @@
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
   box-shadow: none; /* Remove soft shadows */
-  transition: border-color 0.15s ease;
 }
 
 .glass-card:hover {
   border-color: var(--accent-color);
+  transition: border-color 0.15s ease;
 }
 
 /* Gradient Accent Border Card (Langfuse style) */
@@ -61,12 +61,12 @@
   font-size: 0.9rem;
   padding: 9px 12px;
   outline: none;
-  transition: border-color 0.1s ease, box-shadow 0.1s ease;
 }
 
 .dev-input:focus {
   border-color: var(--accent-color);
   box-shadow: 0 0 0 2px rgba(142, 157, 135, 0.3); /* Zero blur sage green shadow ring */
+  transition: border-color 0.1s ease, box-shadow 0.1s ease;
 }
 
 /* Accent Developer Button */
