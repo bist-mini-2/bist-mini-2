@@ -59,7 +59,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.05em;
-  padding: 3px 6px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
   text-transform: uppercase;
   background-color: var(--sidebar-bg);
@@ -69,6 +69,8 @@
   align-items: center;
   gap: 6px;
   width: fit-content;
+  height: 28px;
+  box-sizing: border-box;
 }
 
 .progressBarWrapper {
@@ -156,7 +158,6 @@
 
 .translateBtn:hover:not(:disabled) {
   background-color: var(--card-border);
-  border-color: var(--accent-color);
   color: var(--accent-color);
 }
 
@@ -173,6 +174,11 @@
 
 .hiddenLabel {
   visibility: hidden;
+}
+
+.statusSection {
+  padding-top: 20px;
+  margin-top: 4px; /* Symmetrical padding-top & top margin to balance the 20px card padding */
 }
 
 

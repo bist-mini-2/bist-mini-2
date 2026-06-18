@@ -78,7 +78,7 @@ export default function ControlPanel({
       </form>
 
       {/* Active Task Status Row */}
-      <div className="d-flex flex-column gap-2 mt-2 pt-2 border-top">
+      <div className={`d-flex flex-column gap-2 border-top ${styles.statusSection}`}>
         <div className="d-flex align-items-center gap-3">
           <span className="text-muted small">작업 상태:</span>
           <StatusBadge status={loading ? "RUNNING" : (status || "IDLE")} />
