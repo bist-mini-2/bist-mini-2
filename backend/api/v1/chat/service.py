@@ -6,6 +6,7 @@ from api.common.exceptions import BusinessException
 from api.v1.chat.chat_agent import ChatAgentDep
 from api.v1.chat.dao import ChatSessionDaoDep
 from api.v1.chat.entity import ChatSessionEntity
+from api.v1.chat.dao import ChatSessionDaoDep
 
 
 class ChatService:
@@ -45,15 +46,47 @@ class ChatService:
         await self.chat_session_dao.delete(session_id)
         await self.chat_agent.clear_history(session_id)
 
+    async def rename_session(self, member_id: str, session_id: str, title: str) -> ChatSessionEntity:
+        """채팅방 제목을 변경한다. 소유자만 가능."""
+        chat_session_entity = await self._get_owned_session(member_id, session_id)
+        await self.chat_session_dao.update_title(session_id, title)
+        chat_session_entity.title = title
+        return chat_session_entity
+    
+
     async def send_message(self, member_id: str, session_id: str, message: str) -> dict:
-        """채팅방에 메시지를 보내 RAG 기반 답변을 받는다(대화 기록 자동 저장). 소유자만 가능."""
+        """채팅방에 메시지를 보내 RAG 기반 답변을 받는다(대화 기록 + 출처 저장). 소유자만 가능."""
         await self._get_owned_session(member_id, session_id)
-        return await self.chat_agent.run(message, session_id)
+        result = await self.chat_agent.run(message, session_id)
+
+        # 답변의 출처를 영구 저장한다.
+        # run() 직후 전체 대화 내역을 세어, 방금 추가된 assistant 메시지의 index를 구한다.
+        if result.get("sources"):
+            history = await self.chat_agent.get_history(session_id)
+            assistant_index = len(history) - 1   # 마지막 메시지(방금 답변)의 index
+            await self.chat_session_dao.insert_sources(
+                session_id, assistant_index, result["sources"]
+            )
+
+        return result
 
     async def get_messages(self, member_id: str, session_id: str) -> list[dict]:
-        """채팅방의 대화 내역을 순서대로 반환한다. 소유자만 가능."""
+        """채팅방의 대화 내역을 출처와 함께 순서대로 반환한다. 소유자만 가능."""
         await self._get_owned_session(member_id, session_id)
-        return await self.chat_agent.get_history(session_id)
+        history = await self.chat_agent.get_history(session_id)
+
+        # 저장된 출처를 message_index 기준으로 묶어 각 메시지에 붙인다.
+        sources = await self.chat_session_dao.select_sources_by_session(session_id)
+        sources_by_index = {}
+        for s in sources:
+            sources_by_index.setdefault(s.message_index, []).append(
+                {"arxiv_id": s.arxiv_id, "title": s.title}
+            )
+
+        for idx, msg in enumerate(history):
+            msg["sources"] = sources_by_index.get(idx, [])
+
+        return history
 
 
 ChatServiceDep = Annotated[ChatService, Depends(ChatService)]

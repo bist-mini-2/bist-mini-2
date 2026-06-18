@@ -8,6 +8,9 @@ class ChatSessionCreateRequest(BaseDTO):
     """채팅방 생성 요청 스키마. 방 제목을 입력받는다."""
     title: Annotated[str, Field(min_length=1, max_length=100)]
 
+class ChatSessionUpdateRequest(BaseDTO):
+    """채팅방 제목 수정 요청 DTO."""
+    title: str
 
 class ChatSessionResponse(BaseDTO):
     """채팅방(세션) 단건 응답 스키마."""
@@ -46,6 +49,7 @@ class ChatHistoryItem(BaseDTO):
     """대화 내역 1건. role(user/assistant)과 content로 구성된다."""
     role: str
     content: str
+    sources: list[dict] = []
 
 
 class ChatHistoryResponseWrapper(SuccessResponse):
