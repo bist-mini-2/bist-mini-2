@@ -140,7 +140,11 @@
   color: #8A908A !important;
 }
 
-[data-theme="dark"] .border {
+[data-theme="dark"] .border,
+[data-theme="dark"] .border-top,
+[data-theme="dark"] .border-bottom,
+[data-theme="dark"] .border-start,
+[data-theme="dark"] .border-end {
   border-color: var(--card-border) !important;
 }
 

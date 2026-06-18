@@ -95,7 +95,7 @@ export default function Sidebar({ isCollapsed, onToggle }) {
         <nav className={styles.menuSection}>
           <ul className={styles.menuList}>
             {menus.map((menu) => {
-              const isActive = pathname === menu.path;
+              const isActive = pathname.startsWith(menu.path);
               return (
                 <li key={menu.path}>
                   <Link

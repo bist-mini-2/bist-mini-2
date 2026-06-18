@@ -172,3 +172,8 @@
   height: 0.72rem;
 }
 
+.hiddenLabel {
+  visibility: hidden;
+}
+
+

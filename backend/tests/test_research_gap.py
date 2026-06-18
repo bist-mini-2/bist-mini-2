@@ -184,3 +184,39 @@ def test_translate_matrix_endpoint(mock_translate_matrix):
     assert json_data["data"]["papers"][0]["title"] == "번역된 제목"
     mock_translate_matrix.assert_called_once_with("test-uuid", "test-user")
 
+
+@patch("api.v1.research_gap.services.ResearchGapService.list_user_tasks")
+def test_list_user_tasks_endpoint(mock_list_tasks):
+    """사용자 작업 이력 조회 API가 정상적으로 작업 목록을 반환하는지 테스트합니다."""
+    mock_list_tasks.return_value = [
+        {
+            "task_id": "test-uuid-1",
+            "domain": "cs",
+            "query": "query-1",
+            "status": "COMPLETED",
+            "progress": 100,
+            "created_at": "2026-06-18T00:00:00",
+            "updated_at": "2026-06-18T00:00:00"
+        },
+        {
+            "task_id": "test-uuid-2",
+            "domain": "cs",
+            "query": "query-2",
+            "status": "RUNNING",
+            "progress": 50,
+            "created_at": "2026-06-18T00:01:00",
+            "updated_at": "2026-06-18T00:01:00"
+        }
+    ]
+
+    response = client.get("/api/v1/research-gap/tasks")
+
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["status"] == "success"
+    assert len(json_data["data"]) == 2
+    assert json_data["data"][0]["task_id"] == "test-uuid-1"
+    assert json_data["data"][1]["query"] == "query-2"
+    mock_list_tasks.assert_called_once_with("test-user")
+
+

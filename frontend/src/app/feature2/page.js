@@ -248,9 +248,7 @@ function ResearchGapPageContent() {
         <MatrixTable result={displayResult} />
 
         {/* Right Column: AI Synthesis */}
-        <div className="d-flex flex-column gap-4">
-          <ResearchGapSynthesis result={displayResult} />
-        </div>
+        <ResearchGapSynthesis result={displayResult} />
       </div>
     </div>
   );

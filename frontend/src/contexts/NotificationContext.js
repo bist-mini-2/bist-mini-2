@@ -6,6 +6,7 @@ import {
   listNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteNotification,
   deleteAllNotifications
 } from "@/apis/notification";
 
@@ -260,6 +261,16 @@ export function NotificationContextProvider({ children }) {
     }
   };
 
+  const deleteNotif = async (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    if (!accessToken) return;
+    try {
+      await deleteNotification(id);
+    } catch (err) {
+      console.error(`Failed to delete notification ${id} in backend`, err);
+    }
+  };
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const value = {
@@ -272,6 +283,7 @@ export function NotificationContextProvider({ children }) {
     markAllAsRead,
     markAsRead,
     clearAll,
+    deleteNotification: deleteNotif,
     triggerNotification, // 수동 테스트/트리거용
   };
 

@@ -78,4 +78,20 @@ async def translate_task(
     return SuccessResponse(data=translated)
 
 
+@router.get(
+    "/tasks",
+    response_model=SuccessResponse,
+    summary="사용자의 모든 배치 분석 작업 이력 조회"
+)
+async def list_user_tasks(
+    service: ResearchGapServiceDep,
+    current_user: LoginCheckDep
+):
+    """현재 로그인한 사용자가 등록했던 모든 비동기 분석 배치 작업 이력 리스트를 반환합니다."""
+    mid = current_user["sub"]
+    tasks_list = await service.list_user_tasks(mid)
+    return SuccessResponse(data=tasks_list)
+
+
+
 

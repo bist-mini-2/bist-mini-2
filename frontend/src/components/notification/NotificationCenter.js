@@ -21,10 +21,12 @@ export default function NotificationCenter() {
     togglePushEnabled,
     markAllAsRead,
     markAsRead,
-    clearAll
+    clearAll,
+    deleteNotification
   } = useContext(NotificationContext);
 
   const [showDropdown, setShowDropdown] = useState(false);
+  const [deletingIds, setDeletingIds] = useState([]);
   const dropdownRef = useRef(null);
 
   // 알림 팝오버 외부 영역 클릭 시 드롭다운 닫기 처리
@@ -39,6 +41,26 @@ export default function NotificationCenter() {
   }, []);
 
 
+
+  // 개별 알림 삭제 핸들러 (애니메이션 지원)
+  const handleDeleteNotif = (e, notifId) => {
+    e.stopPropagation(); // 드롭다운 항목 클릭 및 리다이렉트 방지
+    setDeletingIds((prev) => [...prev, notifId]);
+    setTimeout(() => {
+      deleteNotification(notifId);
+      setDeletingIds((prev) => prev.filter((id) => id !== notifId));
+    }, 300); // 300ms 애니메이션 시간
+  };
+
+  // 알림 전체 삭제 핸들러 (애니메이션 지원)
+  const handleClearAll = () => {
+    const allIds = notifications.map((n) => n.id);
+    setDeletingIds(allIds);
+    setTimeout(() => {
+      clearAll();
+      setDeletingIds([]);
+    }, 300);
+  };
 
   // 알림 개별 클릭 핸들러 (읽음 처리 및 관련 페이지 이동)
   const handleNotifClick = (notif) => {
@@ -128,33 +150,43 @@ export default function NotificationCenter() {
               <span className="text-muted">수신된 알림이 없습니다.</span>
             </div>
           ) : (
-            notifications.map((notif) => (
-              <div
-                key={notif.id}
-                className={`${styles.notifItem} ${notif.read ? "" : styles.unread}`}
-                onClick={() => handleNotifClick(notif)}
-              >
-                <div className="d-flex align-items-start gap-2">
-                  <span className={`${styles.notifIcon} ${styles[notif.type] || styles.info}`}>
-                    <i className={`bi ${getNotifIconClass(notif.type)}`}></i>
-                  </span>
-                  <div className="flex-grow-1 min-w-0">
-                    <div className="d-flex align-items-center justify-content-between mb-1">
-                      <span className={styles.notifTitle}>{notif.title}</span>
-                      <span className={styles.notifTime}>{formatTime(notif.timestamp)}</span>
+            notifications.map((notif) => {
+              const isDeleting = deletingIds.includes(notif.id);
+              return (
+                <div
+                  key={notif.id}
+                  className={`${styles.notifItem} ${notif.read ? "" : styles.unread} ${isDeleting ? styles.deleting : ""}`}
+                  onClick={() => handleNotifClick(notif)}
+                >
+                  <div className="d-flex align-items-start gap-2">
+                    <span className={`${styles.notifIcon} ${styles[notif.type] || styles.info}`}>
+                      <i className={`bi ${getNotifIconClass(notif.type)}`}></i>
+                    </span>
+                    <div className="flex-grow-1 min-w-0">
+                      <div className="d-flex align-items-center justify-content-between mb-1">
+                        <span className={styles.notifTitle}>{notif.title}</span>
+                        <span className={styles.notifTime}>{formatTime(notif.timestamp)}</span>
+                      </div>
+                      <p className={styles.notifMessage}>{notif.message}</p>
                     </div>
-                    <p className={styles.notifMessage}>{notif.message}</p>
+                    <button
+                      className={styles.deleteItemBtn}
+                      onClick={(e) => handleDeleteNotif(e, notif.id)}
+                      title="알림 삭제"
+                    >
+                      <i className="bi bi-x"></i>
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {/* 하단 제어 */}
         {notifications.length > 0 && (
           <div className={styles.dropdownFooter}>
-            <button className={styles.clearAllBtn} onClick={clearAll}>
+            <button className={styles.clearAllBtn} onClick={handleClearAll}>
               알림 내역 전체 삭제
             </button>
           </div>

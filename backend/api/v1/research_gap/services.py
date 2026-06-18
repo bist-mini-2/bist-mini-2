@@ -412,5 +412,28 @@ class ResearchGapService:
             
         return translated_dict
 
+    async def list_user_tasks(self, mid: str) -> list[dict]:
+        """주어진 사용자 ID가 요청한 모든 분석 태스크 정보 목록을 조회합니다.
+
+        Args:
+            mid (str): 사용자의 식별자 ID.
+
+        Returns:
+            list[dict]: 사용자 소유의 태스크 정보 딕셔너리 리스트.
+        """
+        tasks = await self.research_gap_dao.list_tasks(mid=mid)
+        return [
+            {
+                "task_id": t.task_id,
+                "domain": t.domain,
+                "query": t.query,
+                "status": t.status,
+                "progress": t.progress,
+                "created_at": t.created_at,
+                "updated_at": t.updated_at
+            }
+            for t in tasks
+        ]
+
 
 ResearchGapServiceDep = Annotated[ResearchGapService, Depends(ResearchGapService)]

@@ -10,7 +10,7 @@ import styles from "./MatrixTable.module.css";
  */
 export default function MatrixTable({ result }) {
   return (
-    <div className="card shadow-sm p-4 border border-light-subtle h-100 bg-white">
+    <div className="card shadow-sm p-4 border border-light-subtle h-100 d-flex flex-column">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h5 className="fw-bold text-gradient mb-0">문헌 비교 스펙 매트릭스</h5>
         <span className={styles.monoBadge}>F-01-B-3 구조화 데이터</span>
@@ -71,10 +71,14 @@ export default function MatrixTable({ result }) {
           </table>
         </div>
       ) : (
-        <div className="text-center py-5 text-muted">
-          <i className="bi bi-grid-3x3-gap-fill fs-2 mb-3 d-block text-secondary"></i>
-          <p className="mb-1 fw-bold text-dark">분석 결과가 아직 없습니다.</p>
-          <p className="small mb-0">상단의 분석 제어판에서 비교 대상 조건 입력 후 '비동기 배치 분석 실행'을 클릭하세요.</p>
+        <div className="d-flex flex-column flex-grow-1 justify-content-center align-items-center text-center text-muted py-5">
+          <i className="bi bi-grid-3x3-gap-fill fs-2 mb-3 text-secondary"></i>
+          <p className="mb-2 fw-bold text-dark fs-5">분석 결과가 아직 없습니다.</p>
+          <div className="d-flex align-items-center justify-content-center px-3">
+            <p className="small mb-0 text-secondary" style={{ maxWidth: "560px", lineHeight: "1.5" }}>
+              상단의 분석 제어판에서 비교 대상 조건 입력 후 '비동기 배치 분석 실행'을 클릭하세요.
+            </p>
+          </div>
         </div>
       )}
     </div>

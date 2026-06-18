@@ -1,6 +1,7 @@
 "use client"
 
 import styles from "./ControlPanel.module.css";
+import StatusBadge from "@/components/StatusBadge";
 
 /**
  * 대규모 문헌 비교 분석기의 제어판 서브 컴포넌트입니다.
@@ -55,7 +56,7 @@ export default function ControlPanel({
             />
           </div>
           <div className="col-md-3">
-            <label className="form-label text-muted small fw-bold mb-1" style={{ visibility: "hidden" }}>Spacer</label>
+            <label className={`form-label text-muted small fw-bold mb-1 ${styles.hiddenLabel}`}>Spacer</label>
             <button
               type="submit"
               className={`${styles.devBtn} w-100`}
@@ -80,24 +81,7 @@ export default function ControlPanel({
       <div className="d-flex flex-column gap-2 mt-2 pt-2 border-top">
         <div className="d-flex align-items-center gap-3">
           <span className="text-muted small">작업 상태:</span>
-          {loading ? (
-            <span className={`${styles.statusBadge} ${styles.running}`}>
-              <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-              <span>RUNNING</span>
-            </span>
-          ) : status === "COMPLETED" ? (
-            <span className={`${styles.statusBadge} ${styles.success}`}>
-              <i className="bi bi-check-circle-fill me-1"></i> SUCCESS
-            </span>
-          ) : status === "FAILED" ? (
-            <span className={`${styles.statusBadge} ${styles.failed}`}>
-              <i className="bi bi-exclamation-triangle-fill me-1"></i> FAILED
-            </span>
-          ) : (
-            <span className={`${styles.statusBadge} ${styles.idle}`}>
-              <i className="bi bi-dash-circle-fill me-1"></i> IDLE
-            </span>
-          )}
+          <StatusBadge status={loading ? "RUNNING" : (status || "IDLE")} />
           
           <span className={styles.monoBadge}>
             Task ID: {taskId || "none"}

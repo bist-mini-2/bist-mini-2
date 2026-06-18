@@ -110,5 +110,23 @@ class ResearchGapDao:
             await self.orm_session.flush()
         return task
 
+    async def list_tasks(self, mid: str) -> list[ResearchGapTaskEntity]:
+        """주어진 사용자 ID가 요청한 모든 분석 태스크 목록을 생성 시간 내림차순으로 조회합니다.
+
+        Args:
+            mid (str): 사용자의 식별자 ID.
+
+        Returns:
+            list[ResearchGapTaskEntity]: 사용자 소유의 태스크 ORM 객체 리스트.
+        """
+        self.logger.info(f"list_tasks: mid={mid}")
+        stmt = (
+            select(ResearchGapTaskEntity)
+            .where(ResearchGapTaskEntity.mid == mid)
+            .order_by(ResearchGapTaskEntity.created_at.desc())
+        )
+        result = await self.orm_session.execute(stmt)
+        return list(result.scalars().all())
+
 
 ResearchGapDaoDep = Annotated[ResearchGapDao, Depends(ResearchGapDao)]

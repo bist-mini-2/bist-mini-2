@@ -1,0 +1,141 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+}
+
+.tableRow {
+  transition: background-color 0.15s ease;
+}
+
+.tableRow:hover {
+  background-color: var(--menu-item-hover-bg) !important;
+}
+
+.solidBtn {
+  background-color: var(--accent-color);
+  border: 1px solid transparent;
+  color: #ffffff !important;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.solidBtn:hover {
+  background-color: #74836d !important;
+  border-color: #74836d !important;
+  color: #ffffff !important;
+}
+
+:global([data-theme="dark"]) .solidBtn:hover {
+  background-color: #8c9d84 !important;
+  border-color: #8c9d84 !important;
+  color: #ffffff !important;
+}
+
+
+.outlineBtn {
+  background-color: transparent;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color) !important;
+  font-weight: 600;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.outlineBtn:hover {
+  background-color: var(--accent-color);
+  color: #ffffff !important;
+}
+
+.outlineSecBtn {
+  background-color: transparent;
+  border: 1px solid var(--card-border);
+  color: var(--menu-item-color) !important;
+  font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.outlineSecBtn:hover {
+  background-color: var(--sidebar-bg);
+}
+
+/* New CSS to eliminate inline styles */
+.statusSpinner {
+  width: 10px;
+  height: 10px;
+  border-width: 1.5px;
+}
+
+.historyTable {
+  font-size: 0.92rem;
+  --bs-table-bg: transparent !important;
+  --bs-table-color: var(--foreground) !important;
+  --bs-table-hover-bg: var(--menu-item-hover-bg) !important;
+  --bs-table-border-color: var(--card-border) !important;
+}
+
+.historyTable td {
+  color: var(--foreground) !important;
+}
+
+
+.tableHeader {
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+}
+
+.tableHeader th {
+  background-color: var(--sidebar-bg) !important;
+  color: var(--foreground) !important;
+  border-bottom: 2px solid var(--card-border) !important;
+}
+
+
+.colDomain {
+  width: 12%;
+  min-width: 100px;
+}
+
+.colQuery {
+  width: 40%;
+}
+
+.colStatus {
+  width: 15%;
+  min-width: 100px;
+}
+
+.colTime {
+  width: 18%;
+  min-width: 150px;
+}
+
+.colAction {
+  width: 15%;
+  min-width: 120px;
+}
+
+.domainBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.domainCs {
+  background-color: var(--accent-color) !important;
+  color: #ffffff !important;
+}
+
+.domainBio {
+  background-color: var(--tertiary-color) !important;
+  color: var(--foreground) !important;
+}
+
+.queryText {
+  max-width: 450px;
+}
+
+
+

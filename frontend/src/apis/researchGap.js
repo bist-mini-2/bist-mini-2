@@ -45,3 +45,14 @@ export async function translateMatrix(taskId) {
   return response.data;
 }
 
+/**
+ * 사용자가 요청한 모든 분석 작업 이력 리스트를 조회합니다.
+ * 
+ * @returns {Promise<object>} API 응답 객체 (태스크 리스트)
+ */
+export async function listUserTasks() {
+  const response = await apiClient.get("/research-gap/tasks");
+  return response.data;
+}
+
+
