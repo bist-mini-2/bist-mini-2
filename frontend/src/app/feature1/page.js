@@ -1,5 +1,6 @@
 "use client"
 
+import ReactMarkdown from "react-markdown";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { getMessages, sendMessage } from "@/apis/bioChatApi";
@@ -46,7 +47,7 @@ export default function Feature1Page() {
           const history = (res.data || []).map((item) => ({
             role: item.role,
             content: item.content,
-            sources: [],
+            sources: item.sources || []
           }));
           setMessages(history);
         }
@@ -193,8 +194,41 @@ export default function Feature1Page() {
 /**
  * 사용자/AI 메시지 말풍선. AI 메시지에는 참고 논문(출처)을 뱃지로 표시한다.
  */
+/**
+ * AI 답변의 content를 파싱한다.
+ * structured output(JSON 문자열)이면 {explanation, papers}로,
+ * 옛날 일반 텍스트면 그대로 explanation에 담아 반환한다(하위 호환).
+ */
+function parseAnswer(content) {
+  if (typeof content !== "string") {
+    return { explanation: "", papers: [] };
+  }
+  const trimmed = content.trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return {
+        explanation: parsed.explanation ?? "",
+        papers: Array.isArray(parsed.papers) ? parsed.papers : [],
+      };
+    } catch {
+      // 파싱 실패 시 일반 텍스트로 폴백
+    }
+  }
+  return { explanation: content, papers: [] };
+}
+
+/**
+ * 사용자/AI 메시지 말풍선.
+ * AI 메시지는 설명(explanation) + 논문 카드(papers) + 실제 검색 출처(sources)를 함께 표시한다.
+ */
 function MessageBubble({ message }) {
   const isUser = message.role === "user";
+
+  // 사용자 메시지는 파싱 없이 그대로, AI 메시지만 파싱
+  const { explanation, papers } = isUser
+    ? { explanation: message.content, papers: [] }
+    : parseAnswer(message.content);
 
   return (
     <div className={`${styles.messageRow} ${isUser ? styles.messageRowUser : ""}`}>
@@ -204,29 +238,61 @@ function MessageBubble({ message }) {
         </div>
       )}
       <div className={styles.bubbleGroup}>
+        {/* 설명 말풍선 */}
         <div
           className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAi} ${message.isError ? styles.bubbleError : ""}`}
         >
-          {message.content}
+          {isUser ? (
+            message.content
+          ) : (
+            <div className={styles.markdown}>
+              <ReactMarkdown>{explanation}</ReactMarkdown>
+            </div>
+          )}
         </div>
+
+        {/* 논문 카드 (papers) — LLM이 정리한 근거 논문 + 한 줄 요약 */}
+        {!isUser && papers.length > 0 && (
+          <div className={styles.paperCards}>
+            {papers.map((paper, i) => (
+              <a
+                key={i}
+                className={styles.paperCard}
+                href={`https://arxiv.org/abs/${paper.arxiv_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <div className={styles.paperCardHead}>
+                  <i className={`bi bi-file-earmark-text ${styles.paperCardIcon}`}></i>
+                  <span className={styles.paperCardTitle}>{paper.title}</span>
+                  <i className={`bi bi-box-arrow-up-right ${styles.paperCardLink}`}></i>
+                </div>
+                <span className={styles.paperCardArxiv}>{paper.arxiv_id}</span>
+                {paper.summary && (
+                  <p className={styles.paperCardSummary}>{paper.summary}</p>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* 실제 검색된 출처 (sources) — 검증 가능한 벡터 검색 결과 */}
         {!isUser && message.sources && message.sources.length > 0 && (
           <div className={styles.sources}>
             <span className={styles.sourcesLabel}>
-              <i className="bi bi-journal-text"></i> 참고 논문
+              <i className="bi bi-database-check"></i> 검색된 출처
             </span>
-            <div className={styles.sourceBadges}>
+            <div className={styles.sourceChips}>
               {message.sources.map((src, i) => (
                 <a
                   key={i}
-                  className={styles.sourceBadge}
+                  className={styles.sourceChip}
                   href={`https://arxiv.org/abs/${src.arxiv_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   title={src.title}
                 >
-                  <span className={styles.sourceArxiv}>{src.arxiv_id}</span>
-                  <span className={styles.sourceTitle}>{src.title}</span>
-                  <i className={`bi bi-box-arrow-up-right ${styles.sourceLinkIcon}`}></i>
+                  {src.arxiv_id}
                 </a>
               ))}
             </div>

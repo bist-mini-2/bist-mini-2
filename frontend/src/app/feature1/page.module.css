@@ -324,3 +324,180 @@
   text-align: center;
   letter-spacing: 0.03em;
 }
+
+/* ---- 마크다운 렌더링 ---- */
+.markdown {
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.markdown :global(h1),
+.markdown :global(h2),
+.markdown :global(h3) {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 14px 0 6px;
+  color: var(--foreground);
+}
+
+.markdown :global(h1:first-child),
+.markdown :global(h2:first-child),
+.markdown :global(h3:first-child) {
+  margin-top: 0;
+}
+
+.markdown :global(p) {
+  margin: 0 0 8px;
+}
+
+.markdown :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+/* 리스트 — 번호와 내용이 한 줄에 붙도록 (Claude 스타일) */
+.markdown :global(ol),
+.markdown :global(ul) {
+  margin: 8px 0;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.markdown :global(li) {
+  margin: 0;
+  padding-left: 4px;
+  line-height: 1.65;
+  white-space: normal;
+}
+
+/* 핵심: 리스트 항목 안 문단을 inline 처리 → 번호와 내용 한 줄 */
+.markdown :global(li > p) {
+  display: inline !important;
+  margin: 0 !important;
+}
+
+.markdown :global(strong) {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.markdown :global(code) {
+  font-family: var(--mono-font);
+  font-size: 0.82rem;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+
+.markdown :global(pre) {
+  background: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.markdown :global(pre code) {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.markdown :global(a) {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
+/* ---- 논문 카드 (papers: LLM이 정리한 근거 논문) ---- */
+.paperCards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.paperCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  text-decoration: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.paperCard:hover {
+  border-color: var(--accent-color);
+  background: var(--accent-glow);
+}
+
+.paperCardHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.paperCardIcon {
+  font-size: 0.82rem;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.paperCardTitle {
+  flex: 1;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.paperCardLink {
+  font-size: 0.72rem;
+  color: var(--profile-role-color);
+  flex-shrink: 0;
+}
+
+.paperCardArxiv {
+  font-family: var(--mono-font);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  letter-spacing: 0.02em;
+}
+
+.paperCardSummary {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--profile-role-color);
+}
+
+/* ---- 검색된 출처 칩 (sources: 실제 벡터 검색 결과) ---- */
+.sourceChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sourceChip {
+  font-family: var(--mono-font);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--profile-role-color);
+  background: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  text-decoration: none;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.sourceChip:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}

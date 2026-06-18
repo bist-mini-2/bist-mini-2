@@ -49,6 +49,7 @@ class ChatHistoryItem(BaseDTO):
     """대화 내역 1건. role(user/assistant)과 content로 구성된다."""
     role: str
     content: str
+    sources: list[dict] = []
 
 
 class ChatHistoryResponseWrapper(SuccessResponse):
