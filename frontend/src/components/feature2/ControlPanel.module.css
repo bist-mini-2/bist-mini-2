@@ -17,7 +17,7 @@
   font-size: 0.9rem;
   padding: 9px 12px;
   outline: none;
-  transition: border-color 0.15s ease, width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   height: 38px;
   box-sizing: border-box;
@@ -25,6 +25,7 @@
 
 .devInput:focus {
   border-color: var(--accent-color);
+  transition: border-color 0.15s ease;
 }
 
 .devBtn {
