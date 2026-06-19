@@ -27,28 +27,29 @@ async def search_cs_papers(query: str, k: int = 3) -> str:
     Returns:
         str: 검색된 논문 제목, 요약, 메타데이터
     """
-    from api.database.config.dbsession import session_maker
-    from api.v1.cs.embedding import embedding_helper
-    from api.v1.cs.dao import CsDao
+    from langchain.embeddings import init_embeddings
+    from langchain_postgres import PGVector
+    from api.v1.cs.vectorstore_conf import COLLECTION_NAME, CONNECTION, EMBED_MODEL
 
-    # 1. 쿼리 텍스트 임베딩 생성 (싱글톤 helper 활용)
-    query_vector = embedding_helper.encode(query)
+    vectorstore = PGVector(
+        embeddings=init_embeddings(model=EMBED_MODEL),
+        collection_name=COLLECTION_NAME,
+        connection=CONNECTION,
+        async_mode=True,
+    )
+    results = await vectorstore.asimilarity_search_with_score(query, k=k)
 
-    # 2. 독립적인 세션을 생성하여 DAO를 통해 유사도 높은 청크 조회
-    async with session_maker() as session:
-        dao = CsDao(session)
-        search_res = await dao.select_similar_chunks(query_vector, top_k=k)
-
-    if not search_res:
+    if not results:
         return f"cs.NE 논문에서 '{query}'와 관련된 내용을 찾을 수 없습니다."
 
     output_lines = [f"검색 결과: '{query}' (cs.NE 논문)\n"]
     output_lines.append("=" * 80 + "\n")
-    for idx, doc in enumerate(search_res, 1):
-        output_lines.append(f"\n[논문 {idx}] (유사도: {doc['score']:.4f})")
-        output_lines.append(f"제목: {doc['title']}")
-        output_lines.append(f"arXiv ID: {doc['doc_id']}")
-        output_lines.append(f"\n내용:\n{doc['text_chunk']}\n")
+    for idx, (doc, score) in enumerate(results, 1):
+        similarity = 1.0 - float(score)
+        output_lines.append(f"\n[논문 {idx}] (유사도: {similarity:.4f})")
+        output_lines.append(f"제목: {doc.metadata.get('title', '')}")
+        output_lines.append(f"arXiv ID: {doc.metadata.get('arxiv_id') or doc.metadata.get('doc_id') or ''}")
+        output_lines.append(f"\n내용:\n{doc.page_content}\n")
         output_lines.append("-" * 80)
 
     return "\n".join(output_lines)

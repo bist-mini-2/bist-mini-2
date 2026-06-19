@@ -4,12 +4,15 @@ from fastapi import Depends
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import create_agent
+from langchain.embeddings import init_embeddings
+from langchain_postgres import PGVector
 
 from api.common.config import settings
 from api.v1.cs.dao import CsDaoDep
 from api.v1.cs.embedding import embedding_helper
 from api.v1.cs.handler import LlmLoggingHandler
 from api.v1.cs.tools import search_cs_papers
+from api.v1.cs.vectorstore_conf import COLLECTION_NAME, CONNECTION, EMBED_MODEL
 
 
 class CsService:
@@ -61,14 +64,25 @@ class CsService:
         Returns:
             list[dict]: 매칭된 유사 청크 딕셔너리 목록.
         """
-        self.logger.info("search_similar_papers 실행")
-        # 1. 쿼리 텍스트 임베딩 생성 (싱글톤 helper 활용)
-        query_vector = embedding_helper.encode(query)
+        self.logger.info("search_similar_papers 실행 (PGVector 활용)")
+        vectorstore = PGVector(
+            embeddings=init_embeddings(model=EMBED_MODEL),
+            collection_name=COLLECTION_NAME,
+            connection=CONNECTION,
+            async_mode=True,
+        )
+        results = await vectorstore.asimilarity_search_with_score(query, k=top_k)
 
-        # 2. DAO를 통해 유사도 높은 청크들 조회
-        raw_results = await self.cs_dao.select_similar_chunks(query_vector, top_k)
+        formatted = []
+        for doc, score in results:
+            formatted.append({
+                "doc_id": doc.metadata.get("arxiv_id") or doc.metadata.get("doc_id") or "",
+                "title": doc.metadata.get("title", ""),
+                "text_chunk": doc.page_content,
+                "score": round(1.0 - float(score), 4)
+            })
 
-        return raw_results
+        return formatted
 
     async def answer_question_with_rag(
         self, query: str, top_k: int, llm_model: str = "gpt-4o-mini"
