@@ -54,6 +54,18 @@ class ChatService:
         return chat_session_entity
     
 
+    async def generate_and_set_title(self, member_id: str, session_id: str, question: str) -> str:
+        """첫 질문을 바탕으로 AI가 채팅방 제목을 생성하고 적용한다. 소유자만 가능.
+
+        제목 생성은 답변과 별개의 가벼운 LLM 호출이며, 실패해도 대화에는
+        영향을 주지 않도록 방어한다(실패 시 기존 제목 유지).
+        """
+        await self._get_owned_session(member_id, session_id)
+        title = await self.chat_agent.generate_title(question)
+        await self.chat_session_dao.update_title(session_id, title)
+        return title
+    
+    
     async def send_message(self, member_id: str, session_id: str, message: str) -> dict:
         """채팅방에 메시지를 보내 RAG 기반 답변을 받는다(대화 기록 + 출처 저장). 소유자만 가능."""
         await self._get_owned_session(member_id, session_id)

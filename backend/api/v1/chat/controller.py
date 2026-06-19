@@ -97,3 +97,15 @@ async def get_messages(
     return ChatHistoryResponseWrapper(
         data=[ChatHistoryItem(**item) for item in history]
     )
+
+
+@router.post("/sessions/{session_id}/generate-title")
+async def generate_title(
+    user: LoginCheckDep,
+    session_id: str,
+    request: ChatMessageRequest,
+    service: ChatServiceDep,
+) -> SuccessResponse:
+    """첫 질문을 바탕으로 AI가 채팅방 제목을 생성하고 적용합니다."""
+    title = await service.generate_and_set_title(user["sub"], session_id, request.message)
+    return SuccessResponse(data={"title": title})

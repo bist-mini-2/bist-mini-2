@@ -66,3 +66,16 @@ export async function getMessages(sessionId) {
   const response = await apiClient.get(`/chat/sessions/${sessionId}/messages`);
   return response.data;
 }
+
+
+/**
+ * 첫 질문을 바탕으로 AI가 채팅방 제목을 생성하고 적용합니다.
+ *
+ * @param {string} sessionId 채팅방 고유 ID
+ * @param {string} message 사용자의 첫 질문
+ * @returns {Promise<object>} API 응답 객체 (data: { title })
+ */
+export async function generateTitle(sessionId, message) {
+  const response = await apiClient.post(`/chat/sessions/${sessionId}/generate-title`, { message });
+  return response.data;
+}
