@@ -62,11 +62,13 @@
   display: block;
   user-select: none;
   outline: none !important;
+  overflow: visible !important;
 }
 
 /* 카메라 줌인/이동 무빙 트랜지션 (완벽한 무빙 카메라) */
 .zoomGroup {
   transition: transform 0.7s cubic-bezier(0.19, 1, 0.22, 1);
+  transform-origin: 0 0;
 }
 
 /* Floating Controls Toolbar */
@@ -142,8 +144,7 @@
               cy 0.7s cubic-bezier(0.19, 1, 0.22, 1),
               r 0.5s cubic-bezier(0.19, 1, 0.22, 1),
               fill 0.3s ease,
-              filter 0.3s ease,
-              opacity 0.6s ease;
+              filter 0.3s ease;
   fill-opacity: 0.95;
 }
 
@@ -177,6 +178,10 @@
 }
 
 /* 활성 노드 외 불투명 처리 (Focus Effect) */
+.zoomGroup g {
+  /* 개별 inline style로 정밀 제어 */
+}
+
 .dimmed {
   opacity: 0 !important;
   pointer-events: none !important;
@@ -207,7 +212,10 @@
 
 .foreignObjectWrapper {
   overflow: visible !important;
-  transition: all 0.7s cubic-bezier(0.19, 1, 0.22, 1) !important;
+  transition: x 0.7s cubic-bezier(0.19, 1, 0.22, 1),
+              y 0.7s cubic-bezier(0.19, 1, 0.22, 1),
+              width 0.7s cubic-bezier(0.19, 1, 0.22, 1),
+              height 0.7s cubic-bezier(0.19, 1, 0.22, 1) !important;
 }
 
 /* 커넥터 스타일 */
@@ -314,4 +322,162 @@
 .gapList {
   list-style: none;
   padding-left: 0;
+}
+
+/* --- Interactive Node Label Styles --- */
+.labelContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.topLabelContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding-top: 4px;
+}
+
+.queryTitle {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--node-text);
+  word-break: keep-all;
+}
+
+.queryContent {
+  font-size: 0.68rem;
+  color: var(--node-sub-text);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-all;
+  width: 100%;
+}
+
+.queryContentExpanded {
+  composes: queryContent;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.paperTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--node-text);
+  line-height: 1.25;
+  word-break: keep-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.paperTitleExpanded {
+  composes: paperTitle;
+  display: block;
+  -webkit-line-clamp: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.solvedTitle {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--color-direction);
+  text-transform: uppercase;
+}
+
+.solvedContent {
+  font-size: 0.65rem;
+  color: var(--node-sub-text);
+  display: block;
+  line-height: 1.3;
+  margin-top: 4px;
+  word-break: keep-all;
+  width: 100%;
+}
+
+.limitTitle {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--color-limit);
+  text-transform: uppercase;
+}
+
+.limitContent {
+  font-size: 0.65rem;
+  color: var(--node-sub-text);
+  display: block;
+  line-height: 1.3;
+  margin-top: 4px;
+  word-break: keep-all;
+  width: 100%;
+}
+
+.commonTitle {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--node-text);
+  word-break: keep-all;
+}
+
+.commonContent {
+  font-size: 0.66rem;
+  color: var(--node-sub-text);
+  margin-top: 2px;
+}
+
+.directionTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--node-text);
+  word-break: keep-all;
+  transition: font-size 0.5s ease;
+}
+
+.directionTitleExpanded {
+  composes: directionTitle;
+  font-size: 0.82rem;
+}
+
+.directionContentText {
+  font-size: 0.66rem;
+  color: var(--node-sub-text);
+  margin-top: 2px;
+  line-height: 1.25;
+  word-break: normal;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  transition: all 0.5s ease;
+}
+
+.directionContentTextExpanded {
+  composes: directionContentText;
+  font-size: 0.72rem;
+  margin-top: 6px;
+  line-height: 1.35;
+  display: block;
+  -webkit-line-clamp: none;
+  overflow: visible;
+  text-overflow: clip;
 }

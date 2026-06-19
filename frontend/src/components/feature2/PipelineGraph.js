@@ -120,36 +120,75 @@ export default function PipelineGraph({ result, query }) {
   }
 
   // 3단계: 하위 서브 노드들 (Solved 및 Limitation 노드)
-  // 클릭된 논문 주변에 45도, -45도로 전개되도록 설정
-  const R_child = 140; // 부모 논문 노드로부터 뻗어 나가는 반경 (겹침 방지를 위해 140px로 확장)
+  // 클릭된 논문 주변에 넓게 부채꼴 형태로 전개되도록 설정
   const solvedNodes = [];
   const limitationNodes = [];
   for (let i = 0; i < papers.length; i++) {
     const paper = paperNodes[i];
-    
-    // Solved 서브노드 (오른쪽 위 45도 방향)
-    solvedNodes.push({
-      id: `solved-${i}`,
-      parentId: `paper-${i}`,
-      x: paper.x + R_child * Math.cos(-Math.PI / 5),
-      y: paper.y + R_child * Math.sin(-Math.PI / 5),
-      r: 28,
-      title: "Solved",
-      content: paper.problems_solved?.[0] || "해결 과제 정보가 없습니다.",
-      problems_solved: paper.problems_solved || []
-    });
 
-    // Limitation 서브노드 (오른쪽 아래 45도 방향)
-    limitationNodes.push({
-      id: `limitation-${i}`,
-      parentId: `paper-${i}`,
-      x: paper.x + R_child * Math.cos(Math.PI / 5),
-      y: paper.y + R_child * Math.sin(Math.PI / 5),
-      r: 28,
-      title: "Limitation",
-      content: paper.limitations?.[0] || "한계점 정보가 없습니다.",
-      limitations: paper.limitations || []
-    });
+    const solvedList = paper.problems_solved || [];
+    const limitList = paper.limitations || [];
+    const numSolved = solvedList.length;
+    const numLimit = limitList.length;
+    const totalChildren = numSolved + numLimit;
+
+    // 자식 노드가 많을수록 전개 반경을 넓힘
+    const R_child = 190 + totalChildren * 12;
+
+    // 자식 노드들의 균등 각도 분배 (Solved/Limitation 구분 없이 통합 부채꼴 배치)
+    let childAngles = [];
+    if (totalChildren === 1) {
+      childAngles = [0]; // 1개일 때는 우측 정면 배치
+    } else if (totalChildren > 1) {
+      // 자식 개수가 많을수록 넓게 펼치며, 최대 144도 (Math.PI * 0.8) 범위로 제한해 Query 노드 침범을 원천 차단
+      const maxSpread = Math.PI * 0.8; 
+      const spreadAngle = Math.min(maxSpread, (totalChildren - 1) * (Math.PI * 0.22));
+      const startAngle = -spreadAngle / 2;
+      const angleGap = spreadAngle / (totalChildren - 1);
+      for (let j = 0; j < totalChildren; j++) {
+        childAngles.push(startAngle + j * angleGap);
+      }
+    }
+
+    // Solved 노드 생성 (통합 인덱스 0 ~ numSolved-1 배치)
+    for (let j = 0; j < numSolved; j++) {
+      const angle = childAngles[j];
+      const currentR = R_child; // 균일한 동심원상 배치
+
+      solvedNodes.push({
+        id: `solved-${i}-${j}`,
+        parentId: `paper-${i}`,
+        parentX: paper.x,
+        parentY: paper.y,
+        x: paper.x + currentR * Math.cos(angle),
+        y: paper.y + currentR * Math.sin(angle),
+        r: 28,
+        angle: angle, // 각도 정보 보관
+        title: numSolved > 1 ? `Solved ${j + 1}` : "Solved",
+        content: solvedList[j] || "해결 과제 정보가 없습니다.",
+        problems_solved: solvedList
+      });
+    }
+
+    // Limitation 노드 생성 (통합 인덱스 numSolved ~ totalChildren-1 배치)
+    for (let j = 0; j < numLimit; j++) {
+      const angle = childAngles[numSolved + j];
+      const currentR = R_child; // 균일한 동심원상 배치
+
+      limitationNodes.push({
+        id: `limitation-${i}-${j}`,
+        parentId: `paper-${i}`,
+        parentX: paper.x,
+        parentY: paper.y,
+        x: paper.x + currentR * Math.cos(angle),
+        y: paper.y + currentR * Math.sin(angle),
+        r: 28,
+        angle: angle, // 각도 정보 보관
+        title: numLimit > 1 ? `Limitation ${j + 1}` : "Limitation",
+        content: limitList[j] || "한계점 정보가 없습니다.",
+        limitations: limitList
+      });
+    }
   }
 
   // 4단계: 공통 한계점 노드 (중앙 우측 배치)
@@ -203,20 +242,36 @@ export default function PipelineGraph({ result, query }) {
     if (activeFocusNode === "query") focusNode = queryNode;
     else if (activeFocusNode === "common") focusNode = commonNode;
     else if (activeFocusNode.startsWith("paper-")) {
-      const idx = parseInt(activeFocusNode.split("-")[1]);
-      focusNode = paperNodes[idx];
+      focusNode = paperNodes.find(n => n.id === activeFocusNode);
     } else if (activeFocusNode.startsWith("direction-")) {
-      const idx = parseInt(activeFocusNode.split("-")[1]);
-      focusNode = directionNodes[idx];
+      focusNode = directionNodes.find(n => n.id === activeFocusNode);
     } else if (activeFocusNode.startsWith("solved-")) {
-      const idx = parseInt(activeFocusNode.split("-")[1]);
-      focusNode = solvedNodes[idx];
+      focusNode = solvedNodes.find(n => n.id === activeFocusNode);
     } else if (activeFocusNode.startsWith("limitation-")) {
-      const idx = parseInt(activeFocusNode.split("-")[1]);
-      focusNode = limitationNodes[idx];
+      focusNode = limitationNodes.find(n => n.id === activeFocusNode);
     }
 
     if (!focusNode) return { x: origX, y: origY };
+
+    // 공통 연구 공백(Common GAP) 노드가 포커싱되었을 때의 특별한 위치 재정의 로직
+    if (activeFocusNode === "common" && nodeId.startsWith("limitation-")) {
+      const totalLimit = limitationNodes.length;
+      const selfIdx = limitationNodes.findIndex(n => n.id === nodeId);
+      
+      if (selfIdx !== -1) {
+        // 공통 GAP 노드의 좌측 반원 범위 (약 120도 ~ 240도, 즉 Math.PI * 0.65 ~ Math.PI * 1.35)로 분배
+        const R_common_child = 240 + totalLimit * 4; // 자식 개수에 따라 살짝 팽창
+        const spreadAngle = Math.PI * 0.75; // 135도 폭
+        const startAngle = Math.PI - spreadAngle / 2; // 약 112.5도
+        const angleGap = totalLimit > 1 ? spreadAngle / (totalLimit - 1) : 0;
+        const angle = startAngle + selfIdx * angleGap;
+        
+        return {
+          x: focusNode.x + R_common_child * Math.cos(angle),
+          y: focusNode.y + R_common_child * Math.sin(angle)
+        };
+      }
+    }
 
     // 형제 노드 여부 검사 (같은 계열)
     const isBrother = 
@@ -236,13 +291,18 @@ export default function PipelineGraph({ result, query }) {
       };
     }
 
+    // 만약 paper 노드가 포커싱되어 있으면, query 노드는 450px 만큼 왼쪽으로 밀어서 충돌이나 겹침 방지
+    if (activeFocusNode.startsWith("paper-") && nodeId === "query") {
+      return { x: origX - 450, y: origY };
+    }
+
     return { x: origX, y: origY };
   };
 
   // --- 카메라 포커싱 & 가시성 규칙 (Visibility rules) ---
 
   const focusOnNode = (nodeId, x, y) => {
-    const targetScale = 1.6;
+    const targetScale = nodeId === "common" ? 1.1 : 1.2;
     if (activeFocusNode === nodeId) {
       // 포커스 리셋
       setScale(1.0);
@@ -275,15 +335,16 @@ export default function PipelineGraph({ result, query }) {
     // 논문 포커스 시: 해당 논문, Query 및 해당 논문의 자식 노드(Solved/Limitation) 노출
     if (activeFocusNode.startsWith("paper-")) {
       const idx = activeFocusNode.split("-")[1];
-      return nodeId === "query" || nodeId === `paper-${idx}` || nodeId === `solved-${idx}` || nodeId === `limitation-${idx}`;
+      return nodeId === "query" || nodeId === `paper-${idx}` || nodeId.startsWith(`solved-${idx}-`) || nodeId.startsWith(`limitation-${idx}-`);
     }
 
-    // 자식 노드 포커스 시: 해당 자식 노드, 부모 논문, 그리고 Common Gap 노출
+    // 자식 노드 포커스 시: 해당 자식 노드, 부모 논문 노출. (limitation일 경우에만 Common Gap 추가 노출)
     if (activeFocusNode.startsWith("solved-") || activeFocusNode.startsWith("limitation-")) {
-      const idx = activeFocusNode.split("-")[1];
-      const parentVisible = nodeId === `paper-${idx}`;
+      const parts = activeFocusNode.split("-");
+      const parentIdx = parts[1];
+      const parentVisible = nodeId === `paper-${parentIdx}`;
       const selfVisible = nodeId === activeFocusNode;
-      const commonVisible = nodeId === "common";
+      const commonVisible = activeFocusNode.startsWith("limitation-") && nodeId === "common";
       return parentVisible || selfVisible || commonVisible;
     }
 
@@ -308,9 +369,11 @@ export default function PipelineGraph({ result, query }) {
 
   // 노드 카드 클릭 핸들러
   const handleNodeClick = (e, node) => {
+    e.stopPropagation();
     if (isSpacePressed) return;
+    if (!isNodeVisible(node.id)) return;
     focusOnNode(node.id, node.x, node.y);
-    setSelectedNode({ type: node.id, data: node });
+    setSelectedNode((prev) => (prev?.type === node.id ? null : { type: node.id, data: node }));
   };
 
   // 마우스 드래그 앤 팬 이벤트 핸들러
@@ -456,7 +519,15 @@ export default function PipelineGraph({ result, query }) {
               const path = getBezierPath(qCoords.x, qCoords.y, pCoords.x, pCoords.y);
               const visible = isNodeVisible("query") && isNodeVisible(paper.id);
               return (
-                <g key={`connector-qp-${idx}`} className={visible ? "" : styles.dimmed}>
+                <g
+                  key={`connector-qp-${idx}`}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    transition: "opacity 0.4s ease",
+                    transitionDelay: visible ? "0.4s" : "0s",
+                    pointerEvents: "none"
+                  }}
+                >
                   <path d={path} className={styles.connectorBg} />
                   <path d={path} className={`${styles.connectorFlow} ${styles.flowQuery}`} />
                 </g>
@@ -464,33 +535,47 @@ export default function PipelineGraph({ result, query }) {
             })}
 
             {/* Papers -> Sub-nodes (Solved / Limitation) */}
-            {paperNodes.map((paper, idx) => {
-              const solved = solvedNodes[idx];
-              const limit = limitationNodes[idx];
+            {solvedNodes.map((solved, idx) => {
+              const paper = paperNodes.find(n => n.id === solved.parentId);
+              if (!paper) return null;
               const pCoords = getRepulsedCoords(paper.id, paper.x, paper.y);
               const sCoords = getRepulsedCoords(solved.id, solved.x, solved.y);
-              const lCoords = getRepulsedCoords(limit.id, limit.x, limit.y);
-              
-              const pathSolved = getBezierPath(pCoords.x, pCoords.y, sCoords.x, sCoords.y);
-              const pathLimit = getBezierPath(pCoords.x, pCoords.y, lCoords.x, lCoords.y);
-              
-              const solvedVisible = isNodeVisible(paper.id) && isNodeVisible(solved.id);
-              const limitVisible = isNodeVisible(paper.id) && isNodeVisible(limit.id);
-
+              const path = getBezierPath(pCoords.x, pCoords.y, sCoords.x, sCoords.y);
+              const visible = isNodeVisible(paper.id) && isNodeVisible(solved.id);
               return (
-                <g key={`connector-psub-${idx}`}>
-                  {solvedVisible && (
-                    <>
-                      <path d={pathSolved} className={styles.connectorBg} />
-                      <path d={pathSolved} className={`${styles.connectorFlow} ${styles.flowDirection}`} />
-                    </>
-                  )}
-                  {limitVisible && (
-                    <>
-                      <path d={pathLimit} className={styles.connectorBg} />
-                      <path d={pathLimit} className={`${styles.connectorFlow} ${styles.flowLimit}`} />
-                    </>
-                  )}
+                <g
+                  key={`connector-psolved-${solved.id}`}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    transition: "opacity 0.4s ease",
+                    transitionDelay: visible ? "0.4s" : "0s",
+                    pointerEvents: "none"
+                  }}
+                >
+                  <path d={path} className={styles.connectorBg} />
+                  <path d={path} className={`${styles.connectorFlow} ${styles.flowDirection}`} />
+                </g>
+              );
+            })}
+            {limitationNodes.map((limit, idx) => {
+              const paper = paperNodes.find(n => n.id === limit.parentId);
+              if (!paper) return null;
+              const pCoords = getRepulsedCoords(paper.id, paper.x, paper.y);
+              const lCoords = getRepulsedCoords(limit.id, limit.x, limit.y);
+              const path = getBezierPath(pCoords.x, pCoords.y, lCoords.x, lCoords.y);
+              const visible = isNodeVisible(paper.id) && isNodeVisible(limit.id);
+              return (
+                <g
+                  key={`connector-plimit-${limit.id}`}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    transition: "opacity 0.4s ease",
+                    transitionDelay: visible ? "0.4s" : "0s",
+                    pointerEvents: "none"
+                  }}
+                >
+                  <path d={path} className={styles.connectorBg} />
+                  <path d={path} className={`${styles.connectorFlow} ${styles.flowLimit}`} />
                 </g>
               );
             })}
@@ -502,7 +587,15 @@ export default function PipelineGraph({ result, query }) {
               const path = getBezierPath(lCoords.x, lCoords.y, cCoords.x, cCoords.y);
               const visible = isNodeVisible(limit.id) && isNodeVisible("common");
               return (
-                <g key={`connector-lc-${idx}`} style={{ opacity: visible ? 1 : 0, transition: "opacity 0.4s" }}>
+                <g
+                  key={`connector-lc-${limit.id}`}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    transition: "opacity 0.4s ease",
+                    transitionDelay: visible ? "0.4s" : "0s",
+                    pointerEvents: "none"
+                  }}
+                >
                   <path d={path} className={styles.connectorBg} />
                   <path d={path} className={`${styles.connectorFlow} ${styles.flowLimit}`} />
                 </g>
@@ -516,13 +609,47 @@ export default function PipelineGraph({ result, query }) {
               const path = getBezierPath(cCoords.x, cCoords.y, dCoords.x, dCoords.y);
               const visible = isNodeVisible("common") && isNodeVisible(dir.id);
               return (
-                <g key={`connector-cd-${idx}`} className={visible ? "" : styles.dimmed}>
+                <g
+                  key={`connector-cd-${idx}`}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    transition: "opacity 0.4s ease",
+                    transitionDelay: visible ? "0.4s" : "0s",
+                    pointerEvents: "none"
+                  }}
+                >
                   <path d={path} className={styles.connectorBg} />
                   <path d={path} className={`${styles.connectorFlow} ${styles.flowCommon}`} />
                 </g>
               );
             })}
 
+            {/* Direct Connectors (Paper Nodes -> Common GAP Node) when no node is focused */}
+            {paperNodes.map((paper, idx) => {
+              const pCoords = getRepulsedCoords(paper.id, paper.x, paper.y);
+              const cCoords = getRepulsedCoords(commonNode.id, commonNode.x, commonNode.y);
+              const path = getBezierPath(pCoords.x, pCoords.y, cCoords.x, cCoords.y);
+              const visible = !activeFocusNode || activeFocusNode === "common";
+              
+              // 루트 상태(activeFocusNode === null)일 때는 1.0으로 선명하게 표시,
+              // 공통 공백(common) 포커스 상태일 때는 0.35로 희미하게 처리
+              const opacityVal = activeFocusNode === "common" ? 0.35 : (visible ? 1.0 : 0);
+
+              return (
+                <g
+                  key={`connector-pc-direct-${idx}`}
+                  style={{
+                    opacity: opacityVal,
+                    transition: "opacity 0.4s ease-out",
+                    transitionDelay: activeFocusNode && visible ? "0.4s" : "0s",
+                    pointerEvents: "none"
+                  }}
+                >
+                  <path d={path} className={styles.connectorBg} />
+                  <path d={path} className={`${styles.connectorFlow} ${styles.flowPaper}`} style={{ strokeDasharray: "4, 12" }} />
+                </g>
+              );
+            })}
 
             {/* 2. 원형 노드들 (Circle Nodes) */}
 
@@ -531,29 +658,39 @@ export default function PipelineGraph({ result, query }) {
               const coords = getRepulsedCoords(queryNode.id, queryNode.x, queryNode.y);
               const r = getCircleRadius(queryNode.id, queryNode.r);
               const visible = isNodeVisible(queryNode.id);
+              const isSelected = selectedNode?.type === queryNode.id;
               return (
-                <g className={visible ? "" : styles.dimmed}>
+                <g
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    pointerEvents: visible ? "auto" : "none",
+                    transition: "opacity 0.4s ease-out",
+                    transitionDelay: visible ? "0.4s" : "0s"
+                  }}
+                >
                   <circle
                     cx={coords.x}
                     cy={coords.y}
                     r={r}
-                    className={`${styles.circleNode} ${styles.queryCircle} ${selectedNode?.type === queryNode.id ? styles.selected : ""}`}
+                    className={`${styles.circleNode} ${styles.queryCircle} ${isSelected ? styles.selected : ""}`}
                     filter="url(#neon-glow-query)"
                     onClick={(e) => handleNodeClick(e, queryNode)}
                   />
                   <foreignObject
-                    x={coords.x - 90}
+                    x={coords.x - (isSelected ? 150 : 110)}
                     y={coords.y + r + 10}
-                    width={180}
-                    height={80}
-                    pointerEvents="none"
+                    width={isSelected ? 300 : 220}
+                    height={isSelected ? 200 : 80}
+                    pointerEvents={visible ? "auto" : "none"}
                     className={styles.foreignObjectWrapper}
                   >
-                    <div style={{ textAlign: "center", fontSize: "0.74rem", fontWeight: "700", color: "var(--foreground)", wordBreak: "keep-all" }}>
-                      {queryNode.title}
-                    </div>
-                    <div style={{ textAlign: "center", fontSize: "0.68rem", color: "var(--node-sub-text)", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {queryNode.content}
+                    <div className={styles.topLabelContainer} style={{ pointerEvents: visible ? "auto" : "none" }} onClick={(e) => handleNodeClick(e, queryNode)}>
+                      <div className={styles.queryTitle}>
+                        {queryNode.title}
+                      </div>
+                      <div className={isSelected ? styles.queryContentExpanded : styles.queryContent}>
+                        {queryNode.content}
+                      </div>
                     </div>
                   </foreignObject>
                 </g>
@@ -565,26 +702,37 @@ export default function PipelineGraph({ result, query }) {
               const visible = isNodeVisible(paper.id);
               const coords = getRepulsedCoords(paper.id, paper.x, paper.y);
               const r = getCircleRadius(paper.id, paper.r);
+              const isSelected = selectedNode?.type === paper.id;
               return (
-                <g key={paper.id} className={visible ? "" : styles.dimmed}>
+                <g
+                  key={paper.id}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    pointerEvents: visible ? "auto" : "none",
+                    transition: "opacity 0.4s ease-out",
+                    transitionDelay: visible ? "0.4s" : "0s"
+                  }}
+                >
                   <circle
                     cx={coords.x}
                     cy={coords.y}
                     r={r}
-                    className={`${styles.circleNode} ${styles.paperCircle} ${selectedNode?.type === paper.id ? styles.selected : ""}`}
+                    className={`${styles.circleNode} ${styles.paperCircle} ${isSelected ? styles.selected : ""}`}
                     filter="url(#neon-glow-paper)"
                     onClick={(e) => handleNodeClick(e, paper)}
                   />
                   <foreignObject
-                    x={coords.x - 85}
+                    x={coords.x - (isSelected ? 140 : 85)}
                     y={coords.y + r + 8}
-                    width={170}
-                    height={60}
-                    pointerEvents="none"
+                    width={isSelected ? 280 : 170}
+                    height={isSelected ? 150 : 60}
+                    pointerEvents={visible ? "auto" : "none"}
                     className={styles.foreignObjectWrapper}
                   >
-                    <div style={{ textAlign: "center", fontSize: "0.72rem", fontWeight: "700", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.25 }}>
-                      {paper.title}
+                    <div className={styles.topLabelContainer} style={{ pointerEvents: visible ? "auto" : "none" }} onClick={(e) => handleNodeClick(e, paper)}>
+                      <div className={isSelected ? styles.paperTitleExpanded : styles.paperTitle}>
+                        {paper.title}
+                      </div>
                     </div>
                   </foreignObject>
                 </g>
@@ -596,8 +744,40 @@ export default function PipelineGraph({ result, query }) {
               const visible = isNodeVisible(solved.id);
               const coords = getRepulsedCoords(solved.id, solved.x, solved.y);
               const r = getCircleRadius(solved.id, solved.r);
+              const isFocused = activeFocusNode === solved.id;
+
+              // 실제 부모와 자식 간의 척력 적용 후 좌표 기준 엣지 진행각 계산
+              const pCoords = getRepulsedCoords(solved.parentId, solved.parentX, solved.parentY);
+              const dx = coords.x - pCoords.x;
+              const dy = coords.y - pCoords.y;
+              const actualAngle = Math.atan2(dy, dx);
+
+              // 방사형 텍스트 레이블 중심점 및 영역 좌표 연산
+              const foWidth = isFocused ? 260 : 150;
+              const foHeight = isFocused ? 180 : 110;
+              const contentHeight = 65;
+              const margin = 15;
+              const visualBias = 6 * (Math.sin(actualAngle) + 1);
+
+              const d = r + margin + visualBias + (foWidth / 2) * Math.abs(Math.cos(actualAngle)) + (contentHeight / 2) * Math.abs(Math.sin(actualAngle));
+
+              const text_cx = coords.x + d * Math.cos(actualAngle);
+              const text_cy = coords.y + d * Math.sin(actualAngle);
+
+              // 포커스 상태일 때는 노드 바로 밑에 정직하게 배치, 비포커스일 때만 방사형 배치
+              const foX = isFocused ? coords.x - foWidth / 2 : text_cx - foWidth / 2;
+              const foY = isFocused ? coords.y + r + 15 : text_cy - foHeight / 2;
+
               return (
-                <g key={solved.id} style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? "auto" : "none", transition: "opacity 0.4s" }}>
+                <g
+                  key={solved.id}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    pointerEvents: visible ? "auto" : "none",
+                    transition: "opacity 0.4s ease-out",
+                    transitionDelay: visible ? "0.4s" : "0s"
+                  }}
+                >
                   <circle
                     cx={coords.x}
                     cy={coords.y}
@@ -606,18 +786,20 @@ export default function PipelineGraph({ result, query }) {
                     onClick={(e) => handleNodeClick(e, solved)}
                   />
                   <foreignObject
-                    x={coords.x - 80}
-                    y={coords.y + r + 6}
-                    width={160}
-                    height={55}
-                    pointerEvents="none"
+                    x={foX}
+                    y={foY}
+                    width={foWidth}
+                    height={foHeight}
+                    pointerEvents={visible ? "auto" : "none"}
                     className={styles.foreignObjectWrapper}
                   >
-                    <div style={{ textAlign: "center", fontSize: "0.66rem", fontWeight: "700", color: "var(--color-direction)", textTransform: "uppercase" }}>
-                      {solved.title}
-                    </div>
-                    <div style={{ textAlign: "center", fontSize: "0.62rem", color: "var(--node-sub-text)", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.2 }}>
-                      {solved.content}
+                    <div className={styles.topLabelContainer} style={{ pointerEvents: visible ? "auto" : "none" }} onClick={(e) => handleNodeClick(e, solved)}>
+                      <div className={styles.solvedTitle}>
+                        {solved.title}
+                      </div>
+                      <div className={styles.solvedContent}>
+                        {solved.content}
+                      </div>
                     </div>
                   </foreignObject>
                 </g>
@@ -629,8 +811,42 @@ export default function PipelineGraph({ result, query }) {
               const visible = isNodeVisible(limit.id);
               const coords = getRepulsedCoords(limit.id, limit.x, limit.y);
               const r = getCircleRadius(limit.id, limit.r);
+              const isFocused = activeFocusNode === limit.id;
+
+              // 실제 부모와 자식 간의 척력 적용 후 좌표 기준 엣지 진행각 계산 (반대방향 배치)
+              // 공통 연구 공백(common) 포커스 시에는 공통 노드 기준으로 각도를 계산하여 글상자를 바깥쪽(좌측 외곽)으로 안전하게 밀어냄
+              const pCoords = getRepulsedCoords(limit.parentId, limit.parentX, limit.parentY);
+              const baseCoords = activeFocusNode === "common" ? getRepulsedCoords("common", commonNode.x, commonNode.y) : pCoords;
+              const dx = coords.x - baseCoords.x;
+              const dy = coords.y - baseCoords.y;
+              const actualAngle = Math.atan2(dy, dx);
+
+              // 방사형 텍스트 레이블 중심점 및 영역 좌표 연산
+              const foWidth = isFocused ? 260 : 150;
+              const foHeight = isFocused ? 180 : 110;
+              const contentHeight = 65;
+              const margin = 15;
+              const visualBias = 6 * (Math.sin(actualAngle) + 1);
+
+              const d = r + margin + visualBias + (foWidth / 2) * Math.abs(Math.cos(actualAngle)) + (contentHeight / 2) * Math.abs(Math.sin(actualAngle));
+
+              const text_cx = coords.x + d * Math.cos(actualAngle);
+              const text_cy = coords.y + d * Math.sin(actualAngle);
+
+              // 포커스 상태일 때는 노드 바로 밑에 정직하게 배치, 비포커스일 때만 방사형 배치
+              const foX = isFocused ? coords.x - foWidth / 2 : text_cx - foWidth / 2;
+              const foY = isFocused ? coords.y + r + 15 : text_cy - foHeight / 2;
+
               return (
-                <g key={limit.id} style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? "auto" : "none", transition: "opacity 0.4s" }}>
+                <g
+                  key={limit.id}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    pointerEvents: visible ? "auto" : "none",
+                    transition: "opacity 0.4s ease-out",
+                    transitionDelay: visible ? "0.4s" : "0s"
+                  }}
+                >
                   <circle
                     cx={coords.x}
                     cy={coords.y}
@@ -639,18 +855,20 @@ export default function PipelineGraph({ result, query }) {
                     onClick={(e) => handleNodeClick(e, limit)}
                   />
                   <foreignObject
-                    x={coords.x - 80}
-                    y={coords.y + r + 6}
-                    width={160}
-                    height={55}
-                    pointerEvents="none"
+                    x={foX}
+                    y={foY}
+                    width={foWidth}
+                    height={foHeight}
+                    pointerEvents={visible ? "auto" : "none"}
                     className={styles.foreignObjectWrapper}
                   >
-                    <div style={{ textAlign: "center", fontSize: "0.66rem", fontWeight: "700", color: "var(--color-limit)", textTransform: "uppercase" }}>
-                      {limit.title}
-                    </div>
-                    <div style={{ textAlign: "center", fontSize: "0.62rem", color: "var(--node-sub-text)", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.2 }}>
-                      {limit.content}
+                    <div className={styles.topLabelContainer} style={{ pointerEvents: visible ? "auto" : "none" }} onClick={(e) => handleNodeClick(e, limit)}>
+                      <div className={styles.limitTitle}>
+                        {limit.title}
+                      </div>
+                      <div className={styles.limitContent}>
+                        {limit.content}
+                      </div>
                     </div>
                   </foreignObject>
                 </g>
@@ -662,8 +880,16 @@ export default function PipelineGraph({ result, query }) {
               const coords = getRepulsedCoords(commonNode.id, commonNode.x, commonNode.y);
               const r = getCircleRadius(commonNode.id, commonNode.r);
               const visible = isNodeVisible(commonNode.id);
+              const isSelected = selectedNode?.type === commonNode.id;
               return (
-                <g className={visible ? "" : styles.dimmed}>
+                <g
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    pointerEvents: visible ? "auto" : "none",
+                    transition: "opacity 0.4s ease-out",
+                    transitionDelay: visible ? "0.4s" : "0s"
+                  }}
+                >
                   <circle
                     cx={coords.x}
                     cy={coords.y}
@@ -677,14 +903,16 @@ export default function PipelineGraph({ result, query }) {
                     y={coords.y + r + 10}
                     width={180}
                     height={80}
-                    pointerEvents="none"
+                    pointerEvents={visible ? "auto" : "none"}
                     className={styles.foreignObjectWrapper}
                   >
-                    <div style={{ textAlign: "center", fontSize: "0.74rem", fontWeight: "700", color: "var(--foreground)", wordBreak: "keep-all" }}>
-                      {commonNode.title}
-                    </div>
-                    <div style={{ textAlign: "center", fontSize: "0.66rem", color: "var(--node-sub-text)", marginTop: "2px" }}>
-                      공통 공백 {commonLimitations.length}건 도출됨
+                    <div className={styles.topLabelContainer} style={{ pointerEvents: visible ? "auto" : "none" }} onClick={(e) => handleNodeClick(e, commonNode)}>
+                      <div className={styles.commonTitle}>
+                        {commonNode.title}
+                      </div>
+                      <div className={styles.commonContent}>
+                        공통 공백 {commonLimitations.length}건 도출됨
+                      </div>
                     </div>
                   </foreignObject>
                 </g>
@@ -696,28 +924,39 @@ export default function PipelineGraph({ result, query }) {
               const visible = isNodeVisible(dir.id);
               const coords = getRepulsedCoords(dir.id, dir.x, dir.y);
               const r = getCircleRadius(dir.id, dir.r);
+              const isSelected = selectedNode?.type === dir.id;
               return (
-                <g key={dir.id} className={visible ? "" : styles.dimmed}>
+                <g
+                  key={dir.id}
+                  style={{
+                    opacity: visible ? 1 : 0,
+                    pointerEvents: visible ? "auto" : "none",
+                    transition: "opacity 0.4s ease-out",
+                    transitionDelay: visible ? "0.4s" : "0s"
+                  }}
+                >
                   <circle
                     cx={coords.x}
                     cy={coords.y}
                     r={r}
-                    className={`${styles.circleNode} ${styles.directionCircle} ${selectedNode?.type === dir.id ? styles.selected : ""}`}
+                    className={`${styles.circleNode} ${styles.directionCircle} ${isSelected ? styles.selected : ""}`}
                     onClick={(e) => handleNodeClick(e, dir)}
                   />
                   <foreignObject
-                    x={coords.x - 90}
+                    x={coords.x - 100}
                     y={coords.y + r + 8}
-                    width={180}
-                    height={80}
-                    pointerEvents="none"
+                    width={200}
+                    height={isSelected ? 180 : 80}
+                    pointerEvents={visible ? "auto" : "none"}
                     className={styles.foreignObjectWrapper}
                   >
-                    <div style={{ textAlign: "center", fontSize: "0.72rem", fontWeight: "700", color: "var(--foreground)", wordBreak: "keep-all" }}>
-                      {dir.title}
-                    </div>
-                    <div style={{ textAlign: "center", fontSize: "0.66rem", color: "var(--node-sub-text)", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.25 }}>
-                      {dir.content}
+                    <div className={styles.topLabelContainer} style={{ pointerEvents: visible ? "auto" : "none" }} onClick={(e) => handleNodeClick(e, dir)}>
+                      <div className={isSelected ? styles.directionTitleExpanded : styles.directionTitle}>
+                        {dir.title}
+                      </div>
+                      <div className={isSelected ? styles.directionContentTextExpanded : styles.directionContentText}>
+                        {dir.content}
+                      </div>
                     </div>
                   </foreignObject>
                 </g>
