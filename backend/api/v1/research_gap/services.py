@@ -13,7 +13,6 @@ from api.v1.research_gap.dao import ResearchGapDaoDep, ResearchGapDao
 from api.v1.research_gap.embedding import embedding_helper
 from api.v1.notification.notifier import notification_broadcaster
 
-from api.v1.cs.entity import CsEmbeddingEntity
 from api.v1.research_gap.models import PaperAnalysisResult, ResearchGapMatrix
 
 
@@ -137,60 +136,57 @@ class ResearchGapService:
 
             # 3. DB 세션에서 유사 논문 리스트 검색 (중복 제거 적용) (30%)
             papers_list = []
-            async with session_maker() as session:
-                if domain == "cs":
-                    # 중복 논문 조정을 감안하여 충분한 수의 청크(25개)를 우선 조회 (코사인 유사도 거리 포함)
-                    cosine_dist = CsEmbeddingEntity.embedding.cosine_distance(query_vector).label("distance")
-                    stmt = (
-                        select(
-                            CsEmbeddingEntity.cmetadata,
-                            CsEmbeddingEntity.document.label("content"),
-                            cosine_dist
-                        )
-                        .order_by(cosine_dist.asc())
-                        .limit(25)
-                    )
-                    result = await session.execute(stmt)
-                    raw_rows = result.mappings().all()
+            if domain == "cs":
+                from langchain.embeddings import init_embeddings
+                from langchain_postgres import PGVector
+                from api.v1.cs.vectorstore_conf import COLLECTION_NAME, CONNECTION, EMBED_MODEL
+                
+                vectorstore = PGVector(
+                    embeddings=init_embeddings(model=EMBED_MODEL),
+                    collection_name=COLLECTION_NAME,
+                    connection=CONNECTION,
+                    async_mode=True,
+                )
+                results = await vectorstore.asimilarity_search_with_score(query, k=25)
+                
+                temp_papers: dict[str, dict[str, Any]] = {}
+                for doc, score in results:
+                    meta = doc.metadata or {}
+                    arxiv_id = meta.get("arxiv_id") or meta.get("doc_id") or ""
+                    if not arxiv_id:
+                        continue
                     
-                    temp_papers: dict[str, dict[str, Any]] = {}
-                    for row in raw_rows:
-                        meta = row["cmetadata"] or {}
-                        arxiv_id = meta.get("arxiv_id") or meta.get("doc_id") or ""
-                        if not arxiv_id:
-                            continue
-                        
-                        title = meta.get("title", "")
-                        content = row["content"] or ""
-                        distance = row["distance"]
-                        # 코사인 유사도 점수 (1 - 코사인 거리)
-                        similarity = round(1.0 - float(distance), 4)
-                        
-                        if arxiv_id not in temp_papers:
-                            temp_papers[arxiv_id] = {
-                                "arxiv_id": arxiv_id,
-                                "title": title,
-                                "similarity": similarity,
-                                "chunks": [content]
-                            }
-                        else:
-                            chunks = temp_papers[arxiv_id]["chunks"]
-                            if isinstance(chunks, list) and content not in chunks:
-                                chunks.append(content)
+                    title = meta.get("title", "")
+                    content = doc.page_content or ""
+                    distance = score
+                    # 코사인 유사도 점수 (1 - 코사인 거리)
+                    similarity = round(1.0 - float(distance), 4)
                     
-                    # 가장 유사도가 높은 순서대로 고유한 5개 논문 추출 및 청크 병합
-                    for arxiv_id, p_info in temp_papers.items():
-                        if len(papers_list) >= 5:
-                            break
-                        joined_content = "\n\n".join(p_info["chunks"])
-                        papers_list.append({
-                            "arxiv_id": p_info["arxiv_id"],
-                            "title": p_info["title"],
-                            "similarity": p_info["similarity"],
-                            "content": joined_content
-                        })
-                else:
-                    raise ValueError(f"지원하지 않는 도메인입니다: {domain}")
+                    if arxiv_id not in temp_papers:
+                        temp_papers[arxiv_id] = {
+                            "arxiv_id": arxiv_id,
+                            "title": title,
+                            "similarity": similarity,
+                            "chunks": [content]
+                        }
+                    else:
+                        chunks = temp_papers[arxiv_id]["chunks"]
+                        if isinstance(chunks, list) and content not in chunks:
+                            chunks.append(content)
+                
+                # 가장 유사도가 높은 순서대로 고유한 5개 논문 추출 및 청크 병합
+                for arxiv_id, p_info in temp_papers.items():
+                    if len(papers_list) >= 5:
+                        break
+                    joined_content = "\n\n".join(p_info["chunks"])
+                    papers_list.append({
+                        "arxiv_id": p_info["arxiv_id"],
+                        "title": p_info["title"],
+                        "similarity": p_info["similarity"],
+                        "content": joined_content
+                    })
+            else:
+                raise ValueError(f"지원하지 않는 도메인입니다: {domain}")
 
             if not papers_list:
                 raise ValueError("검색된 관련 논문 자료가 없습니다. 데이터베이스 적재 상태 또는 키워드를 확인해 주세요.")

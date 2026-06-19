@@ -6,9 +6,12 @@ from fastapi import Depends
 from langchain.agents import create_agent
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-from api.v1.bio.agent_rag import BioAgentState, search_bio_papers
-from api.v1.cs.tools import search_cs_papers
-from api.v1.astronomy.agent_rag import search_astronomy_papers
+from api.v1.bio.agent_rag import BioAgentState
+from api.v1.gems.tools import (
+    search_bio_papers,
+    search_cs_papers,
+    search_astronomy_papers,
+)
 from api.v1.chat.psycopg_pool_conf import chat_psycopg_pool
 
 logger = logging.getLogger(__name__)

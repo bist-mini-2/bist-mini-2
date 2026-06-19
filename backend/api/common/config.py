@@ -42,3 +42,6 @@ class Settings(BaseSettings):
 # Instantiate settings to be imported elsewhere
 settings = Settings()
 
+if settings.OPENAI_API_KEY:
+    os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
+

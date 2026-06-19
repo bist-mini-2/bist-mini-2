@@ -16,17 +16,17 @@ export default function Feature2Sidebar({ isCollapsed }) {
   const taskId = searchParams.get("taskId");
 
   const subMenus = [
-    { name: "새 분석 실행", path: "/feature2", icon: "bi-plus-circle" },
-    { name: "분석 보고서 이력", path: "/feature2/history", icon: "bi-clock-history" }
+    { name: "새 분석 실행", path: "/feature2/analyze", icon: "bi-plus-circle" },
+    { name: "분석 보고서 이력", path: "/feature2", icon: "bi-clock-history" }
   ];
 
   return (
     <div className={styles.menuSection} style={{ marginTop: "0" }}>
       <ul className={styles.menuList}>
         {subMenus.map((menu) => {
-          const isActive = menu.path === "/feature2" 
-            ? (pathname === "/feature2" && !taskId)
-            : (pathname.startsWith(menu.path) || (pathname === "/feature2" && taskId));
+          const isActive = menu.path === "/feature2/analyze"
+            ? (pathname === "/feature2/analyze" && !taskId)
+            : (pathname === "/feature2" || (pathname === "/feature2/analyze" && taskId));
             
           return (
             <li key={menu.path}>

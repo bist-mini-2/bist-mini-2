@@ -134,32 +134,33 @@ def test_ask_cs_agent_endpoint(mock_run_agent):
 
 @pytest.mark.anyio
 async def test_cs_service_business_logic():
-    """CsService.search_similar_papers가 임베딩과 DAO를 올바르게 호출하는지 단위 테스트합니다."""
+    """CsService.search_similar_papers가 PGVector를 올바르게 호출하는지 단위 테스트합니다."""
     mock_dao = MagicMock()
-    mock_dao.select_similar_chunks = AsyncMock(
-        return_value=[
-            {
-                "doc_id": "doc-101",
-                "title": "Title A",
-                "text_chunk": "Chunk text content",
-                "score": 0.88
-            }
-        ]
-    )
+    
+    mock_doc = MagicMock()
+    mock_doc.page_content = "Chunk text content"
+    mock_doc.metadata = {
+        "arxiv_id": "doc-101",
+        "title": "Title A"
+    }
 
-    # 임베딩 헬퍼 모킹
-    with patch("api.v1.cs.services.embedding_helper") as mock_embed_helper:
-        # 3072차원 가상 임베딩 벡터 반환 설정
-        mock_vector = [0.1] * 3072
-        mock_embed_helper.encode.return_value = mock_vector
+    # PGVector 모킹
+    with patch("api.v1.cs.services.PGVector") as mock_pgvector, \
+         patch("api.v1.cs.services.init_embeddings") as mock_init_embed:
+        
+        mock_instance = MagicMock()
+        mock_instance.asimilarity_search_with_score = AsyncMock(
+            return_value=[(mock_doc, 0.12)] # distance = 0.12, so score = 1.0 - 0.12 = 0.88
+        )
+        mock_pgvector.return_value = mock_instance
 
         # CsService 인스턴스화 및 테스트 함수 실행
         cs_service = CsService(cs_dao=mock_dao)
         response = await cs_service.search_similar_papers(query="search query", top_k=5)
 
         # 검증
-        mock_embed_helper.encode.assert_called_once_with("search query")
-        mock_dao.select_similar_chunks.assert_called_once_with(mock_vector, 5)
+        mock_pgvector.assert_called_once()
+        mock_instance.asimilarity_search_with_score.assert_called_once_with("search query", k=5)
         
         assert len(response) == 1
         result = response[0]
