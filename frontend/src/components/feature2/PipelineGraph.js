@@ -372,7 +372,9 @@ export default function PipelineGraph({ result, query }) {
     e.stopPropagation();
     if (isSpacePressed) return;
     if (!isNodeVisible(node.id)) return;
-    focusOnNode(node.id, node.x, node.y);
+    // 척력이 적용된 실제 렌더링 좌표를 구하여 카메라 시점 중심으로 이동시킵니다.
+    const repulsed = getRepulsedCoords(node.id, node.x, node.y);
+    focusOnNode(node.id, repulsed.x, repulsed.y);
     setSelectedNode((prev) => (prev?.type === node.id ? null : { type: node.id, data: node }));
   };
 
@@ -506,7 +508,7 @@ export default function PipelineGraph({ result, query }) {
           <g
             style={{
               transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
-              transformOrigin: "center center"
+              transformOrigin: "0 0"
             }}
             className={styles.zoomGroup}
           >
