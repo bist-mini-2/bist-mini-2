@@ -82,6 +82,31 @@ class ChatService:
 
         return result
 
+    async def send_message_stream(self, member_id: str, session_id: str, message: str):
+        """채팅방에 메시지를 보내 답변을 토큰 단위로 스트리밍한다(타이핑 효과). 소유자만 가능.
+
+        explanation 토큰을 그대로 흘려보낸 뒤, 스트리밍이 끝나면 state에 누적된 실제 검색
+        출처(sources)를 dao에 저장한다. 그래야 프론트가 스트리밍 종료 후 GET /messages로
+        출처까지 함께 다시 불러올 수 있다. 출처 저장이 실패해도 스트리밍 답변에는 영향이
+        없도록 방어한다(비스트리밍 send_message는 그대로 유지 — 안전망).
+        """
+        await self._get_owned_session(member_id, session_id)
+
+        async for token in self.chat_agent.run_stream(message, session_id):
+            yield token
+
+        # 스트리밍 종료 후 출처 저장 (실패해도 대화에는 영향 없음)
+        try:
+            sources = await self.chat_agent.get_latest_sources(session_id)
+            if sources:
+                history = await self.chat_agent.get_history(session_id)
+                assistant_index = len(history) - 1   # 마지막 메시지(방금 답변)의 index
+                await self.chat_session_dao.insert_sources(
+                    session_id, assistant_index, sources
+                )
+        except Exception as e:
+            self.logger.error(f"스트리밍 출처 저장 실패 (session_id={session_id}): {e}")
+
     async def get_messages(self, member_id: str, session_id: str) -> list[dict]:
         """채팅방의 대화 내역을 출처와 함께 순서대로 반환한다. 소유자만 가능."""
         await self._get_owned_session(member_id, session_id)

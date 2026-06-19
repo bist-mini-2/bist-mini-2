@@ -152,6 +152,67 @@ class ChatAgent:
                 "sources": [],
             }
 
+    async def run_stream(self, message: str, conversation_id: str):
+        """메시지를 처리하면서 답변 텍스트(explanation)를 토큰 단위로 흘려보낸다(스트리밍).
+
+        run()과 달리 response_format(structured output)을 쓰지 않는다. structured output은
+        JSON이 완성돼야 파싱되므로 스트리밍과 충돌하기 때문이다. 그래서 response_format을 뺀
+        스트리밍 전용 에이전트(_stream_agent)를 최초 1회만 lazy 생성해 재사용한다.
+        도구/system_prompt/checkpointer/state_schema는 메인 에이전트와 동일하다.
+
+        astream(stream_mode=["messages"])은 답변 토큰과 함께 도구 호출/도구 결과 토큰도 섞어
+        내보내므로, 실제 답변 텍스트 토큰만 골라 yield 한다. 출처(sources)는 여기서 yield하지
+        않고 state(checkpointer)에 누적되며, 스트리밍 종료 후 get_latest_sources()로 조회한다.
+        """
+        await self._initialize()
+
+        if not hasattr(self, "_stream_agent") or self._stream_agent is None:
+            self._stream_agent = create_agent(
+                model=self.model,
+                tools=[search_bio_papers, search_astronomy_papers, search_cs_papers],
+                system_prompt=self.system_prompt,
+                checkpointer=self.checkpointer,
+                state_schema=BioAgentState,
+                # response_format 없음 — 스트리밍 위해 일반 마크다운 텍스트로 출력
+            )
+
+        async for stream_mode, chunk in self._stream_agent.astream(
+            {"messages": [{"role": "user", "content": message}], "sources": []},
+            {"configurable": {"thread_id": conversation_id}},
+            stream_mode=["messages"],
+        ):
+            token, metadata = chunk
+            # 도구 노드에서 나온 토큰(검색 결과 등)은 답변이 아니므로 건너뛴다.
+            if metadata.get("langgraph_node") == "tools":
+                continue
+            # 도구 호출(tool_calls)만 담은 AI 토큰도 답변 텍스트가 아니므로 건너뛴다.
+            if getattr(token, "tool_calls", None):
+                continue
+            content = getattr(token, "content", "")
+            if not content:
+                continue
+            yield content
+
+    async def get_latest_sources(self, conversation_id: str) -> list[dict]:
+        """스트리밍 종료 후 state(checkpointer)에 누적된 검색 출처를 중복 제거하여 반환한다.
+
+        run_stream의 도구가 state.sources에 기록한 실제 검색 결과를 꺼낸다.
+        arxiv_id 기준으로 중복을 제거하고 순서를 유지한다(run()과 동일한 규칙).
+        """
+        await self._initialize()
+        agent = getattr(self, "_stream_agent", None) or self.agent
+        state = await agent.aget_state(
+            {"configurable": {"thread_id": conversation_id}}
+        )
+        raw_sources = state.values.get("sources", []) if state.values else []
+        seen = set()
+        unique_sources = []
+        for s in raw_sources:
+            if s["arxiv_id"] not in seen:
+                seen.add(s["arxiv_id"])
+                unique_sources.append(s)
+        return unique_sources
+
     async def get_history(self, conversation_id: str) -> list[dict]:
         """대화 스레드의 사용자/어시스턴트 메시지 내역을 순서대로 반환한다.
 

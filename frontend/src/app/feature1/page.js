@@ -3,7 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getMessages, sendMessage, createSession, generateTitle } from "@/apis/bioChatApi";
+import { getMessages, sendMessage, sendMessageStream, createSession, generateTitle } from "@/apis/bioChatApi";
 import styles from "./page.module.css";
 
 /**
@@ -110,9 +110,39 @@ export default function Feature1Page() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
-      const res = await sendMessage(activeSessionId, text);
-      const { answer, sources } = res.data;
-      setMessages((prev) => [...prev, { role: "assistant", content: answer, sources: sources || [] }]);
+      // 빈 assistant 메시지를 먼저 추가하고, 토큰이 올 때마다 여기에 누적해 타이핑 효과를 낸다.
+      setMessages((prev) => [...prev, { role: "assistant", content: "", sources: [] }]);
+
+      await sendMessageStream(activeSessionId, text, (token) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last && last.role === "assistant") {
+            next[next.length - 1] = { ...last, content: last.content + token };
+          }
+          return next;
+        });
+      });
+
+      // 스트리밍이 끝나면 검색된 출처(sources)를 다시 불러와 마지막 답변에 붙인다.
+      // (출처는 스트리밍 종료 후 서버 state에 저장되므로 GET /messages로 조회한다)
+      try {
+        const res = await getMessages(activeSessionId);
+        const history = res.data || [];
+        const lastItem = history[history.length - 1];
+        if (lastItem && lastItem.role === "assistant" && lastItem.sources?.length) {
+          setMessages((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last && last.role === "assistant") {
+              next[next.length - 1] = { ...last, sources: lastItem.sources };
+            }
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error("출처 조회 실패:", err);
+      }
 
       // 새 방이면 AI 제목 생성 (실패해도 대화엔 영향 없음)
       if (isNewSession) {
