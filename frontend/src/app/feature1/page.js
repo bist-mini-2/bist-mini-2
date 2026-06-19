@@ -2,19 +2,20 @@
 
 import ReactMarkdown from "react-markdown";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
-import { getMessages, sendMessage } from "@/apis/bioChatApi";
+import { useSearchParams, useRouter } from "next/navigation";
+import { getMessages, sendMessage, sendMessageStream, createSession, generateTitle } from "@/apis/bioChatApi";
 import styles from "./page.module.css";
 
 /**
- * 기능 1: 생명공학·유전체학 논문 RAG 채팅 페이지입니다.
+ * Chat Hub: 생명공학·천문학·컴퓨터과학 논문 RAG 통합 채팅 페이지입니다.
  *
  * URL 쿼리파라미터(?session=)로 선택된 채팅방의 대화를 불러오고,
  * 메시지를 전송하면 RAG 기반 답변과 참고 논문(출처)을 표시합니다.
- * 답변 생성 중에는 세이지 그린 네잎클로버 펄스 인디케이터를 보여줍니다.
+ * 방이 선택되지 않은 상태에서 질문하면 새 방을 자동으로 생성합니다.
  */
 export default function Feature1Page() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const sessionId = searchParams.get("session");
 
   const [messages, setMessages] = useState([]);
@@ -24,7 +25,8 @@ export default function Feature1Page() {
 
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
-
+  const sendingRef = useRef(false);
+  
   // 대화 영역을 항상 최신 메시지로 스크롤한다.
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -78,37 +80,83 @@ export default function Feature1Page() {
     }
   };
 
-  // 메시지를 전송하고 RAG 답변을 받는다.
+  // 메시지를 전송한다. 방이 없으면 먼저 새 방을 만들고(질문 내용을 제목으로) 전송한다.
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || !sessionId || isSending) return;
+    if (!text || sendingRef.current) return;
+    sendingRef.current = true;
+    setIsSending(true);
+
+    let activeSessionId = sessionId;
+    let isNewSession = false;   // ← 새 방인지 표시
+
+    if (!activeSessionId) {
+      try {
+        const title = text.length > 30 ? text.slice(0, 30) + "…" : text;
+        const res = await createSession(title);
+        activeSessionId = res.data.session_id;
+        isNewSession = true;   // ← 새 방 생성됨
+        router.replace(`/feature1?session=${activeSessionId}`);
+      } catch (err) {
+        console.error("방 생성 실패:", err);
+        sendingRef.current = false;
+        setIsSending(false);
+        return;
+      }
+    }
 
     setMessages((prev) => [...prev, { role: "user", content: text, sources: [] }]);
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-    setIsSending(true);
 
     try {
-      const res = await sendMessage(sessionId, text);
-      const { answer, sources } = res.data;
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: answer, sources: sources || [] },
-      ]);
-      // 사이드바 목록 갱신(첫 메시지로 방 제목/순서가 바뀔 수 있음)
+      // 빈 assistant 메시지를 먼저 추가하고, 토큰이 올 때마다 여기에 누적해 타이핑 효과를 낸다.
+      setMessages((prev) => [...prev, { role: "assistant", content: "", sources: [] }]);
+
+      await sendMessageStream(activeSessionId, text, (token) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last && last.role === "assistant") {
+            next[next.length - 1] = { ...last, content: last.content + token };
+          }
+          return next;
+        });
+      });
+
+      // 스트리밍이 끝나면 검색된 출처(sources)를 다시 불러와 마지막 답변에 붙인다.
+      // (출처는 스트리밍 종료 후 서버 state에 저장되므로 GET /messages로 조회한다)
+      try {
+        const res = await getMessages(activeSessionId);
+        const history = res.data || [];
+        const lastItem = history[history.length - 1];
+        if (lastItem && lastItem.role === "assistant" && lastItem.sources?.length) {
+          setMessages((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last && last.role === "assistant") {
+              next[next.length - 1] = { ...last, sources: lastItem.sources };
+            }
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error("출처 조회 실패:", err);
+      }
+
+      // 새 방이면 AI 제목 생성 (실패해도 대화엔 영향 없음)
+      if (isNewSession) {
+        try {
+          await generateTitle(activeSessionId, text);
+        } catch (err) {
+          console.error("제목 생성 실패:", err);
+        }
+      }
       window.dispatchEvent(new Event("bio-chat:refresh"));
     } catch (err) {
-      console.error("메시지 전송 실패:", err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-          sources: [],
-          isError: true,
-        },
-      ]);
+      // ... 기존 에러 처리
     } finally {
+      sendingRef.current = false;
       setIsSending(false);
     }
   };
@@ -121,22 +169,56 @@ export default function Feature1Page() {
     }
   };
 
-  // 방이 선택되지 않은 빈 상태 화면
+  // 입력 영역(공통) — 빈 화면과 대화 화면 모두에서 사용
+  const inputArea = (
+    <div className={styles.inputArea}>
+      <div className={styles.inputWrapper}>
+        <textarea
+          ref={textareaRef}
+          className={styles.input}
+          value={input}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          placeholder="생명공학·천문학·컴퓨터공학 논문, 무엇이든 물어보세요…"
+          rows={1}
+          disabled={isSending}
+        />
+        <button
+          className={styles.sendBtn}
+          onClick={handleSend}
+          disabled={!input.trim() || isSending}
+          aria-label="전송"
+        >
+          <i className="bi bi-arrow-up"></i>
+        </button>
+      </div>
+      <span className={styles.inputHint}>
+        Enter 전송 · Shift+Enter 줄바꿈
+      </span>
+    </div>
+  );
+
+  // 방이 선택되지 않은 빈 상태 — 가운데 환영 문구 + 하단 입력창(Claude 스타일)
   if (!sessionId) {
     return (
-      <div className={styles.emptyState}>
-        <div className={styles.emptyClover}>
-          <CloverMark size={56} />
+      <div className={styles.chatContainer}>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyClover}>
+            <CloverMark size={56} />
+          </div>
+          <div className="mono-badge mb-3">
+            <i className="bi bi-terminal-fill"></i> console.log("paper_agent")
+          </div>
+          <h2 className={`fw-bold mb-2 text-gradient ${styles.emptyTitle}`}>
+            논문 에이전트
+          </h2>
+          <p className={styles.emptySubtitle}>
+            생명공학·천문학·컴퓨터공학 논문에 대해 무엇이든 물어보세요.
+            <br />
+            질문하면 새 대화가 자동으로 시작됩니다.
+          </p>
         </div>
-        <div className="mono-badge mb-3">
-          <i className="bi bi-terminal-fill"></i> console.log("bio_rag")
-        </div>
-        <h2 className={`fw-bold mb-2 text-gradient ${styles.emptyTitle}`}>
-          생명공학 논문 에이전트
-        </h2>
-        <p className={styles.emptySubtitle}>
-          왼쪽에서 새 채팅을 시작하거나 기존 대화를 선택하세요.
-        </p>
+        {inputArea}
       </div>
     );
   }
@@ -150,7 +232,7 @@ export default function Feature1Page() {
           <div className={styles.centerHint}>
             <CloverMark size={40} />
             <p className={styles.centerHintText}>
-              유전체학·생명공학에 대해 무엇이든 물어보세요.
+              무엇이든 물어보세요.
             </p>
           </div>
         ) : (
@@ -162,38 +244,11 @@ export default function Feature1Page() {
         {isSending && <LoadingBubble />}
       </div>
 
-      <div className={styles.inputArea}>
-        <div className={styles.inputWrapper}>
-          <textarea
-            ref={textareaRef}
-            className={styles.input}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="유전체 시퀀싱, 유전자 매핑 등 무엇이든 물어보세요…"
-            rows={1}
-            disabled={isSending}
-          />
-          <button
-            className={styles.sendBtn}
-            onClick={handleSend}
-            disabled={!input.trim() || isSending}
-            aria-label="전송"
-          >
-            <i className="bi bi-arrow-up"></i>
-          </button>
-        </div>
-        <span className={styles.inputHint}>
-          Enter 전송 · Shift+Enter 줄바꿈
-        </span>
-      </div>
+      {inputArea}
     </div>
   );
 }
 
-/**
- * 사용자/AI 메시지 말풍선. AI 메시지에는 참고 논문(출처)을 뱃지로 표시한다.
- */
 /**
  * AI 답변의 content를 파싱한다.
  * structured output(JSON 문자열)이면 {explanation, papers}로,
@@ -336,7 +391,7 @@ function CloverMark({ size = 44, animated = true }) {
       viewBox="0 0 100 100"
       className={animated ? styles.cloverAnimated : ""}
       role="img"
-      aria-label="생명공학 에이전트"
+      aria-label="논문 에이전트"
     >
       <g className={styles.cloverShape}>
         <path d="M50 50 C50 30, 30 22, 22 30 C14 38, 22 50, 50 50 Z" fill="var(--accent-color)" />
