@@ -2,10 +2,9 @@
  
 import { useRef } from "react";
 import styles from "./PipelineGraph.module.css";
-import usePipelineLayout from "./hooks/usePipelineLayout";
-import GraphConnectors from "./components/GraphConnectors";
-import GraphNode from "./components/GraphNode";
-import NodeDetailPanel from "./components/NodeDetailPanel";
+import usePipelineLayout from "./usePipelineLayout";
+import GraphConnectors from "./GraphConnectors";
+import GraphNode from "./GraphNode";
 
 /**
  * 대화형 유기적 원형 그래프 (Circular Focus Graph) 메인 컴포넌트입니다.
@@ -249,9 +248,6 @@ export default function PipelineGraph({ result, query }) {
           </g>
         </svg>
       </div>
-
-      {/* 3. 선택 노드의 상세 정보 패널 */}
-      <NodeDetailPanel selectedNode={layout.selectedNode} styles={styles} />
     </div>
   );
 }

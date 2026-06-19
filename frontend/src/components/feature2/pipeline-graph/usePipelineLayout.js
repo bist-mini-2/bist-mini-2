@@ -1,6 +1,6 @@
 import { useState } from "react";
 import useZoomPan from "./useZoomPan";
-import { calculateGraphLayout, getRepulsedCoords, getCircleRadius } from "../utils/graphLayout";
+import { calculateGraphLayout, getRepulsedCoords, getCircleRadius } from "./graphLayout";
 
 /**
  * PipelineGraph의 레이아웃 좌표 계산, 척력(Repulsion), 카메라 줌-포커싱, 
@@ -155,4 +155,6 @@ export default function usePipelineLayout({ result, query, canvasWidth, canvasHe
     handleNodeClick
   };
 }
+// HMR 캐시 리셋용 더미 주석 구문 추가
+
 
