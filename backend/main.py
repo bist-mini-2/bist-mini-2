@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     from api.database.config.entity_base import Base
     from api.database.config.dbsession import engine
     from api.v1.member.entity import MemberEntity
-    from api.v1.cs.entity import CsEmbeddingEntity, CsCollectionEntity
+    # from api.v1.cs.entity import CsEmbeddingEntity, CsCollectionEntity
     from api.v1.research_gap.entity import ResearchGapTaskEntity
     from api.v1.chat.entity import ChatSessionEntity
     from api.v1.gems.entity import GemEntity
@@ -57,7 +57,12 @@ async def lifespan(app: FastAPI):
             from sqlalchemy import text
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
             await conn.execute(text("ALTER TABLE research_gap_task ADD COLUMN IF NOT EXISTS translated_result JSON;"))
-        await conn.run_sync(Base.metadata.create_all)
+        # 임베딩 관련 테이블(cs_collections, cs_embeddings) 자동 생성 제외
+        target_tables = [
+            table for name, table in Base.metadata.tables.items()
+            if name not in ("cs_collections", "cs_embeddings")
+        ]
+        await conn.run_sync(Base.metadata.create_all, tables=target_tables)
         
     yield
     logging.getLogger("uvicorn").info("Application Shutting Down...")
