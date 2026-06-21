@@ -1,11 +1,15 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
-from fastapi.testclient import TestClient
-from main import app
+from langchain.tools import ToolRuntime
+from langchain_core.documents import Document
+from typing import Any, cast
 
-from api.v1.cs.services import CsService
-
-client = TestClient(app)
+from api.common.rag_pipeline import (
+    common_rag_pipeline,
+    search_bio_papers,
+    search_cs_papers,
+    search_astronomy_papers
+)
 
 
 @pytest.fixture
@@ -14,182 +18,130 @@ def anyio_backend():
 
 
 # =====================================================================
-# 1. API Endpoints Test Cases (FastAPI Routing & DTO Validation)
-# =====================================================================
-
-@patch("api.v1.cs.services.CsService.search_similar_papers")
-def test_similarity_search_cs_endpoint(mock_search_papers):
-    """유사도 검색 API가 정상 응답 구조를 반환하는지 테스트합니다."""
-    mock_search_papers.return_value = [
-        {
-            "doc_id": "2406.12345",
-            "title": "Test Neural Evolutionary Dynamics",
-            "text_chunk": "This is a mocked paper abstract chunk about neural dynamics.",
-            "score": 0.95
-        }
-    ]
-
-    # API 요청
-    payload = {"query": "neural network training", "top_k": 3}
-    response = client.post("/api/v1/similarity-search/cs", json=payload)
-
-    # 검증
-    assert response.status_code == 200
-    json_data = response.json()
-    assert json_data["status"] == "success"
-    assert "data" in json_data
-    assert len(json_data["data"]["results"]) == 1
-    assert json_data["data"]["results"][0]["doc_id"] == "2406.12345"
-    assert json_data["data"]["results"][0]["score"] == 0.95
-    mock_search_papers.assert_called_once_with("neural network training", 3)
-
-
-def test_similarity_search_cs_validation_error():
-    """유효하지 않은 파라미터(예: top_k 범위 초과) 전송 시 Validation Error가 발생하는지 테스트합니다."""
-    # top_k가 10 초과인 잘못된 요청
-    payload = {"query": "neural network training", "top_k": 99}
-    response = client.post("/api/v1/similarity-search/cs", json=payload)
-
-    # 검증 (FastAPI validation error는 프로젝트 예외 처리기에 의해 400 Bad Request를 반환)
-    assert response.status_code == 400
-
-
-@patch("api.v1.cs.services.CsService.answer_question_with_rag")
-def test_ask_cs_rag_endpoint(mock_ask_rag):
-    """RAG 기반 질의응답 API가 정상 응답 구조를 반환하는지 테스트합니다."""
-    mock_ask_rag.return_value = {
-        "answer": "모킹된 답변 결과입니다.",
-        "sources": [
-            {
-                "doc_id": "2406.12345",
-                "title": "Test Neural Evolutionary Dynamics",
-                "text_chunk": "This is a mocked paper abstract chunk.",
-                "score": 0.95
-            }
-        ]
-    }
-
-    # API 요청
-    payload = {"query": "How do networks train?", "top_k": 2, "llm_model": "gpt-4o-mini"}
-    response = client.post("/api/v1/similarity-search/cs/ask", json=payload)
-
-    # 검증
-    assert response.status_code == 200
-    json_data = response.json()
-    assert json_data["status"] == "success"
-    assert json_data["data"]["answer"] == "모킹된 답변 결과입니다."
-    assert len(json_data["data"]["sources"]) == 1
-    mock_ask_rag.assert_called_once_with(
-        query="How do networks train?",
-        top_k=2,
-        llm_model="gpt-4o-mini"
-    )
-
-
-@patch("api.v1.cs.services.CsService.run_agent_with_rag_tool")
-def test_ask_cs_agent_endpoint(mock_run_agent):
-    """에이전트 API가 정상 응답 구조를 반환하는지 테스트합니다."""
-    # Mock 응답 데이터 설정 (dict 반환)
-    mock_run_agent.return_value = {
-        "answer": "에이전트의 최종 모킹된 추론 결과입니다.",
-        "sources": [
-            {
-                "doc_id": "2406.12345",
-                "title": "Test Paper",
-                "text_chunk": "Content text...",
-                "score": 0.95
-            }
-        ],
-        "tool_calls": [
-            {
-                "name": "search_cs_papers",
-                "args": {"search_query": "agent search"},
-                "id": "call_abc123"
-            }
-        ]
-    }
-
-    # API 요청
-    payload = {"query": "Explain agent reasoning.", "llm_model": "gpt-4o-mini"}
-    response = client.post("/api/v1/similarity-search/cs/agent", json=payload)
-
-    # 검증
-    assert response.status_code == 200
-    json_data = response.json()
-    assert json_data["status"] == "success"
-    assert json_data["data"]["answer"] == "에이전트의 최종 모킹된 추론 결과입니다."
-    assert len(json_data["data"]["sources"]) == 1
-    assert json_data["data"]["sources"][0]["doc_id"] == "2406.12345"
-    assert len(json_data["data"]["tool_calls"]) == 1
-    assert json_data["data"]["tool_calls"][0]["name"] == "search_cs_papers"
-    mock_run_agent.assert_called_once_with(
-        query="Explain agent reasoning.",
-        llm_model="gpt-4o-mini"
-    )
-
-
-# =====================================================================
-# 2. Service Layer Unit Test Case (CsService & CsDao Orchestration)
+# RAG Similarity Search Class Tests
 # =====================================================================
 
 @pytest.mark.anyio
-async def test_cs_service_business_logic():
-    """CsService.search_similar_papers가 PGVector를 올바르게 호출하는지 단위 테스트합니다."""
-    mock_dao = MagicMock()
-    
-    mock_doc = MagicMock()
-    mock_doc.page_content = "Chunk text content"
-    mock_doc.metadata = {
-        "arxiv_id": "doc-101",
-        "title": "Title A"
-    }
-
-    # PGVector 모킹
-    with patch("api.v1.cs.services.PGVector") as mock_pgvector, \
-         patch("api.v1.cs.services.init_embeddings") as mock_init_embed:
+async def test_common_rag_pipeline_similarity_search_success():
+    """CommonRagPipeline이 PGVector와 코사인 유사도를 올바르게 계산하고 결과를 반환하는지 검증합니다."""
+    with patch("api.common.rag_pipeline.PGVector") as mock_pgvector:
+        mock_instance = mock_pgvector.return_value
         
-        mock_instance = MagicMock()
-        mock_instance.asimilarity_search_with_score = AsyncMock(
-            return_value=[(mock_doc, 0.12)] # distance = 0.12, so score = 1.0 - 0.12 = 0.88
+        # PGVector는 (Document, distance)의 튜플 리스트를 반환함
+        mock_doc = Document(
+            page_content="Mocked Abstract Text",
+            metadata={"arxiv_id": "2406.12345", "title": "Test Title"}
         )
-        mock_pgvector.return_value = mock_instance
-
-        # CsService 인스턴스화 및 테스트 함수 실행
-        cs_service = CsService(cs_dao=mock_dao)
-        response = await cs_service.search_similar_papers(query="search query", top_k=5)
-
-        # 검증
-        mock_pgvector.assert_called_once()
-        mock_instance.asimilarity_search_with_score.assert_called_once_with("search query", k=5)
+        # distance가 0.05 이면 코사인 유사도는 1.0 - 0.05 = 0.95
+        mock_instance.asimilarity_search_with_score = AsyncMock(return_value=[(mock_doc, 0.0500)])
         
-        assert len(response) == 1
-        result = response[0]
-        assert result["doc_id"] == "doc-101"
-        assert result["title"] == "Title A"
-        assert result["text_chunk"] == "Chunk text content"
-        assert result["score"] == 0.88
+        results = await common_rag_pipeline.similarity_search("cs", "neural network", k=1)
+        
+        assert len(results) == 1
+        assert results[0]["doc_id"] == "2406.12345"
+        assert results[0]["title"] == "Test Title"
+        assert results[0]["text_chunk"] == "Mocked Abstract Text"
+        assert results[0]["score"] == 0.95
 
 
 @pytest.mark.anyio
-async def test_cs_service_invalid_model_error():
-    """지원되지 않는 모델명 요청 시 BusinessException 예외가 올바르게 슬로우되는지 테스트합니다."""
-    from api.common.exceptions import BusinessException
-    mock_dao = MagicMock()
-    cs_service = CsService(cs_dao=mock_dao)
-
-    with pytest.raises(BusinessException) as exc_info:
-        await cs_service.answer_question_with_rag(query="test", top_k=3, llm_model="unsupported-model")
-    assert "지원하지 않는 LLM 모델입니다" in str(exc_info.value)
-
-    with pytest.raises(BusinessException) as exc_info:
-        await cs_service.run_agent_with_rag_tool(query="test", llm_model="unsupported-model")
-    assert "지원하지 않는 LLM 모델입니다" in str(exc_info.value)
+async def test_common_rag_pipeline_invalid_domain():
+    """지원하지 않는 도메인 입력 시 ValueError가 발생하는지 검증합니다."""
+    with pytest.raises(ValueError) as excinfo:
+        await common_rag_pipeline.similarity_search("invalid_domain", "query")
+    assert "지원하지 않는 도메인입니다" in str(excinfo.value)
 
 
-def test_similarity_search_cs_empty_query_validation_error():
-    """빈 쿼리 전송 시 Validation Error가 발생하는지 테스트합니다."""
-    payload = {"query": "", "top_k": 3}
-    response = client.post("/api/v1/similarity-search/cs", json=payload)
-    assert response.status_code == 400
-    assert response.json()["status"] == "error"
+# =====================================================================
+# RAG Agent Tools Tests
+# =====================================================================
 
+@pytest.mark.anyio
+@patch("api.common.rag_pipeline.common_rag_pipeline.similarity_search")
+async def test_search_bio_papers_tool_success(mock_search):
+    """search_bio_papers 툴이 모든 결과를 정상 응답으로 반환하는지 테스트합니다."""
+    mock_search.return_value = [
+        {"doc_id": "bio-1", "title": "Bio Title 1", "text_chunk": "Content 1", "score": 0.40},
+        {"doc_id": "bio-2", "title": "Bio Title 2", "text_chunk": "Content 2", "score": 0.30},
+    ]
+    
+    mock_runtime = MagicMock(spec=ToolRuntime)
+    mock_runtime.tool_call_id = "bio_call_id"
+    
+    command = await cast(Any, search_bio_papers).coroutine(
+        query="genomics",
+        runtime=mock_runtime,
+        k=2
+    )
+    
+    assert "messages" in command.update
+    assert len(command.update["messages"]) == 1
+    content = command.update["messages"][0].content
+    assert "Bio Title 1" in content
+    assert "Bio Title 2" in content  # 필터링 안 됨
+    assert len(command.update["sources"]) == 2
+    assert command.update["sources"][0]["arxiv_id"] == "bio-1"
+    assert command.update["sources"][1]["arxiv_id"] == "bio-2"
+
+
+@pytest.mark.anyio
+@patch("api.common.rag_pipeline.common_rag_pipeline.similarity_search")
+async def test_search_bio_papers_tool_empty(mock_search):
+    """검색 결과가 없을 때의 search_bio_papers 툴 대체 메시지 반환을 검증합니다."""
+    mock_search.return_value = []
+    
+    mock_runtime = MagicMock(spec=ToolRuntime)
+    mock_runtime.tool_call_id = "bio_call_id"
+    
+    command = await cast(Any, search_bio_papers).coroutine(
+        query="genomics",
+        runtime=mock_runtime,
+        k=1
+    )
+    
+    content = command.update["messages"][0].content
+    assert "찾을 수 없습니다" in content
+
+
+@pytest.mark.anyio
+@patch("api.common.rag_pipeline.common_rag_pipeline.similarity_search")
+async def test_search_cs_papers_tool_success(mock_search):
+    """search_cs_papers 툴이 검색 결과를 올바르게 반환하는지 테스트합니다."""
+    mock_search.return_value = [
+        {"doc_id": "cs-1", "title": "CS Title 1", "text_chunk": "CS Content 1", "score": 0.85},
+    ]
+    
+    mock_runtime = MagicMock(spec=ToolRuntime)
+    mock_runtime.tool_call_id = "cs_call_id"
+    
+    command = await cast(Any, search_cs_papers).coroutine(
+        query="neural network",
+        runtime=mock_runtime,
+        k=1
+    )
+    
+    content = command.update["messages"][0].content
+    assert "CS Title 1" in content
+    assert command.update["sources"][0]["arxiv_id"] == "cs-1"
+
+
+@pytest.mark.anyio
+@patch("api.common.rag_pipeline.common_rag_pipeline.similarity_search")
+async def test_search_astronomy_papers_tool_success(mock_search):
+    """search_astronomy_papers 툴이 검색 결과를 올바르게 반환하는지 테스트합니다."""
+    mock_search.return_value = [
+        {"doc_id": "astro-1", "title": "Astro Title 1", "text_chunk": "Astro Content 1", "score": 0.90},
+    ]
+    
+    mock_runtime = MagicMock(spec=ToolRuntime)
+    mock_runtime.tool_call_id = "astro_call_id"
+    
+    command = await cast(Any, search_astronomy_papers).coroutine(
+        query="mars atmosphere",
+        runtime=mock_runtime,
+        k=1
+    )
+    
+    content = command.update["messages"][0].content
+    assert "Astro Title 1" in content
+    assert command.update["sources"][0]["arxiv_id"] == "astro-1"

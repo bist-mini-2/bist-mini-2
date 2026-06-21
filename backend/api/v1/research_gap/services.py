@@ -136,31 +136,19 @@ class ResearchGapService:
 
             # 3. DB 세션에서 유사 논문 리스트 검색 (중복 제거 적용) (30%)
             papers_list = []
-            if domain == "cs":
-                from langchain.embeddings import init_embeddings
-                from langchain_postgres import PGVector
-                from api.v1.cs.vectorstore_conf import COLLECTION_NAME, CONNECTION, EMBED_MODEL
-                
-                vectorstore = PGVector(
-                    embeddings=init_embeddings(model=EMBED_MODEL),
-                    collection_name=COLLECTION_NAME,
-                    connection=CONNECTION,
-                    async_mode=True,
-                )
-                results = await vectorstore.asimilarity_search_with_score(query, k=25)
+            if domain in ("cs", "bio", "astronomy"):
+                from api.common.rag_pipeline import common_rag_pipeline
+                results = await common_rag_pipeline.similarity_search(domain, query, k=25)
                 
                 temp_papers: dict[str, dict[str, Any]] = {}
-                for doc, score in results:
-                    meta = doc.metadata or {}
-                    arxiv_id = meta.get("arxiv_id") or meta.get("doc_id") or ""
+                for r in results:
+                    arxiv_id = r["doc_id"]
                     if not arxiv_id:
                         continue
                     
-                    title = meta.get("title", "")
-                    content = doc.page_content or ""
-                    distance = score
-                    # 코사인 유사도 점수 (1 - 코사인 거리)
-                    similarity = round(1.0 - float(distance), 4)
+                    title = r["title"]
+                    content = r["text_chunk"]
+                    similarity = r["score"]
                     
                     if arxiv_id not in temp_papers:
                         temp_papers[arxiv_id] = {
@@ -185,8 +173,6 @@ class ResearchGapService:
                         "similarity": p_info["similarity"],
                         "content": joined_content
                     })
-            else:
-                raise ValueError(f"지원하지 않는 도메인입니다: {domain}")
 
             if not papers_list:
                 raise ValueError("검색된 관련 논문 자료가 없습니다. 데이터베이스 적재 상태 또는 키워드를 확인해 주세요.")

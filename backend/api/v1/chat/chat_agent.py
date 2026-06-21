@@ -1,18 +1,20 @@
 import asyncio
 import logging
-from typing import Annotated
+from typing import Annotated, TypedDict, Any, cast
 
 from fastapi import Depends
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-# bio 폴더는 읽기/ import만 (수정하지 않음). RAG tool과 state 스키마를 재사용한다.
-from api.v1.bio.agent_rag import BioAgentState, search_bio_papers
-from api.v1.astronomy.agent_rag import search_astronomy_papers
-from api.v1.cs.agent_rag import search_cs_papers
-from api.v1.chat.psycopg_pool_conf import chat_psycopg_pool
+from langgraph.graph import add_messages
+from api.common.rag_pipeline import search_bio_papers, search_astronomy_papers, search_cs_papers
+from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
 from pydantic import BaseModel, Field
+
+class BioAgentState(TypedDict):
+    messages: Annotated[list, add_messages]
+    sources: list[dict]   # 검색된 논문 출처 누적
 
 logger = logging.getLogger(__name__)
 
@@ -79,14 +81,14 @@ class ChatAgent:
             if chat_psycopg_pool.closed:
                 await chat_psycopg_pool.open()
             # checkpointer/agent는 running event loop 안에서 생성해야 한다.
-            self.checkpointer = AsyncPostgresSaver(chat_psycopg_pool)
+            self.checkpointer = AsyncPostgresSaver(cast(Any, chat_psycopg_pool))
             # 시스템 프롬프트는 create_agent에 전달 — 영구 저장되는 대화 기록에 매 턴 중복 누적되지 않도록.
             self.agent = create_agent(
                 model=self.model,
                 tools=[search_bio_papers, search_astronomy_papers, search_cs_papers],
                 system_prompt=self.system_prompt,
                 checkpointer=self.checkpointer,
-                state_schema=BioAgentState,   # 출처 추적 위해 bio의 state 패턴 활용
+                state_schema=cast(Any, BioAgentState),   # 출처 추적 위해 bio의 state 패턴 활용
                 response_format=BioAnswer
             )
 
@@ -98,7 +100,12 @@ class ChatAgent:
                     "WHERE schemaname='public' AND tablename='checkpoints'"
                 )
                 exists = await cur.fetchone()
+                if not exists:
+                    # checkpoints가 없는데 checkpoint_migrations가 있으면 setup()이 테이블을 생성하지 않으므로
+                    # 관련 테이블을 일괄 삭제하여 setup()이 처음부터 깨끗이 생성하도록 유도합니다.
+                    await conn.execute("DROP TABLE IF EXISTS checkpoint_migrations, checkpoint_blobs, checkpoint_writes CASCADE;")
             if not exists:
+                assert self.checkpointer is not None
                 await self.checkpointer.setup()
 
             self._initialized = True
@@ -113,6 +120,7 @@ class ChatAgent:
         깨진 상태가 사용자에게 노출되지 않게 방어한다.
         """
         await self._initialize()
+        assert self.agent is not None
         try:
             result = await self.agent.ainvoke(
                 {
@@ -172,18 +180,19 @@ class ChatAgent:
                 tools=[search_bio_papers, search_astronomy_papers, search_cs_papers],
                 system_prompt=self.system_prompt,
                 checkpointer=self.checkpointer,
-                state_schema=BioAgentState,
+                state_schema=cast(Any, BioAgentState),
                 # response_format 없음 — 스트리밍 위해 일반 마크다운 텍스트로 출력
             )
 
+        assert self._stream_agent is not None
         async for stream_mode, chunk in self._stream_agent.astream(
             {"messages": [{"role": "user", "content": message}], "sources": []},
             {"configurable": {"thread_id": conversation_id}},
-            stream_mode=["messages"],
+            stream_mode=cast(Any, ["messages"]),
         ):
             token, metadata = chunk
             # 도구 노드에서 나온 토큰(검색 결과 등)은 답변이 아니므로 건너뛴다.
-            if metadata.get("langgraph_node") == "tools":
+            if isinstance(metadata, dict) and metadata.get("langgraph_node") == "tools":
                 continue
             # 도구 호출(tool_calls)만 담은 AI 토큰도 답변 텍스트가 아니므로 건너뛴다.
             if getattr(token, "tool_calls", None):
@@ -201,6 +210,7 @@ class ChatAgent:
         """
         await self._initialize()
         agent = getattr(self, "_stream_agent", None) or self.agent
+        assert agent is not None
         state = await agent.aget_state(
             {"configurable": {"thread_id": conversation_id}}
         )
@@ -220,6 +230,7 @@ class ChatAgent:
         실제 발화만 [{role, content}] 리스트로 정리한다.
         """
         await self._initialize()
+        assert self.agent is not None
         state = await self.agent.aget_state(
             {"configurable": {"thread_id": conversation_id}}
         )
@@ -239,6 +250,7 @@ class ChatAgent:
     async def clear_history(self, conversation_id: str) -> None:
         """대화 스레드의 모든 기록을 삭제한다(방 삭제 시 대화 내용도 함께 제거)."""
         await self._initialize()
+        assert self.checkpointer is not None
         await self.checkpointer.adelete_thread(conversation_id)
 
     async def generate_title(self, question: str) -> str:
@@ -252,6 +264,7 @@ class ChatAgent:
         if not hasattr(self, "_title_model") or self._title_model is None:
             self._title_model = init_chat_model(self.model)
 
+        assert self._title_model is not None
         prompt = (
             "다음 질문을 한국어로 6~20자의 간결한 채팅방 제목으로 만들어줘.\n"
             "- 제목만 출력하고 따옴표나 군더더기 설명은 붙이지 마.\n"
@@ -260,7 +273,11 @@ class ChatAgent:
         )
         try:
             response = await self._title_model.ainvoke(prompt)
-            title = response.content.strip().strip('"').strip("'")
+            content = response.content
+            if isinstance(content, str):
+                title = content.strip().strip('"').strip("'")
+            else:
+                title = ""
             # 혹시 너무 길면 잘라서 안전하게
             return title[:30] if title else question[:30]
         except Exception as e:
