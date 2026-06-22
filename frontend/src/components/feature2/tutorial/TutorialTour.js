@@ -213,58 +213,50 @@ export default function TutorialTour({ steps = [], matchPath }) {
         </div>
       </div>
 
-      {/* 2. Popover Guidance Bubble: Mounts and fades in only after scroll & position checks */}
-      <div 
-        style={{ 
-          opacity: isPositionCalculated ? 1 : 0, 
-          transition: "opacity 0.2s ease",
-          pointerEvents: isPositionCalculated ? "auto" : "none"
-        }}
-      >
-        {isPositionCalculated && (
-          <div 
-            className={styles.popover}
-            style={{
-              top: popoverPos.top,
-              left: popoverPos.left,
-              transition: isTransitionEnabled ? undefined : "none"
-            }}
-          >
-            {arrowClass && <div className={`${styles.arrow} ${arrowClass}`}></div>}
+      {/* 2. Popover Guidance Bubble: Renders at the very top level of body to maintain z-index: 1000000 */}
+      {isPositionCalculated && (
+        <div 
+          className={styles.popover}
+          style={{
+            top: popoverPos.top,
+            left: popoverPos.left,
+            transition: isTransitionEnabled ? undefined : "none"
+          }}
+        >
+          {arrowClass && <div className={`${styles.arrow} ${arrowClass}`}></div>}
+          
+          <div className={styles.popoverHeader}>
+            <h4 className={styles.title}>
+              <i className="bi bi-info-circle-fill text-primary"></i>
+              {currentStep.title}
+            </h4>
+            <span className={styles.badge}>
+              {currentIndex + 1} / {steps.length}
+            </span>
+          </div>
+
+          <p className={styles.content}>{currentStep.content}</p>
+
+          <div className={styles.footer}>
+            <button className={styles.skipBtn} onClick={handleClose}>
+              Skip
+            </button>
             
-            <div className={styles.popoverHeader}>
-              <h4 className={styles.title}>
-                <i className="bi bi-info-circle-fill text-primary"></i>
-                {currentStep.title}
-              </h4>
-              <span className={styles.badge}>
-                {currentIndex + 1} / {steps.length}
-              </span>
-            </div>
-
-            <p className={styles.content}>{currentStep.content}</p>
-
-            <div className={styles.footer}>
-              <button className={styles.skipBtn} onClick={handleClose}>
-                Skip
+            <div className={styles.btnGroup}>
+              <button 
+                className={styles.navBtn} 
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+              >
+                Prev
               </button>
-              
-              <div className={styles.btnGroup}>
-                <button 
-                  className={styles.navBtn} 
-                  onClick={handlePrev}
-                  disabled={currentIndex === 0}
-                >
-                  Prev
-                </button>
-                <button className={styles.primaryBtn} onClick={handleNext}>
-                  {currentIndex === steps.length - 1 ? "Finish" : "Next"}
-                </button>
-              </div>
+              <button className={styles.primaryBtn} onClick={handleNext}>
+                {currentIndex === steps.length - 1 ? "Finish" : "Next"}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>,
     document.body
   );
