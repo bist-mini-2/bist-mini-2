@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const DB_SOURCE_OPTIONS = [
   { value: "bio", label: "Bio", sub: "q-bio.GN", icon: "bi-activity", color: "#16a34a" },
@@ -25,22 +25,32 @@ function hashPalette(str) {
   return GEM_PALETTES[h % GEM_PALETTES.length];
 }
 
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function GemEditor({ editTarget, onSave, onBack, loading }) {
   const isEdit = editTarget !== null;
 
   const [name, setName] = useState("");
   const [selectedSources, setSelectedSources] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [files, setFiles] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (isEdit && editTarget) {
       setName(editTarget.name || "");
       setSelectedSources(editTarget.db_sources || []);
       setSystemPrompt(editTarget.system_prompt || "");
+      setFiles([]);
     } else {
       setName("");
       setSelectedSources([]);
       setSystemPrompt("");
+      setFiles([]);
     }
   }, [editTarget]);
 
@@ -49,9 +59,33 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
       prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]
     );
 
+  const handleFileChange = (e) => {
+    const selected = Array.from(e.target.files);
+    setFiles((prev) => {
+      const existingNames = new Set(prev.map((f) => f.name));
+      const newFiles = selected.filter((f) => !existingNames.has(f.name));
+      return [...prev, ...newFiles];
+    });
+    e.target.value = "";
+  };
+
+  const removeFile = (fileName) => {
+    setFiles((prev) => prev.filter((f) => f.name !== fileName));
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const dropped = Array.from(e.dataTransfer.files);
+    setFiles((prev) => {
+      const existingNames = new Set(prev.map((f) => f.name));
+      const newFiles = dropped.filter((f) => !existingNames.has(f.name));
+      return [...prev, ...newFiles];
+    });
+  };
+
   const handleSave = () => {
     if (!name.trim() || selectedSources.length === 0 || !systemPrompt.trim()) return;
-    onSave({ name: name.trim(), db_sources: selectedSources, system_prompt: systemPrompt.trim() });
+    onSave({ name: name.trim(), db_sources: selectedSources, system_prompt: systemPrompt.trim(), files });
   };
 
   const initials = name.trim() ? name.trim().substring(0, 2).toUpperCase() : "";
@@ -60,7 +94,7 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
 
   return (
     <div className="gem-editor">
-      {/* Top bar */}
+      {/* Top bar — 저장 버튼 없이 뒤로가기 + 제목만 */}
       <div className="gem-editor-topbar">
         <button className="gem-editor-back-btn" onClick={onBack}>
           <i className="bi bi-arrow-left"></i>
@@ -71,13 +105,8 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
           </div>
           <span className="gem-editor-topbar-name">{name || (isEdit ? editTarget?.name : "새 Gem")}</span>
         </div>
-        <button
-          className="gem-editor-save-btn"
-          onClick={handleSave}
-          disabled={loading || !isValid}
-        >
-          {loading ? <span className="spinner-border spinner-border-sm"></span> : "저장"}
-        </button>
+        {/* 저장 버튼 자리 — 빈 공간으로 레이아웃 균형 유지 */}
+        <div style={{ width: "56px" }} />
       </div>
 
       {/* Body: left form + right preview */}
@@ -146,6 +175,72 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
               })}
             </div>
           </div>
+
+          {/* File upload */}
+          <div className="gem-editor-field">
+            <label className="gem-editor-label">
+              파일
+              <i className="bi bi-info-circle gem-editor-info" title="Gem이 참조할 파일을 추가합니다."></i>
+            </label>
+
+            {files.length > 0 && (
+              <div className="gem-editor-file-list">
+                {files.map((file) => (
+                  <div key={file.name} className="gem-editor-file-row">
+                    <i className="bi bi-file-earmark-text gem-editor-file-icon"></i>
+                    <div className="gem-editor-file-info">
+                      <span className="gem-editor-file-name">{file.name}</span>
+                      <span className="gem-editor-file-size">{formatFileSize(file.size)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="gem-editor-file-remove"
+                      onClick={() => removeFile(file.name)}
+                      title="파일 제거"
+                    >
+                      <i className="bi bi-x"></i>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div
+              className="gem-editor-dropzone"
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <i className="bi bi-cloud-upload gem-editor-dropzone-icon"></i>
+              <span className="gem-editor-dropzone-text">파일을 드래그하거나 클릭하여 추가</span>
+              <span className="gem-editor-dropzone-hint">PDF, TXT, DOCX 등 지원</span>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+              accept=".pdf,.txt,.docx,.doc,.md,.csv"
+            />
+          </div>
+
+          {/* Save button — 파일 추가 섹션 아래 중앙 */}
+          <div className="gem-editor-save-row">
+            <button
+              className="gem-editor-save-btn-bottom"
+              onClick={handleSave}
+              disabled={loading || !isValid}
+            >
+              {loading ? (
+                <><span className="spinner-border spinner-border-sm me-2"></span>저장 중...</>
+              ) : isEdit ? (
+                <><i className="bi bi-check-lg me-2"></i>저장</>
+              ) : (
+                <><i className="bi bi-gem me-2"></i>Gem 만들기</>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Right panel: preview */}
@@ -172,6 +267,12 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
                   <span key={src} className={`gem-source-tag gem-source-${src}`}>{src}</span>
                 ))}
               </div>
+              {files.length > 0 && (
+                <div className="gem-editor-preview-files">
+                  <i className="bi bi-paperclip"></i>
+                  <span>{files.length}개 파일 첨부됨</span>
+                </div>
+              )}
             </div>
           )}
         </div>
