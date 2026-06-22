@@ -1,12 +1,47 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getGems, createGem, updateGem, deleteGem } from "@/apis/gemsApi";
 import GemCard from "@/components/feature3/GemCard";
 import GemEditor from "@/components/feature3/GemEditor";
 import GemChatPanel from "@/components/feature3/GemChatPanel";
 import styles from "./page.module.css";
+
+const THREAD_STORAGE_KEY = "gem_thread_map";
+
+/** localStorage에서 gemId → threadId 맵을 불러옵니다. */
+function loadThreadMap() {
+  try {
+    return JSON.parse(localStorage.getItem(THREAD_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+/** gemId → threadId 맵을 localStorage에 저장합니다. */
+function saveThreadMap(map) {
+  try {
+    localStorage.setItem(THREAD_STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+/** gemId에 해당하는 threadId를 가져오거나, 없으면 새로 생성해 저장 후 반환합니다. */
+function getOrCreateThreadId(gemId) {
+  const map = loadThreadMap();
+  if (map[gemId]) return map[gemId];
+  const tid = `${gemId}_${Date.now()}`;
+  map[gemId] = tid;
+  saveThreadMap(map);
+  return tid;
+}
+
+/** 삭제된 gemId의 threadId를 localStorage에서 제거합니다. */
+function removeThreadId(gemId) {
+  const map = loadThreadMap();
+  delete map[gemId];
+  saveThreadMap(map);
+}
 
 export default function Feature3Page() {
   const [gems, setGems] = useState([]);
@@ -19,6 +54,9 @@ export default function Feature3Page() {
   const [threadId, setThreadId] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  // 최신 gems 목록을 searchParams effect에서 참조하기 위한 ref
+  const gemsRef = useRef([]);
+
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -28,6 +66,7 @@ export default function Feature3Page() {
     try {
       const data = await getGems();
       setGems(data);
+      gemsRef.current = data;
       return data;
     } catch {
       setError("Gem 목록을 불러오지 못했습니다.");
@@ -37,27 +76,40 @@ export default function Feature3Page() {
     }
   }, []);
 
-  // On mount: load gems, then check for gemId query param
+  // 초기 로드
   useEffect(() => {
-    loadGems().then((data) => {
-      const gemId = searchParams.get("gemId");
-      if (gemId) {
-        const gem = data.find((g) => g.gem_id === gemId);
-        if (gem) {
-          setSelectedGem(gem);
-          setThreadId(`${gem.gem_id}_${Date.now()}`);
-          setView("chat");
-        }
-      }
-    });
+    loadGems();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // searchParams(gemId)가 바뀔 때마다 해당 Gem 채팅으로 이동
+  useEffect(() => {
+    const gemId = searchParams.get("gemId");
+    if (!gemId) return;
+
+    const openGem = (data) => {
+      const gem = data.find((g) => g.gem_id === gemId);
+      if (!gem) return;
+      const tid = getOrCreateThreadId(gemId);
+      setSelectedGem(gem);
+      setThreadId(tid);
+      setView("chat");
+    };
+
+    if (gemsRef.current.length > 0) {
+      openGem(gemsRef.current);
+    } else {
+      loadGems().then(openGem);
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCreate = () => { setEditorTarget(null); setView("editor"); };
   const openEdit = (gem) => { setEditorTarget(gem); setView("editor"); };
 
   const openChat = (gem) => {
+    // localStorage에서 이전 threadId를 가져오거나 새로 생성 — 페이지 새로고침 후에도 동일 스레드 재사용
+    const tid = getOrCreateThreadId(gem.gem_id);
     setSelectedGem(gem);
-    setThreadId(`${gem.gem_id}_${Date.now()}`);
+    setThreadId(tid);
     setView("chat");
     router.replace("/feature3");
   };
@@ -67,7 +119,6 @@ export default function Feature3Page() {
     setEditorTarget(null);
     setSelectedGem(null);
     setThreadId(null);
-    // Only clear URL if there's a gemId query param (coming from sidebar click)
     if (searchParams.get("gemId")) {
       router.replace("/feature3");
     }
@@ -79,9 +130,11 @@ export default function Feature3Page() {
       if (editorTarget) {
         const updated = await updateGem(editorTarget.gem_id, payload);
         setGems((prev) => prev.map((g) => (g.gem_id === updated.gem_id ? updated : g)));
+        gemsRef.current = gemsRef.current.map((g) => (g.gem_id === updated.gem_id ? updated : g));
       } else {
         const created = await createGem(payload);
         setGems((prev) => [created, ...prev]);
+        gemsRef.current = [created, ...gemsRef.current];
       }
       window.dispatchEvent(new CustomEvent("gems-updated"));
       backToStore();
@@ -97,6 +150,9 @@ export default function Feature3Page() {
     try {
       await deleteGem(gemId);
       setGems((prev) => prev.filter((g) => g.gem_id !== gemId));
+      gemsRef.current = gemsRef.current.filter((g) => g.gem_id !== gemId);
+      // 삭제된 Gem의 thread 정보도 localStorage에서 제거
+      removeThreadId(gemId);
       window.dispatchEvent(new CustomEvent("gems-updated"));
     } catch {
       alert("삭제에 실패했습니다.");

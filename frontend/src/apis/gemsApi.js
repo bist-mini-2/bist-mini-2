@@ -42,7 +42,7 @@ export async function deleteGem(gemId) {
  * 특정 Gem과 대화합니다.
  * @param {string} gemId
  * @param {object} payload - { thread_id, message }
- * @returns {Promise<object>} { answer, sources }
+ * @returns {Promise<object>} { answer, papers, sources }
  */
 export async function chatWithGem(gemId, payload) {
   const res = await apiClient.post(`/gems/${gemId}/chat`, payload);
