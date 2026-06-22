@@ -20,7 +20,7 @@ export const metadata = {
 import { AuthContextProvider } from "@/contexts/AuthContext";
 import { ThemeContextProvider } from "@/contexts/ThemeContext";
 import { NotificationContextProvider } from "@/contexts/NotificationContext";
-import AppLayoutWrapper from "@/components/AppLayoutWrapper";
+import AppLayoutWrapper from "@/components/app-layout-wrapper/AppLayoutWrapper";
 
 export default function RootLayout({ children }) {
   return (

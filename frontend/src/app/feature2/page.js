@@ -7,7 +7,8 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import { listUserTasks, bulkDeleteTasks } from "@/apis/researchGap";
 import { AuthContext } from "@/contexts/AuthContext";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge from "@/components/status-badge/StatusBadge";
+import LoadingSpinner from "@/components/loading-spinner/LoadingSpinner";
 
 /**
  * 대규모 문헌 비교 분석기 작업 이력 페이지입니다.
@@ -24,6 +25,7 @@ export default function ResearchGapHistoryPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [deletingIds, setDeletingIds] = useState([]);
+  const [isExiting, setIsExiting] = useState(false);
 
   // 마운트 여부 설정 (Portal용)
   useEffect(() => {
@@ -141,7 +143,10 @@ export default function ResearchGapHistoryPage() {
     if (isEditMode) {
       handleCheckboxChange(task.task_id);
     } else {
-      router.push(`/feature2/analyze?taskId=${task.task_id}`);
+      setIsExiting(true);
+      setTimeout(() => {
+        router.push(`/feature2/analyze?taskId=${task.task_id}`);
+      }, 500);
     }
   };
 
@@ -174,18 +179,11 @@ export default function ResearchGapHistoryPage() {
   };
 
   if (loading) {
-    return (
-      <div className="d-flex flex-column align-items-center justify-content-center min-vh-50 p-5 text-muted">
-        <div className="spinner-border text-success mb-3" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-        <span>분석 이력 데이터를 불러오는 중...</span>
-      </div>
-    );
+    return <LoadingSpinner message="분석 이력 데이터를 불러오는 중..." />;
   }
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isExiting ? styles.pageExiting : ""}`}>
       {/* Page Header */}
       <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
         <div>

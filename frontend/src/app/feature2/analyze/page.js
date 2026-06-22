@@ -7,6 +7,7 @@ import MatrixTable from "@/components/feature2/MatrixTable";
 import ResearchGapSynthesis from "@/components/feature2/ResearchGapSynthesis";
 import PipelineGraph from "@/components/feature2/pipeline-graph/PipelineGraph";
 import useResearchGap from "@/components/feature2/useResearchGap";
+import LoadingSpinner from "@/components/loading-spinner/LoadingSpinner";
 
 /**
  * 대규모 문헌 비교 분석기 (Research Gap Analyzer) 내부 핵심 페이지 컨텐츠 컴포넌트입니다.
@@ -59,14 +60,7 @@ function ResearchGapPageContent() {
  */
 export default function ResearchGapPage() {
   return (
-    <Suspense fallback={
-      <div className="d-flex flex-column align-items-center justify-content-center p-5 text-muted">
-        <div className="spinner-border text-success mb-3" role="status">
-          <span className="visually-hidden">Loading page...</span>
-        </div>
-        <span>분석기 로딩 중...</span>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSpinner message="분석기 로딩 중..." />}>
       <ResearchGapPageContent />
     </Suspense>
   );
