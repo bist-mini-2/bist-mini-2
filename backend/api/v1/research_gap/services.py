@@ -204,7 +204,10 @@ class ResearchGapService:
                         "You are an academic researcher analyzing a scientific paper abstract.\n"
                         "Extract the problems solved (or core methodologies proposed) and the limitations (or future gaps) "
                         "discussed in the provided text.\n"
-                        "You must extract at most 2 problems solved and at most 2 limitations per paper.\n"
+                        "You must extract at most 2 problems solved and at most 2 limitations per paper.\n\n"
+                        "For each extracted item, you must also locate and extract the verbatim sentence or paragraph from the provided content "
+                        "that directly supports this claim, and place it in the 'source_quote' field of the item. "
+                        "Do not paraphrase or rewrite the 'source_quote' in any way; copy it exactly as it appears in the text.\n\n"
                         "Response must be in English and structured in the requested format."
                     )),
                     ("user", "Title: {title}\nArXiv ID: {arxiv_id}\n\nContent:\n{content}")
@@ -233,8 +236,8 @@ class ResearchGapService:
             self.logger.info("Synthesizing Research Gap Matrix and Proposing Research Directions...")
             matrix_data = "\n\n".join([
                 f"Paper: {p.title} (ID: {p.arxiv_id})\n"
-                f"- Solved: {', '.join(p.problems_solved)}\n"
-                f"- Limitations: {', '.join(p.limitations)}"
+                f"- Solved: {', '.join([item.summary for item in p.problems_solved])}\n"
+                f"- Limitations: {', '.join([item.summary for item in p.limitations])}"
                 for p in analyzed_papers
             ])
 
@@ -415,8 +418,9 @@ class ResearchGapService:
                 "Strictly follow these translation guidelines:\n"
                 "1. DO NOT translate 'Transformer' as '변환기'. Translate it as '트랜스포머'.\n"
                 "2. Keep common AI/ML technical terms in English or use standard academic Korean (e.g., keep MLP, RAG, LLM, ICL, attention, contextual bandit in English or write them like '인컨텍스트 학습(ICL)', '어텐션 메커니즘').\n"
-                "3. Use a formal, concise academic tone appropriate for research reports (e.g., ending with nominalized phrases like '~을 해결함', '~을 규명함', '~을 제안함', or clear noun phrases like '~ 최적화', '~ 설계'). Avoid awkward machine-translated passive verbs.\n"
-                "4. Ensure paper titles are translated in a way that sounds natural to Korean researchers while preserving key technical terms.\n\n"
+                "3. Use a formal, concise academic tone appropriate for research reports (e.g., ending with nominalized phrases like '~을 해결함', '~을 규명함', '~을 제안함', or clear noun phrases like '~ 최적화', '~ 설계'). Avoid passive passive verbs.\n"
+                "4. Ensure paper titles are translated in a way that sounds natural to Korean researchers while preserving key technical terms.\n"
+                "5. DO NOT translate the 'source_quote' field of each paper. Keep the 'source_quote' in its original English verbatim.\n\n"
                 "Response must be structured in the requested format."
             )),
             ("user", "{matrix_json}")
@@ -434,10 +438,21 @@ class ResearchGapService:
             
         translated_dict = translated.model_dump()
         
-        # 번역 완료 후 유사도 데이터 유실을 막기 위해 원본 유사도 스코어 복사 복원
+        # 번역 완료 후 유사도 및 원문 인용구(영문 팩트) 유실 방지를 위한 원본 데이터 복원
         for idx, paper in enumerate(translated_dict.get("papers", [])):
             if idx < len(matrix.papers):
-                paper["similarity"] = matrix.papers[idx].similarity
+                orig_paper = matrix.papers[idx]
+                paper["similarity"] = orig_paper.similarity
+                
+                # problems_solved 인용구 복원
+                for p_idx, item in enumerate(paper.get("problems_solved", [])):
+                    if p_idx < len(orig_paper.problems_solved):
+                        item["source_quote"] = orig_paper.problems_solved[p_idx].source_quote
+                        
+                # limitations 인용구 복원
+                for l_idx, item in enumerate(paper.get("limitations", [])):
+                    if l_idx < len(orig_paper.limitations):
+                        item["source_quote"] = orig_paper.limitations[l_idx].source_quote
         
         # 5. DB에 번역본 저장 및 커밋
         async with session_maker() as session:

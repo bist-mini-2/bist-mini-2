@@ -56,16 +56,22 @@ class TaskStatusResponse(BaseDTO):
     )
 
 
+class AnalysisItem(BaseDTO):
+    """핵심 요약 정보와 그에 매핑되는 논문 본문 원문(인용구)을 갖는 DTO 스키마입니다."""
+    summary: str = Field(..., description="요약된 핵심 정보")
+    source_quote: str = Field(..., description="요약의 근거가 된 논문 원문의 실제 인용 구절 (영문 원본)")
+
+
 class PaperAnalysisResult(BaseDTO):
     """개별 논문 분석 결과를 나타내는 Pydantic Structured Output용 DTO 스키마입니다."""
     title: str = Field(..., description="논문 제목")
     arxiv_id: str = Field(..., description="ArXiv 논문 고유 ID")
-    problems_solved: List[str] = Field(
+    problems_solved: List[AnalysisItem] = Field(
         ...,
         max_length=2,
         description="논문에서 해결한 주요 문제 및 제안한 핵심 방법론 목록 (최대 2개)"
     )
-    limitations: List[str] = Field(
+    limitations: List[AnalysisItem] = Field(
         ...,
         max_length=2,
         description="논문에서 언급되었거나 식별된 한계점 및 향후 과제 목록 (최대 2개)"
@@ -107,13 +113,18 @@ class TaskResultResponse(BaseDTO):
                     "title": "Empirical Analysis of RAG Pipeline Tuning",
                     "arxiv_id": "2401.12345",
                     "problems_solved": [
-                        "다중 도메인 내 최적 청크 크기가 500자임을 수치적으로 증명",
-                        "임베딩 간의 의미 유사도 소실률 비교"
+                        {
+                            "summary": "다중 도메인 내 최적 청크 크기가 500자임을 수치적으로 증명",
+                            "source_quote": "Our experiments demonstrate that a chunk size of 500 characters preserves semantic density across multi-domain datasets."
+                        }
                     ],
                     "limitations": [
-                        "표, 수식 등이 포함된 멀티모달 요소 청킹 시의 정보 누락 처리 미비",
-                        "실시간 토큰 수 변화에 따른 동적 크롭 제어 부재"
-                    ]
+                        {
+                            "summary": "표, 수식 등이 포함된 멀티모달 요소 청킹 시의 정보 누락 처리 미비",
+                            "source_quote": "However, the current pipeline struggles to parse dense tables and mathematical expressions without structural degradation."
+                        }
+                    ],
+                    "similarity": 0.4567
                 }
             ],
             "common_limitations": [
