@@ -11,6 +11,12 @@ export default function TutorialTour({ steps = [], matchPath }) {
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const [arrowClass, setArrowClass] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [isPositionCalculated, setIsPositionCalculated] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -72,6 +78,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
       }
 
       setPopoverPos({ top, left });
+      setIsPositionCalculated(true);
     } else {
       // Fallback: Center of the viewport if target element is not found
       const top = (window.innerHeight - 200) / 2;
@@ -79,6 +86,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
       setTargetRect(null);
       setPopoverPos({ top, left });
       setArrowClass("");
+      setIsPositionCalculated(true);
     }
   }, [isOpen, currentIndex, steps]);
 
@@ -88,6 +96,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
       const { pathname } = e.detail;
       // Start tour if pathname matches the target path configuration
       if (pathname === matchPath || (matchPath && pathname.startsWith(matchPath))) {
+        setIsPositionCalculated(false);
         setIsOpen(true);
         setCurrentIndex(0);
       }
@@ -148,6 +157,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
   const handleClose = () => {
     setIsOpen(false);
     setTargetRect(null);
+    setIsPositionCalculated(false);
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("tutorial-ended"));
     }
@@ -158,12 +168,12 @@ export default function TutorialTour({ steps = [], matchPath }) {
   const currentStep = steps[currentIndex];
 
   return createPortal(
-    <>
+    <div style={{ opacity: isPositionCalculated ? 1 : 0, transition: "opacity 0.2s ease" }}>
       {/* Semi-transparent dark overlay */}
       <div className={styles.overlay} onClick={handleClose}></div>
 
       {/* Target Element Highlight Box */}
-      {targetRect && (
+      {isPositionCalculated && targetRect && (
         <div 
           className={styles.highlightMask}
           style={{
@@ -178,47 +188,49 @@ export default function TutorialTour({ steps = [], matchPath }) {
       )}
 
       {/* Guidance Popover Bubble */}
-      <div 
-        className={styles.popover}
-        style={{
-          top: popoverPos.top,
-          left: popoverPos.left
-        }}
-      >
-        {arrowClass && <div className={`${styles.arrow} ${arrowClass}`}></div>}
-        
-        <div className={styles.popoverHeader}>
-          <h4 className={styles.title}>
-            <i className="bi bi-info-circle-fill text-primary"></i>
-            {currentStep.title}
-          </h4>
-          <span className={styles.badge}>
-            {currentIndex + 1} / {steps.length}
-          </span>
-        </div>
-
-        <p className={styles.content}>{currentStep.content}</p>
-
-        <div className={styles.footer}>
-          <button className={styles.skipBtn} onClick={handleClose}>
-            Skip
-          </button>
+      {isPositionCalculated && (
+        <div 
+          className={styles.popover}
+          style={{
+            top: popoverPos.top,
+            left: popoverPos.left
+          }}
+        >
+          {arrowClass && <div className={`${styles.arrow} ${arrowClass}`}></div>}
           
-          <div className={styles.btnGroup}>
-            <button 
-              className={styles.navBtn} 
-              onClick={handlePrev}
-              disabled={currentIndex === 0}
-            >
-              Prev
+          <div className={styles.popoverHeader}>
+            <h4 className={styles.title}>
+              <i className="bi bi-info-circle-fill text-primary"></i>
+              {currentStep.title}
+            </h4>
+            <span className={styles.badge}>
+              {currentIndex + 1} / {steps.length}
+            </span>
+          </div>
+
+          <p className={styles.content}>{currentStep.content}</p>
+
+          <div className={styles.footer}>
+            <button className={styles.skipBtn} onClick={handleClose}>
+              Skip
             </button>
-            <button className={styles.primaryBtn} onClick={handleNext}>
-              {currentIndex === steps.length - 1 ? "Finish" : "Next"}
-            </button>
+            
+            <div className={styles.btnGroup}>
+              <button 
+                className={styles.navBtn} 
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+              >
+                Prev
+              </button>
+              <button className={styles.primaryBtn} onClick={handleNext}>
+                {currentIndex === steps.length - 1 ? "Finish" : "Next"}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </>,
+      )}
+    </div>,
     document.body
   );
 }

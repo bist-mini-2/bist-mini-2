@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import styles from "./page.module.css";
 import ControlPanel from "@/components/feature2/ControlPanel";
 import MatrixTable from "@/components/feature2/MatrixTable";
@@ -19,7 +19,7 @@ function ResearchGapPageContent() {
   const [activeTab, setActiveTab] = useState("matrix"); // "matrix" | "graph"
   const [isTutorialActive, setIsTutorialActive] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     // Sync active tab to matrix during tutorial to ensure matrix targets exist
     if (isTutorialActive) {
       setActiveTab("matrix");
