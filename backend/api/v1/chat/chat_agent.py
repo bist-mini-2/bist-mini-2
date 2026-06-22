@@ -71,7 +71,7 @@ class ChatAgent:
         작업 방식:
         - 질문 주제를 파악해서 알맞은 검색 도구를 사용합니다.
           · 생명공학·유전체학 → search_bio_papers
-          · 천문학(외계행성, 행성, 소행성체, 소행성, 혜성, 소천체 등) → search_astronomy_papers
+          · 천문학 → search_astronomy_papers
           · 컴퓨터과학 → search_cs_papers
         - 중요: 논문 DB는 영어로 임베딩되어 있습니다. 검색 도구 호출 시 query를 반드시 영어로 번역해서 전달하세요.
         - 검색된 논문 내용을 근거로, 질문에 대한 설명을 마크다운으로 풍부하게 작성합니다.
