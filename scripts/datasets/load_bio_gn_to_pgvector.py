@@ -13,16 +13,38 @@ import asyncio
 import json
 from pathlib import Path
 
+import psycopg
 from langchain.embeddings import init_embeddings
 from langchain_core.documents import Document
 from langchain_postgres import PGVector
 from tqdm import tqdm
 
 JSONL_PATH = Path(__file__).parents[2] / "data" / "raw" / "archive" / "bio_gn_embeddings.jsonl"
-COLLECTION_NAME = "q-bio-GN"
+COLLECTION_NAME = "bio_embeddings"
 CONNECTION = "postgresql+psycopg_async://postgres:postgres@kosa165.iptime.org:50003/postgres"
 EMBED_MODEL = "openai:text-embedding-3-large"
 BATCH_SIZE = 200
+
+
+def clear_existing_collection_embeddings() -> None:
+    """중복 적재 방지를 위해 기존 bio_embeddings 컬렉션의 임베딩 데이터를 DB에서 삭제합니다."""
+    sync_connection_str = CONNECTION.replace("postgresql+psycopg_async://", "postgresql://")
+    print(f"      -> DB 연결 및 기존 '{COLLECTION_NAME}' 데이터 제거 시도 중...")
+    try:
+        with psycopg.connect(sync_connection_str) as conn:
+            with conn.cursor() as cur:
+                # collection_id 조회
+                cur.execute("SELECT uuid FROM langchain_pg_collection WHERE name = %s", (COLLECTION_NAME,))
+                row = cur.fetchone()
+                if row:
+                    collection_uuid = row[0]
+                    cur.execute("DELETE FROM langchain_pg_embedding WHERE collection_id = %s", (collection_uuid,))
+                    print(f"      -> 기존 '{COLLECTION_NAME}' 컬렉션 임베딩 {cur.rowcount}건 삭제 완료.")
+                else:
+                    print(f"      -> 기존 '{COLLECTION_NAME}' 컬렉션이 DB에 존재하지 않아 스킵합니다.")
+                conn.commit()
+    except Exception as e:
+        print(f"경고: 기존 데이터 삭제 중 에러 발생 (무시하고 적재 진행): {e}")
 
 
 def load_documents() -> list[Document]:
@@ -59,6 +81,9 @@ async def main() -> None:
     print(f"[1/3] jsonl 파일 로드 중: {JSONL_PATH}")
     documents = load_documents()
     print(f"      총 {len(documents)}건 로드 완료")
+
+    # 기존 데이터 삭제 (재적재 대응)
+    clear_existing_collection_embeddings()
 
     vectorstore = PGVector(
         embeddings=init_embeddings(model=EMBED_MODEL),

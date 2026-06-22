@@ -35,7 +35,7 @@ except Exception:
 
 JSONL_PATH = Path(__file__).parents[2] / "data" / "raw" / "archive" / "local_embeddings_no_chunk_output.jsonl"
 SNAPSHOT_PATH = Path(__file__).parents[2] / "data" / "raw" / "archive" / "arxiv-metadata-oai-snapshot.json"
-COLLECTION_NAME = "cs-NE"
+COLLECTION_NAME = "cs_embeddings"
 CONNECTION = "postgresql+psycopg_async://postgres:postgres@kosa165.iptime.org:50003/postgres"
 EMBED_MODEL = "openai:text-embedding-3-large"
 BATCH_SIZE = 200
