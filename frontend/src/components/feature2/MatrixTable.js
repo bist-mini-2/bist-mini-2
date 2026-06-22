@@ -59,9 +59,9 @@ export default function MatrixTable({ result }) {
                         const quote = isObject ? item.source_quote : null;
                         
                         return (
-                          <li key={i} className={`mb-2.5 d-flex align-items-start ${quote ? styles.tooltipTrigger : ""}`}>
-                            <i className={`bi bi-check-circle-fill me-3 flex-shrink-0 ${styles.listIcon} ${styles.iconSuccess}`}></i>
-                            <span className={`text-secondary small ${quote ? styles.dashedUnderline : ""}`}>
+                          <li key={i} className={`mb-2.5 d-flex align-items-start text-secondary small ${quote ? styles.tooltipTrigger : ""}`}>
+                            <i className={`bi bi-check-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconSuccess}`}></i>
+                            <span className={quote ? styles.dashedUnderline : ""}>
                               {summary}
                             </span>
                             {quote && (
@@ -88,9 +88,9 @@ export default function MatrixTable({ result }) {
                         const quote = isObject ? item.source_quote : null;
                         
                         return (
-                          <li key={i} className={`mb-2.5 d-flex align-items-start ${quote ? styles.tooltipTrigger : ""}`}>
-                            <i className={`bi bi-dash-circle-fill me-3 flex-shrink-0 ${styles.listIcon} ${styles.iconDanger}`}></i>
-                            <span className={`text-secondary small ${quote ? styles.dashedUnderline : ""}`}>
+                          <li key={i} className={`mb-2.5 d-flex align-items-start text-secondary small ${quote ? styles.tooltipTrigger : ""}`}>
+                            <i className={`bi bi-dash-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconDanger}`}></i>
+                            <span className={quote ? styles.dashedUnderline : ""}>
                               {summary}
                             </span>
                             {quote && (
