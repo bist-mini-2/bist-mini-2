@@ -1,6 +1,6 @@
 "use client"
  
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import styles from "./PipelineGraph.module.css";
 import usePipelineLayout from "./usePipelineLayout";
 import GraphConnectors from "./GraphConnectors";
@@ -26,6 +26,148 @@ export default function PipelineGraph({ result, query }) {
     canvasHeight,
     containerRef
   });
+
+  useEffect(() => {
+    // Helper to recursively copy computed styles from original element to cloned element
+    const inlineStyles = (originalEl, clonedEl) => {
+      const computed = window.getComputedStyle(originalEl);
+      
+      // Select properties to preserve for SVG rendering
+      const styleProps = [
+        "fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap",
+        "font-family", "font-size", "font-weight", "color", "opacity",
+        "background-color", "border-color", "border-style", "border-width",
+        "border-radius", "padding", "margin", "display", "flex-direction",
+        "justify-content", "align-items", "text-align", "width", "height",
+        "line-height", "word-break", "white-space", "text-transform", "font-style"
+      ];
+      
+      styleProps.forEach(prop => {
+        const val = computed.getPropertyValue(prop);
+        if (val) {
+          // Exclude absolute external fonts that might taint canvas
+          if (prop === "font-family") {
+            clonedEl.style[prop] = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          } else {
+            clonedEl.style[prop] = val;
+          }
+        }
+      });
+
+      // Recursively copy style to children
+      const originalChildren = originalEl.children;
+      const clonedChildren = clonedEl.children;
+      if (originalChildren && clonedChildren) {
+        for (let i = 0; i < originalChildren.length; i++) {
+          inlineStyles(originalChildren[i], clonedChildren[i]);
+        }
+      }
+    };
+
+    const handleExportSvg = () => {
+      if (!containerRef.current) return;
+      const svgEl = containerRef.current.querySelector("svg");
+      if (!svgEl) return;
+
+      const clonedSvg = svgEl.cloneNode(true);
+      
+      // Inline styles to ensure colors and properties are hardcoded inside the elements
+      inlineStyles(svgEl, clonedSvg);
+
+      // Reset transform zoom/pan on cloned SVG for standard viewport export
+      const zoomGroup = clonedSvg.querySelector(`.${styles.zoomGroup}`);
+      if (zoomGroup) {
+        zoomGroup.style.transform = "";
+      }
+
+      const serializer = new XMLSerializer();
+      let svgString = serializer.serializeToString(clonedSvg);
+      if (!svgString.startsWith('<?xml')) {
+        svgString = '<?xml version="1.0" encoding="utf-8"?>\n' + svgString;
+      }
+      
+      const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const safeQuery = (query || "analysis").replace(/[^a-zA-Z0-9가-힣]/g, "_").substring(0, 30);
+      link.setAttribute("download", `pipeline_graph_${safeQuery}.svg`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
+
+    const handleExportPng = () => {
+      if (!containerRef.current) return;
+      const svgEl = containerRef.current.querySelector("svg");
+      if (!svgEl) return;
+
+      const clonedSvg = svgEl.cloneNode(true);
+      
+      // Inline styles recursively
+      inlineStyles(svgEl, clonedSvg);
+
+      // Reset zoom transform
+      const zoomGroup = clonedSvg.querySelector(`.${styles.zoomGroup}`);
+      if (zoomGroup) {
+        zoomGroup.style.transform = "";
+      }
+
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(clonedSvg);
+      
+      // To prevent 'tainting' the canvas, we encode the SVG string as a Base64 data URI 
+      // instead of using a blob URL. Blob URLs containing external styles or font styles 
+      // can sometimes trigger tainted canvas security errors.
+      const base64Svg = window.btoa(unescape(encodeURIComponent(svgString)));
+      const dataURI = "data:image/svg+xml;base64," + base64Svg;
+      
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvasWidth * 2;
+        canvas.height = canvasHeight * 2;
+        const context = canvas.getContext("2d");
+        
+        // Fill canvas background
+        const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+        context.fillStyle = isDark ? "#0D0F0D" : "#FAF9F3";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        context.scale(2, 2);
+        context.drawImage(image, 0, 0, canvasWidth, canvasHeight);
+        
+        try {
+          const pngURL = canvas.toDataURL("image/png");
+          const downloadLink = document.createElement("a");
+          downloadLink.href = pngURL;
+          const safeQuery = (query || "analysis").replace(/[^a-zA-Z0-9가-힣]/g, "_").substring(0, 30);
+          downloadLink.setAttribute("download", `pipeline_graph_${safeQuery}.png`);
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        } catch (err) {
+          console.error("Failed to export PNG from canvas:", err);
+          alert("이미지 보안 정책으로 인해 PNG 변환에 실패했습니다. 대신 SVG 저장 기능을 이용해 주세요.");
+        }
+      };
+      
+      image.onerror = (err) => {
+        console.error("Failed to load image from SVG data URI", err);
+      };
+      
+      image.src = dataURI;
+    };
+
+    window.addEventListener("export-graph-svg", handleExportSvg);
+    window.addEventListener("export-graph-png", handleExportPng);
+
+    return () => {
+      window.removeEventListener("export-graph-svg", handleExportSvg);
+      window.removeEventListener("export-graph-png", handleExportPng);
+    };
+  }, [query, styles]);
 
   if (!result || !result.papers || result.papers.length === 0) {
     return null;

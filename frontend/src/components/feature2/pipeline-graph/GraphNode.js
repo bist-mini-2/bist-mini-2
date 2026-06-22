@@ -48,18 +48,20 @@ export default function GraphNode({
   let foHeight = 80;
 
   if (nodeType === "query") {
-    foWidth = isSelected ? 300 : 220;
-    foHeight = isSelected ? 200 : 80;
+    foWidth = isSelected ? 320 : 240;
+    foHeight = isSelected ? 220 : 120;
     foX = coords.x - foWidth / 2;
     foY = coords.y + r + 10;
   } else if (nodeType === "paper") {
-    foWidth = isSelected ? 280 : 170;
-    foHeight = isSelected ? 150 : 60;
+    // Paper 노드 텍스트가 잘리는 문제를 가로/세로 대폭 확장하여 해결
+    foWidth = isSelected ? 300 : 230;
+    foHeight = isSelected ? 180 : 130;
     foX = coords.x - foWidth / 2;
     foY = coords.y + r + 8;
   } else if (nodeType === "solved" || nodeType === "limitation") {
-    foWidth = isFocused ? 260 : 150;
-    foHeight = isFocused ? 180 : 110;
+    // Solved 및 Limitation 서브 노드도 내보내기 시 여백 보장을 위해 크기 증대
+    foWidth = isFocused ? 280 : 180;
+    foHeight = isFocused ? 200 : 150;
 
     // 실제 부모와 자식 간의 척력 적용 후 좌표 기준 엣지 진행각 계산
     const margin = 15;
@@ -90,13 +92,14 @@ export default function GraphNode({
     foX = isFocused ? coords.x - foWidth / 2 : text_cx - foWidth / 2;
     foY = isFocused ? coords.y + r + 15 : text_cy - foHeight / 2;
   } else if (nodeType === "common") {
-    foWidth = 180;
-    foHeight = 80;
+    foWidth = 200;
+    foHeight = 100;
     foX = coords.x - foWidth / 2;
     foY = coords.y + r + 10;
   } else if (nodeType === "direction") {
-    foWidth = 200;
-    foHeight = isSelected ? 180 : 80;
+    // 우측 추천 연구 방향 노드도 텍스트가 절대 잘리지 않도록 넉넉하게 설정
+    foWidth = 260;
+    foHeight = isSelected ? 260 : 160;
     foX = coords.x - foWidth / 2;
     foY = coords.y + r + 8;
   }

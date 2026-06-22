@@ -76,3 +76,82 @@
     transform: translateY(0);
   }
 }
+
+.toolbarContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .toolbarContainer {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  /* When toolbarContainer is side-by-side, we want tab switcher to be perfectly centered, and toolbar on the right. */
+  .centerSpacer {
+    flex: 1;
+    display: none;
+  }
+  
+  .tabWrapper {
+    flex: 2;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .toolbarWrapper {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.actionToolbar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  color: var(--menu-item-color);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.exportBtn i {
+  font-size: 0.95rem;
+  transition: color 0.25s ease;
+}
+
+.exportBtn:hover {
+  background-color: var(--accent-color);
+  color: #ffffff !important;
+  border-color: var(--accent-color);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 10px rgba(116, 131, 109, 0.25);
+}
+
+.exportBtn:hover i {
+  color: #ffffff !important;
+}
+
+.printHeader {
+  display: none;
+}
+

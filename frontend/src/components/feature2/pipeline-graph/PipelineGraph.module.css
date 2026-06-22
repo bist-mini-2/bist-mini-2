@@ -1,5 +1,5 @@
 .graphWrapper {
-  margin-top: 2rem;
+  margin-top: 0;
   animation: fadeIn 0.5s ease-out;
 
   /* --- Theme Variables --- */
@@ -380,7 +380,7 @@
   line-height: 1.25;
   word-break: keep-all;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -480,4 +480,22 @@
   -webkit-line-clamp: none;
   overflow: visible;
   text-overflow: clip;
+}
+
+.monoBadge {
+  font-family: var(--mono-font), monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  box-sizing: border-box;
 }

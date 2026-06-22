@@ -43,3 +43,179 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* =============================================================================
+   Print Optimization Styles (PDF Export Support)
+   ============================================================================= */
+@media print {
+  /* Hide UI elements that are not part of the research report */
+  nav,
+  aside,
+  header,
+  footer,
+  [class*="sidebar"],
+  [class*="Sidebar"],
+  [class*="ControlPanel"],
+  [class*="tabContainer"],
+  [class*="controlToolbar"],
+  [class*="guideBadge"],
+  [class*="translateBtn"],
+  .btn,
+  button {
+    display: none !important;
+  }
+
+  /* Recommended page margins and size */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  /* Cancel heights and overflow scrollbars on all wrapper containers for multi-page print */
+  html,
+  body,
+  #root,
+  #__next,
+  [class*="layout"],
+  [class*="container"],
+  [class*="page"],
+  main,
+  section,
+  div {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force display rules for print-only and screen-only elements */
+  .d-print-none {
+    display: none !important;
+  }
+
+  .d-print-block {
+    display: block !important;
+  }
+
+  /* Expand result containers to full width */
+  main,
+  [class*="container"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Remove shadow/border styling from cards during print */
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background-color: transparent !important;
+  }
+
+  /* Print report styling */
+  [class*="printReportContainer"] {
+    display: block !important;
+    width: 100% !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  [class*="printPage"] {
+    width: 100% !important;
+    padding: 10mm 0 !important;
+    box-sizing: border-box !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Convert 2-column flex layout (MatrixTable + Synthesis) to stacked block layout for clean page breaks */
+  [class*="gapContainer"] {
+    display: block !important;
+  }
+
+  [class*="gapContainer"] > div {
+    width: 100% !important;
+    margin-bottom: 2.5rem;
+    page-break-inside: auto !important; /* Allow internal page breaks but control sub elements */
+  }
+
+  /* Professional Table styles for print */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 1.5rem !important;
+    page-break-inside: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important; /* Repeats table header across pages */
+  }
+
+  tr {
+    page-break-inside: avoid !important; /* Prevent single row splitting across pages */
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    border: 1px solid #cbd5e1 !important;
+    font-size: 9.5pt !important;
+    padding: 8px 12px !important;
+  }
+
+  td {
+    border: 1px solid #e2e8f0 !important;
+    font-size: 9pt !important;
+    padding: 8px 12px !important;
+    vertical-align: top !important;
+  }
+
+  /* Expand custom tooltip into a static reference box during print */
+  [class*="customTooltip"] {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 8px !important;
+    padding: 8px 12px !important;
+    background-color: #f8fafc !important;
+    color: #475569 !important;
+    border: 1px dashed #cbd5e1 !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    page-break-inside: avoid !important;
+  }
+
+  [class*="tooltipHeader"] {
+    font-size: 7.5pt !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 4px !important;
+  }
+
+  [class*="tooltipBody"] {
+    font-size: 7.5pt !important;
+    font-style: italic !important;
+    line-height: 1.35 !important;
+  }
+
+  /* recommendedTopicCard page-break-inside avoid */
+  [class*="recommendedTopicCard"] {
+    page-break-inside: avoid !important;
+    border: 1px solid #e2e8f0 !important;
+    background-color: #f8fafc !important;
+    margin-bottom: 12px !important;
+    padding: 12px !important;
+  }
+}

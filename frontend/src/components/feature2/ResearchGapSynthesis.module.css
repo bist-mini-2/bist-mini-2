@@ -1,10 +1,10 @@
 .monoBadge {
-  font-family: var(--mono-font);
+  font-family: var(--mono-font), monospace;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.05em;
-  padding: 3px 6px;
-  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  border-radius: 6px;
   text-transform: uppercase;
   background-color: var(--sidebar-bg);
   border: 1px solid var(--card-border);
@@ -13,6 +13,7 @@
   align-items: center;
   gap: 6px;
   width: fit-content;
+  box-sizing: border-box;
 }
 
 .recommendedTopicCard {
