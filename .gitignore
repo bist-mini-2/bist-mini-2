@@ -60,3 +60,8 @@ docs/langchain-v5.pptx.pdf
 /data/
 models/
 *.gguf
+
+# =============================================================================
+# Temporary Sandbox Storage (Feature 4 Uploads)
+# =============================================================================
+/backend/uploads/

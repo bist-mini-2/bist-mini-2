@@ -8,6 +8,7 @@ import ResearchGapSynthesis from "@/components/feature2/ResearchGapSynthesis";
 import PipelineGraph from "@/components/feature2/pipeline-graph/PipelineGraph";
 import useResearchGap from "@/components/feature2/useResearchGap";
 import LoadingSpinner from "@/components/loading-spinner/LoadingSpinner";
+import TutorialTour from "@/components/feature2/tutorial/TutorialTour";
 
 /**
  * 대규모 문헌 비교 분석기 (Research Gap Analyzer) 내부 핵심 페이지 컨텐츠 컴포넌트입니다.
@@ -16,6 +17,93 @@ import LoadingSpinner from "@/components/loading-spinner/LoadingSpinner";
 function ResearchGapPageContent() {
   const gapState = useResearchGap();
   const [activeTab, setActiveTab] = useState("matrix"); // "matrix" | "graph"
+  const [isTutorialActive, setIsTutorialActive] = useState(false);
+
+  useState(() => {
+    // Sync active tab to matrix during tutorial to ensure matrix targets exist
+    if (isTutorialActive) {
+      setActiveTab("matrix");
+    }
+  }, [isTutorialActive]);
+
+  useEffect(() => {
+    const handleStart = () => {
+      setIsTutorialActive(true);
+      setActiveTab("matrix");
+    };
+    const handleEnd = () => setIsTutorialActive(false);
+
+    window.addEventListener("trigger-page-tutorial", handleStart);
+    window.addEventListener("tutorial-ended", handleEnd);
+    return () => {
+      window.removeEventListener("trigger-page-tutorial", handleStart);
+      window.removeEventListener("tutorial-ended", handleEnd);
+    };
+  }, []);
+
+  const mockResult = {
+    papers: [
+      {
+        title: "Attention Is All You Need",
+        arxiv_id: "1706.03762",
+        similarity: 0.95,
+        problems_solved: [
+          {
+            summary: "기존 RNN/CNN 기반 시퀀스 모델의 순차적 계산 병목을 해결하고 셀프 어텐션 기반 병렬화 달성",
+            source_quote: "The Transformer allows for significantly more parallelization..."
+          }
+        ],
+        limitations: [
+          {
+            summary: "입력 시퀀스 길이에 비례해 연산 복잡도가 제곱으로 증가(O(N^2))하는 긴 문맥 처리 한계",
+            source_quote: "self-attention layers ... requires O(N^2) computations..."
+          }
+        ]
+      }
+    ],
+    common_limitations: [
+      "대규모 긴 문맥(Long-context) 입력 시 연산 및 메모리 자원 소모의 제곱적 증가 현상"
+    ],
+    suggested_directions: [
+      "선형 어텐션(Linear Attention) 메커니즘을 적용한 초거대 언어 모델 효율화 연구"
+    ]
+  };
+
+  const hasResult = gapState.result || isTutorialActive;
+  const currentDisplayResult = isTutorialActive && !gapState.result ? mockResult : gapState.displayResult;
+
+  const tutorialSteps = [
+    {
+      target: ".tutorial-control-panel",
+      title: "분석 제어 패널",
+      content: "학술 분야(CS/Bio)를 변경하고 주제 키워드를 지정하여 인공지능 연구 공백 분석 파이프라인을 구동하고, 실시간 진행률 확인 및 보고서 번역 처리를 수행할 수 있는 제어판입니다.",
+      position: "bottom"
+    },
+    {
+      target: ".tutorial-view-tabs",
+      title: "분석 뷰 전환 탭",
+      content: "수집된 ArXiv 논문들의 상세 비교 표를 보여주는 '분석 매트릭스' 탭과, 로드맵 탐색 흐름을 마인드맵 노드로 시각화하는 '파이프라인 그래프' 탭을 선택적으로 전환할 수 있습니다.",
+      position: "bottom"
+    },
+    {
+      target: ".tutorial-action-toolbar",
+      title: "보고서 내보내기",
+      content: "생성된 학술 분석 보고서를 범용 마크다운(.md) 파일로 로컬 저장하거나, PDF 인쇄(또는 PNG/SVG 이미지 저장) 기능을 활용하여 출력할 수 있는 유틸리티 툴바입니다.",
+      position: "bottom"
+    },
+    {
+      target: ".tutorial-matrix-table",
+      title: "문헌 비교 스펙 매트릭스",
+      content: "인공지능 RAG를 통해 추출된 개별 학술 논문들의 핵심 정보(제안된 방법론 및 각 논문이 지닌 세부 한계점들)를 표 형태로 대조하여 분석해 줍니다.",
+      position: "right"
+    },
+    {
+      target: ".tutorial-synthesis-panel",
+      title: "연구 공백 및 방향 제안",
+      content: "문헌군 스펙 대조 결과로부터 발견한 핵심 공동 연구 공백(Limitations)을 추출하고, 학계의 미개척 영역을 돌파하기 위해 에이전트가 새롭게 제안하는 구체적인 미래 연구 주제 리스트입니다.",
+      position: "left"
+    }
+  ];
 
   // 1. Markdown Export Handler
   const handleExportMarkdown = () => {
@@ -113,36 +201,41 @@ function ResearchGapPageContent() {
 
   return (
     <div className={styles.container}>
+      {/* 튜토리얼 가이드 컴포넌트 마운트 */}
+      <TutorialTour steps={tutorialSteps} matchPath="/feature2/analyze" />
+
       {/* ----------------- SCREEN ONLY VIEW (Hidden on PDF/Print) ----------------- */}
       <div className="d-print-none w-100">
         {/* Control Header & Task Submission Panel */}
-        <ControlPanel
-          domain={gapState.domain}
-          setDomain={gapState.setDomain}
-          query={gapState.query}
-          setQuery={gapState.setQuery}
-          loading={gapState.loading}
-          onSubmit={gapState.handleAnalyze}
-          status={gapState.status}
-          progress={gapState.progress}
-          statusText={gapState.statusText}
-          taskId={gapState.taskId}
-          error={gapState.error}
-          papersCount={gapState.result ? gapState.result.papers?.length : undefined}
-          isTranslated={gapState.isTranslated}
-          onTranslateToggle={gapState.handleTranslateToggle}
-          translateLoading={gapState.translateLoading}
-        />
+        <div className="tutorial-control-panel">
+          <ControlPanel
+            domain={gapState.domain}
+            setDomain={gapState.setDomain}
+            query={gapState.query}
+            setQuery={gapState.setQuery}
+            loading={gapState.loading}
+            onSubmit={gapState.handleAnalyze}
+            status={gapState.status}
+            progress={gapState.progress}
+            statusText={gapState.statusText}
+            taskId={gapState.taskId}
+            error={gapState.error}
+            papersCount={gapState.result ? gapState.result.papers?.length : undefined}
+            isTranslated={gapState.isTranslated}
+            onTranslateToggle={gapState.handleTranslateToggle}
+            translateLoading={gapState.translateLoading}
+          />
+        </div>
 
         {/* View Switcher & Action Toolbar (Only visible when analysis result exists) */}
-        {gapState.result && (
+        {hasResult && (
           <div className={styles.toolbarContainer}>
             {/* Spacer to center tabs on desktop */}
             <div className={styles.centerSpacer}></div>
 
             {/* Switcher Tabs */}
             <div className={styles.tabWrapper}>
-              <div className={styles.tabContainer}>
+              <div className={`${styles.tabContainer} tutorial-view-tabs`}>
                 <button
                   type="button"
                   className={`${styles.tabBtn} ${activeTab === "matrix" ? styles.tabBtnActive : ""}`}
@@ -155,6 +248,7 @@ function ResearchGapPageContent() {
                   type="button"
                   className={`${styles.tabBtn} ${activeTab === "graph" ? styles.tabBtnActive : ""}`}
                   onClick={() => setActiveTab("graph")}
+                  disabled={isTutorialActive}
                 >
                   <i className="bi bi-diagram-3 me-2"></i>
                   파이프라인 그래프
@@ -164,14 +258,15 @@ function ResearchGapPageContent() {
 
             {/* Action Export Buttons */}
             <div className={styles.toolbarWrapper}>
-              <div className={styles.actionToolbar}>
+              <div className={`${styles.actionToolbar} tutorial-action-toolbar`}>
                 {activeTab === "matrix" ? (
                   <>
                     <button
                       type="button"
                       className={styles.exportBtn}
-                      onClick={handleExportMarkdown}
+                      onClick={isTutorialActive ? undefined : handleExportMarkdown}
                       title="분석 결과를 마크다운 파일로 다운로드합니다"
+                      disabled={isTutorialActive}
                     >
                       <i className="bi bi-file-earmark-arrow-down-fill"></i>
                       Markdown 저장
@@ -179,8 +274,9 @@ function ResearchGapPageContent() {
                     <button
                       type="button"
                       className={styles.exportBtn}
-                      onClick={handlePrintReport}
+                      onClick={isTutorialActive ? undefined : handlePrintReport}
                       title="보고서를 인쇄하거나 PDF로 저장합니다"
+                      disabled={isTutorialActive}
                     >
                       <i className="bi bi-printer-fill"></i>
                       PDF / 인쇄
@@ -214,26 +310,30 @@ function ResearchGapPageContent() {
         )}
 
         {/* Tab Content Area */}
-        {gapState.result && activeTab === "matrix" && (
+        {hasResult && activeTab === "matrix" && (
           <div className={`${styles.gapContainer} ${styles.fadeIn}`}>
             {/* Left Column: Spec Matrix Table */}
-            <MatrixTable result={gapState.displayResult} />
+            <div className="tutorial-matrix-table flex-fill">
+              <MatrixTable result={currentDisplayResult} />
+            </div>
 
             {/* Right Column: AI Synthesis */}
-            <ResearchGapSynthesis result={gapState.displayResult} />
+            <div className="tutorial-synthesis-panel">
+              <ResearchGapSynthesis result={currentDisplayResult} />
+            </div>
           </div>
         )}
 
-        {gapState.result && activeTab === "graph" && (
+        {hasResult && activeTab === "graph" && (
           <div className={styles.fadeIn}>
             {/* Visual Pipeline Graph Flow */}
-            <PipelineGraph result={gapState.displayResult} query={gapState.query} />
+            <PipelineGraph result={currentDisplayResult} query={gapState.query} />
           </div>
         )}
       </div>
 
       {/* ----------------- PROFESSIONAL PDF/PRINT ONLY VIEW (Shown on Print only) ----------------- */}
-      {gapState.result && (
+      {hasResult && (
         <div className={`${styles.printReportContainer} d-none d-print-block w-100`}>
           {/* PAGE 1: Cover and Summary */}
           <div className={styles.printPage} style={{ pageBreakAfter: "always" }}>
@@ -249,15 +349,15 @@ function ResearchGapPageContent() {
                   <tbody>
                     <tr>
                       <th className="text-secondary fw-semibold py-1.5" style={{ width: "140px" }}>학술 도메인</th>
-                      <td className="text-dark py-1.5">: {gapState.domain ? gapState.domain.toUpperCase() : "N/A"}</td>
+                      <td className="text-dark py-1.5">: {isTutorialActive && !gapState.result ? "CS" : (gapState.domain ? gapState.domain.toUpperCase() : "N/A")}</td>
                     </tr>
                     <tr>
                       <th className="text-secondary fw-semibold py-1.5">분석 관심 키워드</th>
-                      <td className="text-dark py-1.5">: {gapState.query || "N/A"}</td>
+                      <td className="text-dark py-1.5">: {isTutorialActive && !gapState.result ? "Transformers and Self-Attention" : (gapState.query || "N/A")}</td>
                     </tr>
                     <tr>
                       <th className="text-secondary fw-semibold py-1.5">비교 분석 문헌수</th>
-                      <td className="text-dark py-1.5">: {gapState.displayResult?.papers?.length || 0} 편</td>
+                      <td className="text-dark py-1.5">: {currentDisplayResult?.papers?.length || 0} 편</td>
                     </tr>
                     <tr>
                       <th className="text-secondary fw-semibold py-1.5">보고서 생성일</th>
@@ -274,13 +374,13 @@ function ResearchGapPageContent() {
                 1. 종합 요약 (Executive Summary)
               </h5>
               <p className="text-secondary mb-4" style={{ fontSize: "10pt", lineHeight: "1.6" }}>
-                본 보고서는 학술 연구 공백 분석기(Research Gap Analyzer)를 통해 검색된 핵심 문헌군의 학술 사양 및 스펙 매트릭스를 대조하여 추출된 공식 결과 보고서입니다. 검색어 &apos;{gapState.query}&apos;를 관통하는 연구 방법론들과 각각의 한계점을 정밀 진단하여 학계 공통의 공백 영역을 체계화했습니다.
+                본 보고서는 학술 연구 공백 분석기(Research Gap Analyzer)를 통해 검색된 핵심 문헌군의 학술 사양 및 스펙 매트릭스를 대조하여 추출된 공식 결과 보고서입니다. 검색어 &apos;{isTutorialActive && !gapState.result ? "Transformers and Self-Attention" : (gapState.query || "N/A")}&apos;를 관통하는 연구 방법론들과 각각의 한계점을 정밀 진단하여 학계 공통의 공백 영역을 체계화했습니다.
               </p>
               
               <h6 className="fw-bold text-dark mb-2.5" style={{ fontSize: "10.5pt" }}>■ 주요 공동 연구 공백 (Common Research Gaps)</h6>
               <div className="p-3 rounded-3" style={{ border: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
                 <ul className="list-unstyled m-0">
-                  {gapState.displayResult?.common_limitations?.map((limit, idx) => (
+                  {currentDisplayResult?.common_limitations?.map((limit, idx) => (
                     <li key={idx} className="mb-2 last-mb-0 d-flex align-items-start text-secondary" style={{ fontSize: "9.5pt", lineHeight: "1.4" }}>
                       <i className="bi bi-exclamation-circle-fill text-warning me-2 flex-shrink-0" style={{ marginTop: "2px" }}></i>
                       <span>{limit}</span>
@@ -298,7 +398,7 @@ function ResearchGapPageContent() {
               2. 수집 문헌 개별 스펙 매트릭스 상세 (Detailed Literature Spec Matrix)
             </h5>
             
-            {gapState.displayResult?.papers?.map((paper, idx) => (
+            {currentDisplayResult?.papers?.map((paper, idx) => (
               <div key={idx} className="mb-4 pb-3" style={{ pageBreakInside: "auto", borderBottom: "1px solid #cbd5e1" }}>
                 <div className="d-flex justify-content-between align-items-start mb-2" style={{ pageBreakInside: "avoid" }}>
                   <h6 className="fw-bold text-dark m-0" style={{ fontSize: "11.5pt", lineHeight: "1.4" }}>
@@ -379,7 +479,7 @@ function ResearchGapPageContent() {
               식별된 학술 공백 영역을 극복하기 위해 AI 모델이 분석 문헌 매트릭스를 기반으로 추천하는 미래 연구 로드맵 주제 및 구체적 연구 과제입니다.
             </p>
 
-            {gapState.displayResult?.suggested_directions?.map((dir, idx) => {
+            {currentDisplayResult?.suggested_directions?.map((dir, idx) => {
               const match = dir.match(/[:：]|\s+-\s+|\s+–\s+|\s+—\s+/);
               let title = `추천 연구 주제 #${idx + 1}`;
               let description = dir;

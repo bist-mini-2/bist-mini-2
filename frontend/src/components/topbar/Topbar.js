@@ -28,6 +28,15 @@ export default function Topbar() {
     }
   };
 
+  const handleInfoClick = () => {
+    if (typeof window !== "undefined") {
+      const event = new CustomEvent("trigger-page-tutorial", {
+        detail: { pathname }
+      });
+      window.dispatchEvent(event);
+    }
+  };
+
   return (
     <header className={styles.topbar}>
       {/* 좌측 브레드크럼 위치 정보 */}
@@ -54,9 +63,14 @@ export default function Topbar() {
           <i className={`bi ${theme === "light" ? "bi-moon-stars" : "bi-sun"}`}></i>
         </button>
 
-        {/* 도움말 단축 버튼 */}
-        <button className={styles.iconButton} title="Help & Documentation">
-          <i className="bi bi-question-circle"></i>
+        {/* 도움말 및 튜토리얼 실행 버튼 */}
+        <button
+          className={styles.iconButton}
+          onClick={handleInfoClick}
+          title="현재 화면 튜토리얼 가이드 시행"
+          aria-label="Start Page Tutorial"
+        >
+          <i className="bi bi-info-circle"></i>
         </button>
 
         {/* 알림 센터 모듈 컴포넌트 */}
