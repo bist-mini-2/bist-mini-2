@@ -4,7 +4,7 @@ from fastapi import Depends
 import bcrypt
 from api.v1.member.dao import MemberDaoDep
 from api.v1.member.entity import MemberEntity
-from api.common.exceptions import MemberNotFoundError, InvalidPasswordError
+from api.common.exceptions import MemberNotFoundError, InvalidPasswordError, BusinessException
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +17,18 @@ class MemberService:
         self.member_dao = member_dao
 
     async def join(self, member_entity: MemberEntity) -> MemberEntity:
-        """비밀번호를 암호화하여 회원 정보를 영구 저장소에 추가합니다."""
+        """비밀번호를 암호화하여 회원 정보를 영구 저장소에 추가합니다.
+
+        Raises:
+            BusinessException: 이미 존재하는 회원 ID일 경우
+        """
         self.logger.info("join 실행")
+        
+        # 중복 아이디 존재 확인 및 400 Bad Request용 비즈니스 예외 처리
+        existing = await self.member_dao.select_by_mid(member_entity.mid)
+        if existing:
+            raise BusinessException("이미 존재하는 회원 아이디입니다.", error_code="MEMBER_DUPLICATE")
+
         hashed = bcrypt.hashpw(member_entity.mpassword.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         member_entity.mpassword = hashed
         member_entity = await self.member_dao.insert(member_entity)
