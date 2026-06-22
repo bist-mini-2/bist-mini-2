@@ -187,8 +187,7 @@ async def search_astronomy_papers(
     k: int = 3
 ) -> Command:
     """지구 및 행성 천체물리학(astro-ph.EP) 논문에서 관련 내용을 검색하는 도구입니다.
-    행성 대기, Mars 지질학, 행성 형성, 소행성체, 소행성, 혜성, 운석, 소천체, 태양계 소천체(asteroid, comet, meteorite, small solar system body) 등
-    천문학·행성과학 전반에 관한 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요.
+    행성 대기, Mars 지질학, 행성 형성 등에 관한 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요.
     """
     results = await common_rag_pipeline.similarity_search("astronomy", query, k=k)
 
