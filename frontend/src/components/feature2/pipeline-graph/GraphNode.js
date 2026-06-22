@@ -119,20 +119,28 @@ export default function GraphNode({
             {node.title}
           </div>
         );
-      case "solved":
+      case "solved": {
+        const solvedText = typeof node.content === "object" && node.content !== null
+          ? node.content.summary
+          : node.content;
         return (
           <>
             <div className={styles.solvedTitle}>{node.title}</div>
-            <div className={styles.solvedContent}>{node.content}</div>
+            <div className={styles.solvedContent}>{solvedText}</div>
           </>
         );
-      case "limitation":
+      }
+      case "limitation": {
+        const limitText = typeof node.content === "object" && node.content !== null
+          ? node.content.summary
+          : node.content;
         return (
           <>
             <div className={styles.limitTitle}>{node.title}</div>
-            <div className={styles.limitContent}>{node.content}</div>
+            <div className={styles.limitContent}>{limitText}</div>
           </>
         );
+      }
       case "common":
         return (
           <>
