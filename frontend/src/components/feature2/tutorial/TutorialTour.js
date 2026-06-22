@@ -10,6 +10,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
   const [targetRect, setTargetRect] = useState(null);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const [arrowClass, setArrowClass] = useState("");
+  const [arrowStyle, setArrowStyle] = useState({});
   const [mounted, setMounted] = useState(false);
   const [isPositionCalculated, setIsPositionCalculated] = useState(false);
   const [isTransitionEnabled, setIsTransitionEnabled] = useState(false);
@@ -43,7 +44,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
       let left = 0;
       const gap = 14;
       const popoverWidth = 320;
-      const popoverHeight = 170; // Reduced to 170 to fit top positioning without triggering bottom auto-flip
+      const popoverHeight = 170; // Safer boundary check height
 
       // If target element is extremely large (like a table), cap effective height to keep popover close to target start
       const effectiveHeight = rect.height > 300 ? 100 : rect.height;
@@ -71,14 +72,36 @@ export default function TutorialTour({ steps = [], matchPath }) {
       if (left + popoverWidth > window.innerWidth - 10) {
         left = window.innerWidth - popoverWidth - 10;
       }
+
+      let finalPos = pos;
       if (top < 10) {
         top = rect.top + effectiveHeight + gap; // Flip to bottom
         setArrowClass(styles.arrowTop);
+        finalPos = "bottom";
       } else if (top + popoverHeight > window.innerHeight - 10 && rect.top - popoverHeight - gap > 10) {
         top = rect.top - popoverHeight - gap; // Flip to top
         setArrowClass(styles.arrowBottom);
+        finalPos = "top";
       }
 
+      // Calculate dynamic arrow styling to point precisely at target center point
+      const targetCenterX = rect.left + rect.width / 2;
+      const targetCenterY = rect.top + effectiveHeight / 2;
+      let arrowStyleObj = {};
+
+      if (finalPos === "bottom" || finalPos === "top") {
+        let arrowLeft = targetCenterX - left - 8;
+        if (arrowLeft < 15) arrowLeft = 15;
+        if (arrowLeft > 297) arrowLeft = 297;
+        arrowStyleObj = { left: arrowLeft };
+      } else {
+        let arrowTop = targetCenterY - top - 8;
+        if (arrowTop < 15) arrowTop = 15;
+        if (arrowTop > 147) arrowTop = 147;
+        arrowStyleObj = { top: arrowTop };
+      }
+
+      setArrowStyle(arrowStyleObj);
       setPopoverPos({ top, left });
       setIsPositionCalculated(true);
       setTimeout(() => {
@@ -91,6 +114,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
       setTargetRect(null);
       setPopoverPos({ top, left });
       setArrowClass("");
+      setArrowStyle({});
       setIsPositionCalculated(true);
       setTimeout(() => {
         setIsTransitionEnabled(true);
@@ -223,7 +247,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
             transition: isTransitionEnabled ? undefined : "none"
           }}
         >
-          {arrowClass && <div className={`${styles.arrow} ${arrowClass}`}></div>}
+          {arrowClass && <div className={`${styles.arrow} ${arrowClass}`} style={arrowStyle}></div>}
           
           <div className={styles.popoverHeader}>
             <h4 className={styles.title}>
