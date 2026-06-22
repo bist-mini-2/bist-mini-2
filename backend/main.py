@@ -45,7 +45,6 @@ async def lifespan(app: FastAPI):
     from api.database.config.entity_base import Base
     from api.database.config.dbsession import engine
     from api.v1.member.entity import MemberEntity
-    from api.v1.cs.entity import CsEmbeddingEntity, CsCollectionEntity
     from api.v1.research_gap.entity import ResearchGapTaskEntity
     from api.v1.chat.entity import ChatSessionEntity
     from api.v1.gems.entity import GemEntity

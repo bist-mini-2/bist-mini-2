@@ -26,6 +26,7 @@ export default function Feature1Page() {
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
   const sendingRef = useRef(false);
+  const isCreatingSessionRef = useRef(false);
   
   // 대화 영역을 항상 최신 메시지로 스크롤한다.
   const scrollToBottom = useCallback(() => {
@@ -38,6 +39,10 @@ export default function Feature1Page() {
   useEffect(() => {
     if (!sessionId) {
       setMessages([]);
+      return;
+    }
+    if (isCreatingSessionRef.current) {
+      isCreatingSessionRef.current = false;
       return;
     }
     let cancelled = false;
@@ -96,6 +101,7 @@ export default function Feature1Page() {
         const res = await createSession(title);
         activeSessionId = res.data.session_id;
         isNewSession = true;   // ← 새 방 생성됨
+        isCreatingSessionRef.current = true;   // ← 세션 생성 직후 라우트 이동 시 loadHistory 방지
         router.replace(`/feature1?session=${activeSessionId}`);
       } catch (err) {
         console.error("방 생성 실패:", err);

@@ -1,18 +1,21 @@
 import asyncio
 import logging
-from typing import Annotated
+from typing import Annotated, TypedDict, Any, cast
 
 from fastapi import Depends
 from langchain.agents import create_agent
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-
-from api.v1.bio.agent_rag import BioAgentState
-from api.v1.gems.tools import (
+from langgraph.graph import add_messages
+from api.common.rag_pipeline import (
     search_bio_papers,
     search_cs_papers,
     search_astronomy_papers,
 )
-from api.v1.chat.psycopg_pool_conf import chat_psycopg_pool
+from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
+
+class GemAgentState(TypedDict):
+    messages: Annotated[list, add_messages]
+    sources: list[dict]   # 검색된 논문 출처 누적
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +52,7 @@ class GemAgent:
                 return
             if chat_psycopg_pool.closed:
                 await chat_psycopg_pool.open()
-            self.checkpointer = AsyncPostgresSaver(chat_psycopg_pool)
+            self.checkpointer = AsyncPostgresSaver(cast(Any, chat_psycopg_pool))
 
             # checkpoints 테이블이 이미 있으면 setup() 생략 (chat_agent가 이미 생성했을 수 있음)
             async with chat_psycopg_pool.connection() as conn:
@@ -58,7 +61,12 @@ class GemAgent:
                     "WHERE schemaname='public' AND tablename='checkpoints'"
                 )
                 exists = await cur.fetchone()
+                if not exists:
+                    # checkpoints가 없는데 checkpoint_migrations가 있으면 setup()이 테이블을 생성하지 않으므로
+                    # 관련 테이블을 일괄 삭제하여 setup()이 처음부터 깨끗이 생성하도록 유도합니다.
+                    await conn.execute("DROP TABLE IF EXISTS checkpoint_migrations, checkpoint_blobs, checkpoint_writes CASCADE;")
             if not exists:
+                assert self.checkpointer is not None
                 await self.checkpointer.setup()
 
             self._initialized = True
@@ -88,7 +96,7 @@ CRITICAL — 언어 규칙:
             tools=tools,
             system_prompt=full_system_prompt,
             checkpointer=self.checkpointer,
-            state_schema=BioAgentState,
+            state_schema=cast(Any, GemAgentState),
         )
 
     async def run(self, message: str, thread_id: str, db_sources: list[str], system_prompt: str) -> dict:
@@ -167,6 +175,7 @@ CRITICAL — 언어 규칙:
             thread_id (str): 삭제할 대화 스레드 ID.
         """
         await self._initialize()
+        assert self.checkpointer is not None
         await self.checkpointer.adelete_thread(thread_id)
 
 
