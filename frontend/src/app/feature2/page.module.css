@@ -2,6 +2,16 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem;
+  opacity: 0;
+  transform: translateY(15px);
+  animation: pageEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pageEnter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .tableRow {
@@ -474,6 +484,19 @@
   border-bottom: none !important;
   overflow: hidden !important;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 페이지 이탈 (전체 페이드아웃 + 살짝 위로 이동) */
+.pageExiting {
+  pointer-events: none;
+  animation: pageExit 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pageExit {
+  to {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
 }
 
 

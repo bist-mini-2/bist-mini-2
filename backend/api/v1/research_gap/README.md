@@ -60,11 +60,11 @@ sequenceDiagram
     Service->>OpenAI: query 임베딩 생성 (text-embedding-3-large, 3072차원)
     OpenAI-->>Service: query_vector 반환
     
-    Service->>DB: pgvector 코사인 유사도 기준 Top-5 논문 조회
+    Service->>DB: pgvector 코사인 유사도 기준 Top-4 논문 조회
     DB-->>Service: 논문 목록 (title, abstract 등) 반환
     Service->>DB: 상태 업데이트 (RUNNING, progress=40)
     
-    loop 각 논문별 분석 (5회 반복)
+    loop 각 논문별 분석 (4회 반복)
         Service->>OpenAI: Abstract 개별 분석 요청 (gpt-4o-mini + PaperAnalysisResult 구조화 출력)
         OpenAI-->>Service: PaperAnalysisResult (problems_solved, limitations) 반환
     end
@@ -107,9 +107,9 @@ sequenceDiagram
 - 백그라운드 작업 수행 시, `sqlalchemy.ext.asyncio.async_scoped_session` 및 `session_maker`를 통해 독립적인 DB 세션을 생성하여 단계별 진행도(Progress)와 상태를 안전하게 개별 커밋합니다.
 - **임베딩 및 RAG 문헌 검색 (Progress: 10% ~ 40%)**:
   - [embedding.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/api/v1/research_gap/embedding.py) 내 `embedding_helper.encode`를 사용해 질의어를 3072차원 벡터로 변환합니다.
-  - pgvector의 `cosine_distance` 연산자를 활용하여 `cs_embeddings` 테이블 내 입력 쿼리와 의미적으로 가장 유사한 논문 5개를 고속 탐색합니다.
+  - pgvector의 `cosine_distance` 연산자를 활용하여 `cs_embeddings` 테이블 내 입력 쿼리와 의미적으로 가장 유사한 논문 4개를 고속 탐색합니다.
 - **LLM 구조화 정보 추출 (Progress: 40% ~ 80%)**:
-  - 추출된 5개 논문 각각의 메타데이터와 내용을 `gpt-4o-mini` 모델로 보내고, `with_structured_output` API를 통해 `PaperAnalysisResult` 객체 형태로 정밀 추출합니다. (각 논문의 해결과제 `problems_solved` 및 한계점 `limitations` 추출)
+  - 추출된 4개 논문 각각의 메타데이터와 내용을 `gpt-4o-mini` 모델로 보내고, `with_structured_output` API를 통해 `PaperAnalysisResult` 객체 형태로 정밀 추출합니다. (각 논문의 해결과제 `problems_solved` 및 한계점 `limitations` 추출)
 - **연구 공백 합성 및 완료 통보 (Progress: 80% ~ 100%)**:
   - 추출된 개별 연구 성과와 한계점 매트릭스를 기반으로 `gpt-4o-mini`를 다시 호출하여 공통 연구 한계점(`common_limitations`) 및 앞으로 보완해 나갈 구체적인 3가지 신규 연구 제안 주제(`suggested_directions`)를 한국어로 구조화하여 합성(`ResearchGapMatrix`)합니다.
   - 성공적으로 완료되면 상태를 `COMPLETED`, 진행도를 `100`으로 DB를 업데이트한 후, **SSE (Server-Sent Events)** 채널(`notification_broadcaster`)을 통해 완료 알림 이벤트를 전역 브로드캐스트합니다.
