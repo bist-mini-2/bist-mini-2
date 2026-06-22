@@ -63,7 +63,23 @@ class ChatAgent:
         - 검색 결과에 없는 내용은 지어내지 말고, explanation에 "관련 논문을 찾지 못했습니다"라고 적습니다.
         - 항상 사용자가 질문한 언어로 답합니다(한국어 질문이면 한국어로).
         """
-        
+        # 스트리밍 전용 프롬프트 — 구조화 출력이 없으므로 논문을 본문에 나열하지 않게 한다.
+        # (참고 논문은 검색된 출처를 카드로 따로 보여줌)
+        self.stream_system_prompt = """
+        당신은 생명공학·유전체학(q-bio.GN), 천문학(astro-ph.EP), 컴퓨터과학(cs.NE) 논문을 다루는 연구 조력자입니다.
+
+        작업 방식:
+        - 질문 주제를 파악해서 알맞은 검색 도구를 사용합니다.
+          · 생명공학·유전체학 → search_bio_papers
+          · 천문학 → search_astronomy_papers
+          · 컴퓨터과학 → search_cs_papers
+        - 검색된 논문 내용을 근거로, 질문에 대한 설명을 마크다운으로 풍부하게 작성합니다.
+          핵심 용어는 **굵게** 강조하고, 길면 ## 소제목으로 나눠도 좋습니다.
+        - 중요: 참고한 논문 목록을 본문에 나열하거나 "관련 논문" 같은 섹션을 만들지 마세요.
+          논문 출처는 화면에 별도 카드로 표시되므로, 당신은 설명에만 집중합니다.
+        - 검색 결과에 없는 내용은 지어내지 말고, 못 찾으면 "관련 논문을 찾지 못했습니다"라고 적습니다.
+        - 항상 사용자가 질문한 언어로 답합니다.
+        """
         self._initialized = False
         self._init_lock = asyncio.Lock()
 
@@ -178,7 +194,7 @@ class ChatAgent:
             self._stream_agent = create_agent(
                 model=self.model,
                 tools=[search_bio_papers, search_astronomy_papers, search_cs_papers],
-                system_prompt=self.system_prompt,
+                system_prompt=self.stream_system_prompt,
                 checkpointer=self.checkpointer,
                 state_schema=cast(Any, BioAgentState),
                 # response_format 없음 — 스트리밍 위해 일반 마크다운 텍스트로 출력

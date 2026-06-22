@@ -501,3 +501,53 @@
   border-color: var(--accent-color);
   color: var(--accent-color);
 }
+
+/* =============================================================================
+   2단 레이아웃 (채팅 + 오른쪽 논문 패널) — 패널 자체 스타일은 PaperPanel.module.css
+   ============================================================================= */
+.layout {
+  display: flex;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+/* chatContainer를 flex row 안에서 늘어나게 (앞선 정의를 덮어씀) */
+.chatContainer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- 답변 아래 "논문 N편" 토글 버튼 ---- */
+.paperTrigger {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono-font);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--profile-role-color);
+  background: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.paperTrigger:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.paperTriggerActive {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  background: var(--accent-glow);
+}
+
+.paperTriggerChevron {
+  font-size: 0.62rem;
+}

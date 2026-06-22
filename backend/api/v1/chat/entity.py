@@ -35,4 +35,5 @@ class ChatSourceEntity(Base):
     message_index: Mapped[int] = mapped_column("message_index", Integer, nullable=False)
     arxiv_id: Mapped[str] = mapped_column("arxiv_id", String(50), nullable=False)
     title: Mapped[str] = mapped_column("title", String(500), nullable=False)
+    summary: Mapped[str | None] = mapped_column("summary", String(500), nullable=True)  
     created_at: Mapped[datetime] = mapped_column("created_at", DateTime, server_default=func.now())

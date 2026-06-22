@@ -104,6 +104,7 @@ class ChatService:
                 await self.chat_session_dao.insert_sources(
                     session_id, assistant_index, sources
                 )
+                await self.chat_session_dao.commit()
         except Exception as e:
             self.logger.error(f"스트리밍 출처 저장 실패 (session_id={session_id}): {e}")
 
@@ -117,7 +118,7 @@ class ChatService:
         sources_by_index = {}
         for s in sources:
             sources_by_index.setdefault(s.message_index, []).append(
-                {"arxiv_id": s.arxiv_id, "title": s.title}
+                {"arxiv_id": s.arxiv_id, "title": s.title, "summary": s.summary or ""}
             )
 
         for idx, msg in enumerate(history):

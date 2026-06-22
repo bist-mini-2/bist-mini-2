@@ -4,14 +4,15 @@ import ReactMarkdown from "react-markdown";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMessages, sendMessage, sendMessageStream, createSession, generateTitle } from "@/apis/bioChatApi";
+import PaperPanel from "@/components/feature1/PaperPanel";
 import styles from "./page.module.css";
 
 /**
  * Chat Hub: 생명공학·천문학·컴퓨터과학 논문 RAG 통합 채팅 페이지입니다.
  *
- * URL 쿼리파라미터(?session=)로 선택된 채팅방의 대화를 불러오고,
- * 메시지를 전송하면 RAG 기반 답변과 참고 논문(출처)을 표시합니다.
- * 방이 선택되지 않은 상태에서 질문하면 새 방을 자동으로 생성합니다.
+ * 메시지를 전송하면 RAG 기반 답변과 참고 논문(papers)·검색 출처(sources)를 표시합니다.
+ * 참고 논문은 각 답변 아래 "논문 N편" 버튼을 누르면 오른쪽 PaperPanel에 열립니다.
+ * 검색 출처는 답변 아래 인라인으로 표시됩니다.
  */
 export default function Feature1Page() {
   const searchParams = useSearchParams();
@@ -22,12 +23,13 @@ export default function Feature1Page() {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [panelIndex, setPanelIndex] = useState(null); // 오른쪽 패널에 띄울 메시지 index (null이면 닫힘)
 
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
   const sendingRef = useRef(false);
   const isCreatingSessionRef = useRef(false);
-  
+
   // 대화 영역을 항상 최신 메시지로 스크롤한다.
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -37,6 +39,7 @@ export default function Feature1Page() {
 
   // 선택된 채팅방이 바뀌면 해당 방의 대화 내역을 불러온다.
   useEffect(() => {
+    setPanelIndex(null); // 방이 바뀌면 논문 패널은 닫는다.
     if (!sessionId) {
       setMessages([]);
       return;
@@ -131,7 +134,6 @@ export default function Feature1Page() {
       });
 
       // 스트리밍이 끝나면 검색된 출처(sources)를 다시 불러와 마지막 답변에 붙인다.
-      // (출처는 스트리밍 종료 후 서버 state에 저장되므로 GET /messages로 조회한다)
       try {
         const res = await getMessages(activeSessionId);
         const history = res.data || [];
@@ -174,6 +176,19 @@ export default function Feature1Page() {
       handleSend();
     }
   };
+
+  // 패널에 띄울 논문(papers) — 선택된 메시지가 AI 답변일 때만 파싱한다.
+  const selectedPapers =
+    panelIndex !== null ? (messages[panelIndex]?.sources || []) : [];
+
+  // 아직 첫 토큰이 안 온 상태인지 (= 로딩만 보여줄 시점)
+  const lastMessage = messages[messages.length - 1];
+  const isWaitingFirstToken =
+    isSending && (!lastMessage || lastMessage.role !== "assistant" || lastMessage.content === "");
+
+  // 같은 버튼 다시 누르면 닫고, 다른 버튼 누르면 그 메시지로 교체한다.
+  const togglePanel = (idx) =>
+    setPanelIndex((prev) => (prev === idx ? null : idx));
 
   // 입력 영역(공통) — 빈 화면과 대화 화면 모두에서 사용
   const inputArea = (
@@ -230,27 +245,41 @@ export default function Feature1Page() {
   }
 
   return (
-    <div className={styles.chatContainer}>
-      <div className={styles.messageArea} ref={scrollRef}>
-        {isLoadingHistory ? (
-          <div className={styles.centerHint}>대화를 불러오는 중…</div>
-        ) : messages.length === 0 ? (
-          <div className={styles.centerHint}>
-            <CloverMark size={40} />
-            <p className={styles.centerHintText}>
-              무엇이든 물어보세요.
-            </p>
-          </div>
-        ) : (
-          messages.map((msg, idx) => (
-            <MessageBubble key={idx} message={msg} />
-          ))
-        )}
+    <div className={styles.layout}>
+      <div className={styles.chatContainer}>
+        <div className={styles.messageArea} ref={scrollRef}>
+          {isLoadingHistory ? (
+            <div className={styles.centerHint}>대화를 불러오는 중…</div>
+          ) : messages.length === 0 ? (
+            <div className={styles.centerHint}>
+              <CloverMark size={40} />
+              <p className={styles.centerHintText}>
+                무엇이든 물어보세요.
+              </p>
+            </div>
+          ) : (
+            messages.map((msg, idx) => (
+              <MessageBubble
+                key={idx}
+                index={idx}
+                message={msg}
+                isActive={panelIndex === idx}
+                onTogglePanel={() => togglePanel(idx)}
+              />
+            ))
+          )}
 
-        {isSending && <LoadingBubble />}
+          {isWaitingFirstToken && <LoadingBubble />}
+        </div>
+
+        {inputArea}
       </div>
 
-      {inputArea}
+      <PaperPanel
+        open={panelIndex !== null}
+        papers={selectedPapers}
+        onClose={() => setPanelIndex(null)}
+      />
     </div>
   );
 }
@@ -281,15 +310,22 @@ function parseAnswer(content) {
 
 /**
  * 사용자/AI 메시지 말풍선.
- * AI 메시지는 설명(explanation) + 논문 카드(papers) + 실제 검색 출처(sources)를 함께 표시한다.
+ * AI 메시지는 설명(explanation) + "논문 N편" 패널 토글 버튼 + 검색 출처(sources)를 표시한다.
+ * 참고 논문 카드 자체는 오른쪽 PaperPanel에서 렌더링한다.
  */
-function MessageBubble({ message }) {
+function MessageBubble({ message, index, isActive, onTogglePanel }) {
   const isUser = message.role === "user";
 
-  // 사용자 메시지는 파싱 없이 그대로, AI 메시지만 파싱
-  const { explanation, papers } = isUser
-    ? { explanation: message.content, papers: [] }
-    : parseAnswer(message.content);
+  // 아직 토큰이 안 온 빈 답변 말풍선은 렌더하지 않는다 (로딩은 LoadingBubble이 담당)
+  if (!isUser && !message.isError && (message.content ?? "").trim() === "") {
+    return null;
+  }
+
+  // 설명 텍스트 (AI 답변이 혹시 JSON이면 explanation만 추출, 평문이면 그대로)
+  const explanation = isUser ? message.content : parseAnswer(message.content).explanation;
+
+  // 참고 논문 = 실제 검색된 출처(sources). 패널/버튼이 이걸 사용한다.
+  const refPapers = !isUser && Array.isArray(message.sources) ? message.sources : [];
 
   return (
     <div className={`${styles.messageRow} ${isUser ? styles.messageRowUser : ""}`}>
@@ -299,10 +335,7 @@ function MessageBubble({ message }) {
         </div>
       )}
       <div className={styles.bubbleGroup}>
-        {/* 설명 말풍선 */}
-        <div
-          className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAi} ${message.isError ? styles.bubbleError : ""}`}
-        >
+        <div className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAi} ${message.isError ? styles.bubbleError : ""}`}>
           {isUser ? (
             message.content
           ) : (
@@ -312,52 +345,17 @@ function MessageBubble({ message }) {
           )}
         </div>
 
-        {/* 논문 카드 (papers) — LLM이 정리한 근거 논문 + 한 줄 요약 */}
-        {!isUser && papers.length > 0 && (
-          <div className={styles.paperCards}>
-            {papers.map((paper, i) => (
-              <a
-                key={i}
-                className={styles.paperCard}
-                href={`https://arxiv.org/abs/${paper.arxiv_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <div className={styles.paperCardHead}>
-                  <i className={`bi bi-file-earmark-text ${styles.paperCardIcon}`}></i>
-                  <span className={styles.paperCardTitle}>{paper.title}</span>
-                  <i className={`bi bi-box-arrow-up-right ${styles.paperCardLink}`}></i>
-                </div>
-                <span className={styles.paperCardArxiv}>{paper.arxiv_id}</span>
-                {paper.summary && (
-                  <p className={styles.paperCardSummary}>{paper.summary}</p>
-                )}
-              </a>
-            ))}
-          </div>
-        )}
-
-        {/* 실제 검색된 출처 (sources) — 검증 가능한 벡터 검색 결과 */}
-        {!isUser && message.sources && message.sources.length > 0 && (
-          <div className={styles.sources}>
-            <span className={styles.sourcesLabel}>
-              <i className="bi bi-database-check"></i> 검색된 출처
-            </span>
-            <div className={styles.sourceChips}>
-              {message.sources.map((src, i) => (
-                <a
-                  key={i}
-                  className={styles.sourceChip}
-                  href={`https://arxiv.org/abs/${src.arxiv_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={src.title}
-                >
-                  {src.arxiv_id}
-                </a>
-              ))}
-            </div>
-          </div>
+        {/* 논문 N편 보기 버튼 — 누르면 오른쪽 패널이 열린다 */}
+        {refPapers.length > 0 && (
+          <button
+            className={`${styles.paperTrigger} ${isActive ? styles.paperTriggerActive : ""}`}
+            onClick={onTogglePanel}
+            aria-pressed={isActive}
+          >
+            <i className="bi bi-journal-text"></i>
+            논문 {refPapers.length}편
+            <i className={`bi ${isActive ? "bi-chevron-right" : "bi-chevron-left"} ${styles.paperTriggerChevron}`}></i>
+          </button>
         )}
       </div>
     </div>
