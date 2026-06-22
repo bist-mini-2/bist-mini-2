@@ -28,8 +28,19 @@ export function ThemeContextProvider({ children }) {
   // 테마 상태 변경 시 문서 루트 요소의 data-theme 속성 업데이트 및 로컬 스토리지 저장
   useEffect(() => {
     if (isMounted) {
+      document.documentElement.classList.add("disable-transitions");
+      
       document.documentElement.setAttribute("data-theme", theme);
       localStorage.setItem("theme", theme);
+      
+      // Force a reflow to ensure 스타일 변경이 트랜지션 없이 선반영되게 합니다.
+      const _ = window.getComputedStyle(document.documentElement).height;
+      
+      const timeoutId = setTimeout(() => {
+        document.documentElement.classList.remove("disable-transitions");
+      }, 0);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [theme, isMounted]);
 

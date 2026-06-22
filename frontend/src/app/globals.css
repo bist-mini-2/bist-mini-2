@@ -48,6 +48,46 @@ a {
    Print Optimization Styles (PDF Export Support)
    ============================================================================= */
 @media print {
+  /* Force light theme CSS variables during print, even if the UI is in dark mode */
+  :root,
+  [data-theme="dark"] {
+    --background: #FCFBF6 !important;
+    --foreground: #2E332E !important;
+    --card-bg: #ffffff !important;
+    --card-border: #EBE7E0 !important;
+    --sidebar-bg: #FAF6F0 !important;
+    --accent-color: #8E9D87 !important;
+    --accent-glow: rgba(142, 157, 135, 0.08) !important;
+    --tertiary-color: #D5DCD0 !important;
+    --grid-color: rgba(235, 231, 224, 0.5) !important;
+    --menu-item-color: #555c56 !important;
+  }
+
+  [data-theme="dark"] .bg-light {
+    background-color: #f8fafc !important;
+  }
+
+  [data-theme="dark"] .text-dark {
+    color: #2E332E !important;
+  }
+
+  [data-theme="dark"] .text-muted {
+    color: #8A908A !important;
+  }
+
+  [data-theme="dark"] .border,
+  [data-theme="dark"] .border-top,
+  [data-theme="dark"] .border-bottom,
+  [data-theme="dark"] .border-start,
+  [data-theme="dark"] .border-end {
+    border-color: #EBE7E0 !important;
+  }
+
+  [data-theme="dark"] .card {
+    background-color: #ffffff !important;
+    border-color: #EBE7E0 !important;
+  }
+
   /* Hide UI elements that are not part of the research report */
   nav,
   aside,
@@ -218,4 +258,15 @@ a {
     margin-bottom: 12px !important;
     padding: 12px !important;
   }
+}
+
+/* =============================================================================
+   Theme Transition Lock Utility
+   ============================================================================= */
+.disable-transitions,
+.disable-transitions *,
+.disable-transitions *::before,
+.disable-transitions *::after {
+  transition: none !important;
+  animation: none !important;
 }

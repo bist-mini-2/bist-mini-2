@@ -69,10 +69,21 @@ export default function PipelineGraph({ result, query }) {
       const svgEl = containerRef.current.querySelector("svg");
       if (!svgEl) return;
 
+      // Temporarily toggle to light mode to force getComputedStyle to return light theme colors
+      const originalTheme = document.documentElement.getAttribute("data-theme");
+      document.documentElement.setAttribute("data-theme", "light");
+
       const clonedSvg = svgEl.cloneNode(true);
       
       // Inline styles to ensure colors and properties are hardcoded inside the elements
       inlineStyles(svgEl, clonedSvg);
+
+      // Restore original theme state immediately (synchronous - no UI visual change)
+      if (originalTheme) {
+        document.documentElement.setAttribute("data-theme", originalTheme);
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+      }
 
       // Reset transform zoom/pan on cloned SVG for standard viewport export
       const zoomGroup = clonedSvg.querySelector(`.${styles.zoomGroup}`);
