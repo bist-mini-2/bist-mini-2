@@ -159,19 +159,9 @@ class ChatAgent:
                 answer = structured.explanation
                 papers = [p.model_dump() for p in structured.papers]
             else:
-                # structured_response가 None이면 LLM이 JSON 텍스트로 출력한 경우 직접 파싱
-                raw_content = result["messages"][-1].content
-                try:
-                    import json
-                    parsed = json.loads(raw_content)
-                    answer = parsed.get("explanation", raw_content)
-                    papers = [
-                        {"arxiv_id": p.get("arxiv_id", ""), "title": p.get("title", ""), "summary": p.get("summary", "")}
-                        for p in parsed.get("papers", [])
-                    ]
-                except (json.JSONDecodeError, AttributeError):
-                    answer = raw_content
-                    papers = []
+                # 혹시 구조화 실패 시 fallback (기존 방식)
+                answer = result["messages"][-1].content
+                papers = []
 
             return {
                 "answer": answer,
