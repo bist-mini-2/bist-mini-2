@@ -51,13 +51,17 @@ class NotificationService:
         """
         queue = notification_broadcaster.subscribe()
         try:
-            while True:
+            while not notification_broadcaster.is_shutdown:
                 if await request.is_disconnected():
                     logger.info(f"SSE client disconnected for user: {mid}")
                     break
                 try:
                     # 1.0초 타임아웃 대기로 리스너가 살아있음을 보장하며 신규 알림 수신
                     message = await asyncio.wait_for(queue.get(), timeout=1.0)
+                    
+                    if message is None or notification_broadcaster.is_shutdown:
+                        logger.info(f"SSE stream shutdown for user: {mid}")
+                        break
                     
                     # 수신된 메시지의 수신자 식별자(mid)가 존재하고, 현재 로그인 사용자 정보와 다르면 필터링
                     event_mid = message.get("mid")
@@ -68,6 +72,8 @@ class NotificationService:
                     if isinstance(content, str) and content:
                         yield content
                 except asyncio.TimeoutError:
+                    if notification_broadcaster.is_shutdown:
+                        break
                     # keep-alive 데이터를 보내 Nginx 등의 프록시 타임아웃 방지
                     content = ": keep-alive\n\n"
                     if isinstance(content, str) and content:

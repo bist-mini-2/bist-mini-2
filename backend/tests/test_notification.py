@@ -91,3 +91,69 @@ def test_delete_all_notifications(mock_delete_all):
     json_data = response.json()
     assert json_data["status"] == "success"
     assert json_data["data"]["success"] is True
+
+
+@pytest.mark.anyio
+async def test_broadcaster_shutdown():
+    """NotificationBroadcaster의 종료(close) 처리 및 큐 대기 해제 기능 테스트"""
+    import asyncio
+    from api.v1.notification.notifier import NotificationBroadcaster
+    broadcaster = NotificationBroadcaster()
+    
+    # 1. 초기 상태 확인
+    assert not broadcaster.is_shutdown
+    
+    # 2. 리스너 구독 등록
+    queue = broadcaster.subscribe()
+    assert queue in broadcaster._listeners
+    
+    # 3. 브로드캐스터 종료 호출
+    broadcaster.close()
+    assert broadcaster.is_shutdown
+    
+    # 4. 대기 중인 리스너가 None(종료 센티넬)을 수신했는지 검증
+    sentinel = await queue.get()
+    assert sentinel is None
+    
+    # 5. 종료 상태에서 구독한 신규 큐는 None이 즉시 반환되는지 검증
+    new_queue = broadcaster.subscribe()
+    sentinel2 = await new_queue.get()
+    assert sentinel2 is None
+
+
+@pytest.mark.anyio
+async def test_stream_notifications_exits_on_shutdown():
+    """서버가 종료될 때(broadcaster.close()) SSE 제너레이터 루프가 정상적으로 종료되는지 테스트"""
+    import asyncio
+    from api.v1.notification.services import NotificationService
+    from api.v1.notification.notifier import notification_broadcaster
+    
+    # 전역 인스턴스의 종료 상태 리셋
+    notification_broadcaster.is_shutdown = False
+    
+    mock_request = AsyncMock()
+    mock_request.is_disconnected.return_value = False
+    
+    # 모의 DAO 주입
+    service = NotificationService(notification_dao=MagicMock())
+    
+    generator = service.stream_notifications(mock_request, "test-user")
+    
+    # 비동기로 broadcaster.close() 실행
+    async def trigger_shutdown():
+        await asyncio.sleep(0.05)
+        notification_broadcaster.close()
+        
+    shutdown_task = asyncio.create_task(trigger_shutdown())
+    
+    # 제너레이터 소비
+    results = []
+    async for item in generator:
+        results.append(item)
+        
+    await shutdown_task
+    assert notification_broadcaster.is_shutdown
+    
+    # 전역 인스턴스 상태 복구
+    notification_broadcaster.is_shutdown = False
+

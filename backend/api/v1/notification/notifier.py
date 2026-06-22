@@ -11,6 +11,7 @@ class NotificationBroadcaster:
     def __init__(self) -> None:
         """NotificationBroadcaster의 인스턴스를 초기화합니다."""
         self._listeners: Set[asyncio.Queue] = set()
+        self.is_shutdown = False
 
     def subscribe(self) -> asyncio.Queue:
         """새로운 클라이언트 리스너를 구독 등록하고 비동기 큐를 반환합니다.
@@ -19,9 +20,27 @@ class NotificationBroadcaster:
             asyncio.Queue: 이벤트를 수신할 비동기 큐 객체.
         """
         queue = asyncio.Queue()
+        if self.is_shutdown:
+            queue.put_nowait(None)
+            return queue
         self._listeners.add(queue)
         logger.info(f"New client subscribed. Active listeners: {len(self._listeners)}")
         return queue
+
+    def close(self) -> None:
+        """브로드캐스터를 종료하고 대기 중인 모든 클라이언트 리스너 큐에 종료 이벤트를 전달합니다.
+
+        이 메서드는 애플리케이션 종료 시 호출되어 활성 연결을 해제하고
+        서버 프로세스가 지연 없이 종료되도록 합니다.
+        """
+        self.is_shutdown = True
+        logger.info(f"Shutting down NotificationBroadcaster. Waking up {len(self._listeners)} listeners.")
+        for queue in list(self._listeners):
+            try:
+                queue.put_nowait(None)
+            except Exception as e:
+                logger.error(f"Error putting shutdown sentinel to queue: {e}")
+
 
     def unsubscribe(self, queue: asyncio.Queue) -> None:
         """등록된 클라이언트 비동기 큐의 구독을 해제합니다.
