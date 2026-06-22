@@ -91,6 +91,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn").error(f"Error closing notification broadcaster: {e}")
     await engine.dispose()
+    
+    # 미종료된 asyncio 백그라운드 태스크들을 강제 취소하여 uvicorn 리로드 대기 현상을 완전히 방지
+    try:
+        current_task = asyncio.current_task()
+        pending_tasks = [t for t in asyncio.all_tasks() if t is not current_task]
+        if pending_tasks:
+            logging.getLogger("uvicorn").info(f"Cancelling {len(pending_tasks)} pending background tasks...")
+            for task in pending_tasks:
+                task.cancel()
+            # CancelledError가 전파될 때까지 대기
+            await asyncio.gather(*pending_tasks, return_exceptions=True)
+    except Exception as e:
+        logging.getLogger("uvicorn").error(f"Error cancelling pending tasks: {e}")
 
 # ============================================
 # FastAPI Application Initialization
@@ -201,5 +214,6 @@ if __name__ == "__main__":
         "main:app",
         host=settings.HOST,
         port=settings.PORT,
-        reload=settings.DEBUG
+        reload=settings.DEBUG,
+        timeout_graceful_shutdown=2
     )

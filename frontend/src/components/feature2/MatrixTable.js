@@ -53,22 +53,60 @@ export default function MatrixTable({ result }) {
                   </td>
                   <td className={styles.matrixTd}>
                     <ul className={styles.listUnstyled}>
-                      {paper.problems_solved.map((item, i) => (
-                        <li key={i} className="mb-2 d-flex align-items-start">
-                          <i className={`bi bi-check-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconSuccess}`}></i>
-                          <span className="text-secondary small">{item}</span>
-                        </li>
-                      ))}
+                      {paper.problems_solved.map((item, i) => {
+                        const isObject = typeof item === "object" && item !== null;
+                        const summary = isObject ? item.summary : item;
+                        const quote = isObject ? item.source_quote : null;
+                        
+                        return (
+                          <li key={i} className={`mb-2.5 d-flex align-items-start ${quote ? styles.tooltipTrigger : ""}`}>
+                            <i className={`bi bi-check-circle-fill me-2.5 flex-shrink-0 ${styles.listIcon} ${styles.iconSuccess}`}></i>
+                            <span className={`text-secondary small ${quote ? styles.dashedUnderline : ""}`}>
+                              {summary}
+                            </span>
+                            {quote && (
+                              <div className={styles.customTooltip}>
+                                <div className={styles.tooltipHeader}>
+                                  <i className="bi bi-file-earmark-text-fill me-1.5 text-info"></i>
+                                  <span>원본 논문 인용구 (Verbatim Source)</span>
+                                </div>
+                                <div className={styles.tooltipBody}>
+                                  &ldquo;{quote}&rdquo;
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </td>
                   <td className={styles.matrixTd}>
                     <ul className={styles.listUnstyled}>
-                      {paper.limitations.map((item, i) => (
-                        <li key={i} className="mb-2 d-flex align-items-start">
-                          <i className={`bi bi-dash-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconDanger}`}></i>
-                          <span className="text-secondary small">{item}</span>
-                        </li>
-                      ))}
+                      {paper.limitations.map((item, i) => {
+                        const isObject = typeof item === "object" && item !== null;
+                        const summary = isObject ? item.summary : item;
+                        const quote = isObject ? item.source_quote : null;
+                        
+                        return (
+                          <li key={i} className={`mb-2.5 d-flex align-items-start ${quote ? styles.tooltipTrigger : ""}`}>
+                            <i className={`bi bi-dash-circle-fill me-2.5 flex-shrink-0 ${styles.listIcon} ${styles.iconDanger}`}></i>
+                            <span className={`text-secondary small ${quote ? styles.dashedUnderline : ""}`}>
+                              {summary}
+                            </span>
+                            {quote && (
+                              <div className={styles.customTooltip}>
+                                <div className={styles.tooltipHeader}>
+                                  <i className="bi bi-exclamation-triangle-fill me-1.5 text-warning"></i>
+                                  <span>원본 논문 인용구 (Verbatim Source)</span>
+                                </div>
+                                <div className={styles.tooltipBody}>
+                                  &ldquo;{quote}&rdquo;
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </td>
                 </tr>

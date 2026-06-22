@@ -54,6 +54,27 @@ def test_member_join_endpoint(mock_join):
     mock_join.assert_called_once()
 
 
+@patch("api.v1.member.services.MemberService.join")
+def test_member_join_endpoint_duplicate(mock_join):
+    """중복된 회원 아이디로 가입 시도 시 400 에러를 반환하는지 테스트합니다."""
+    from api.common.exceptions import BusinessException
+    mock_join.side_effect = BusinessException("이미 존재하는 회원 아이디입니다.", error_code="MEMBER_DUPLICATE")
+
+    payload = {
+        "mid": "test1234",
+        "mname": "홍길동",
+        "mpassword": "password123",
+        "memail": "new@uni.edu",
+        "mrole": "ROLE_USER"
+    }
+    response = client.post("/api/v1/member/join", json=payload)
+    assert response.status_code == 400
+    json_data = response.json()
+    assert json_data["status"] == "error"
+    assert "이미 존재하는 회원 아이디입니다." in json_data["message"]
+    mock_join.assert_called_once()
+
+
 @patch("api.v1.member.services.MemberService.read")
 def test_member_info_endpoint(mock_read):
     """현재 사용자 정보 조회 API를 테스트합니다."""

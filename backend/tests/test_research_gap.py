@@ -98,8 +98,8 @@ def test_get_task_result_endpoint(mock_get_result):
                 {
                     "title": "A Mock Paper",
                     "arxiv_id": "1234.5678",
-                    "problems_solved": ["Mock problem"],
-                    "limitations": ["Mock limitation"]
+                    "problems_solved": [{"summary": "Mock problem", "source_quote": "Verbatim quote solved"}],
+                    "limitations": [{"summary": "Mock limitation", "source_quote": "Verbatim quote limitation"}]
                 }
             ],
             "common_limitations": ["Mock common limit"],
@@ -168,8 +168,8 @@ def test_translate_matrix_endpoint(mock_translate_matrix):
             {
                 "title": "번역된 제목",
                 "arxiv_id": "1234.5678",
-                "problems_solved": ["해결된 문제"],
-                "limitations": ["한계점"]
+                "problems_solved": [{"summary": "해결된 문제", "source_quote": "Verbatim quote solved"}],
+                "limitations": [{"summary": "한계점", "source_quote": "Verbatim quote limitation"}]
             }
         ],
         "common_limitations": ["공통 한계점"],
