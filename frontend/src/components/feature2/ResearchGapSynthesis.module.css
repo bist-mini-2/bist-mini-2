@@ -33,12 +33,9 @@
 }
 
 .listIcon {
-  font-size: 0.85rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 1.5em; /* Match the line-height of the first line of text */
-  vertical-align: middle;
+  font-size: inherit; /* Ensure it matches the text font-size exactly */
+  align-self: flex-start;
+  margin-top: 0.08em; /* Adjusted specifically for exclamation circle vertical visual alignment */
 }
 
 .iconWarning {

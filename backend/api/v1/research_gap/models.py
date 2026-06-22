@@ -7,7 +7,7 @@ class AnalyzeRequest(BaseDTO):
     """분석 요청용 DTO 스키마입니다."""
     domain: str = Field(
         ...,
-        description="학술 도메인 (cs 또는 bio)",
+        description="학술 도메인 (cs, bio, 또는 astronomy)",
         examples=["cs"]
     )
     query: str = Field(
@@ -140,7 +140,7 @@ class TaskResultResponse(BaseDTO):
     error_message: Optional[str] = Field(
         None,
         description="작업 실패 시 에러 사유",
-        examples=["지원되지 않는 도메인입니다. 현재는 'cs' 도메인만 분석을 지원합니다."]
+        examples=["지원되지 않는 도메인입니다. 현재는 'cs', 'bio', 'astronomy' 도메인만 분석을 지원합니다."]
     )
 
 

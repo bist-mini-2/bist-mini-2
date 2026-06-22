@@ -97,10 +97,10 @@ class ResearchGapService:
             BusinessException: 지원하지 않는 도메인이 입력되었을 경우.
         """
         target_domain = domain.lower().strip()
-        if target_domain != "cs":
+        if target_domain not in ("cs", "bio", "astronomy"):
             from api.common.exceptions import BusinessException
             raise BusinessException(
-                message="지원되지 않는 도메인입니다. 현재는 'cs' 도메인만 분석을 지원합니다.",
+                message="지원되지 않는 도메인입니다. 현재는 'cs', 'bio', 'astronomy' 도메인만 분석을 지원합니다.",
                 error_code="UNSUPPORTED_DOMAIN"
             )
 
@@ -404,7 +404,14 @@ class ResearchGapService:
         from api.v1.research_gap.models import ResearchGapMatrix
         matrix = ResearchGapMatrix.model_validate(task.result)
         
-        self.logger.info(f"Translating ResearchGapMatrix for task {task_id} to Korean...")
+        domain_name_map = {
+            "cs": "computer science",
+            "bio": "biotechnology and biology",
+            "astronomy": "astronomy and astrophysics"
+        }
+        domain_eng = domain_name_map.get(task.domain.lower(), "academic research")
+        
+        self.logger.info(f"Translating ResearchGapMatrix for task {task_id} to Korean ({domain_eng})...")
         llm = ChatOpenAI(
             model="gpt-4o-mini",
             openai_api_key=settings.OPENAI_API_KEY,
@@ -413,12 +420,12 @@ class ResearchGapService:
         
         prompt = ChatPromptTemplate.from_messages([
             ("system", (
-                "You are an expert academic translator specializing in computer science.\n"
+                f"You are an expert academic translator specializing in {domain_eng}.\n"
                 "Translate the given Research Gap Matrix (including paper titles, problems solved, limitations, common limitations, and suggested directions) into natural, professional, and clear Korean.\n\n"
                 "Strictly follow these translation guidelines:\n"
-                "1. DO NOT translate 'Transformer' as '변환기'. Translate it as '트랜스포머'.\n"
-                "2. Keep common AI/ML technical terms in English or use standard academic Korean (e.g., keep MLP, RAG, LLM, ICL, attention, contextual bandit in English or write them like '인컨텍스트 학습(ICL)', '어텐션 메커니즘').\n"
-                "3. Use a formal, concise academic tone appropriate for research reports (e.g., ending with nominalized phrases like '~을 해결함', '~을 규명함', '~을 제안함', or clear noun phrases like '~ 최적화', '~ 설계'). Avoid passive passive verbs.\n"
+                "1. DO NOT translate specific technical model/component names literally if they are widely accepted in English (e.g., 'Transformer' -> '트랜스포머', not '변환기').\n"
+                "2. Keep common domain-specific technical terms in English or use standard academic Korean (e.g., in CS keep MLP, RAG, LLM; in Bio keep DNA, RNA, CRISPR; in Astronomy keep CMB, redshift, dark matter, or write them with Korean translation alongside English abbreviations).\n"
+                "3. Use a formal, concise academic tone appropriate for research reports (e.g., ending with nominalized phrases like '~을 해결함', '~을 규명함', '~을 제안함', or clear noun phrases like '~ 최적화', '~ 설계'). Avoid passive verbs.\n"
                 "4. Ensure paper titles are translated in a way that sounds natural to Korean researchers while preserving key technical terms.\n"
                 "5. DO NOT translate the 'source_quote' field of each paper. Keep the 'source_quote' in its original English verbatim.\n\n"
                 "Response must be structured in the requested format."
