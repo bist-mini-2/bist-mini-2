@@ -43,7 +43,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
       let left = 0;
       const gap = 14;
       const popoverWidth = 320;
-      const popoverHeight = 240; // Safer boundary check height
+      const popoverHeight = 170; // Reduced to 170 to fit top positioning without triggering bottom auto-flip
 
       // If target element is extremely large (like a table), cap effective height to keep popover close to target start
       const effectiveHeight = rect.height > 300 ? 100 : rect.height;
@@ -183,10 +183,37 @@ export default function TutorialTour({ steps = [], matchPath }) {
 
   return createPortal(
     <>
-      {/* 1. Backdrop Area: Dim screen immediately on isOpen (opacity fade-in transition handled by CSS animation) */}
-      <div className={styles.overlay} onClick={handleClose}></div>
+      {/* 1. Backdrop Area: Dim screen immediately on isOpen */}
+      <div 
+        style={{ 
+          opacity: isOpen ? 1 : 0, 
+          transition: "opacity 0.3s ease",
+          pointerEvents: "auto"
+        }}
+      >
+        {/* Transparent click guard backdrop (retains blur filter from styles.overlay) */}
+        <div 
+          className={styles.overlay} 
+          style={{ backgroundColor: "transparent" }} 
+          onClick={handleClose}
+        ></div>
 
-      {/* 2. Highlight Focus Border & Popover Guidance Bubble: Mounts and fades in together after scroll/calculation */}
+        {/* Dark Mask: Dims screen immediately, and opens visual window only when coordinates calculated */}
+        <div 
+          className={styles.highlightMask}
+          style={{
+            top: isPositionCalculated && targetRect ? targetRect.top - 4 : 0,
+            left: isPositionCalculated && targetRect ? targetRect.left - 4 : 0,
+            width: isPositionCalculated && targetRect ? targetRect.width + 8 : 0,
+            height: isPositionCalculated && targetRect ? targetRect.height + 8 : 0,
+            transition: isTransitionEnabled ? undefined : "none"
+          }}
+        >
+          {isPositionCalculated && targetRect && <div className={styles.highlightGlow}></div>}
+        </div>
+      </div>
+
+      {/* 2. Popover Guidance Bubble: Mounts and fades in only after scroll & position checks */}
       <div 
         style={{ 
           opacity: isPositionCalculated ? 1 : 0, 
@@ -194,23 +221,6 @@ export default function TutorialTour({ steps = [], matchPath }) {
           pointerEvents: isPositionCalculated ? "auto" : "none"
         }}
       >
-        {/* Highlight border box around target element */}
-        {isPositionCalculated && targetRect && (
-          <div 
-            className={styles.highlightMask}
-            style={{
-              top: targetRect.top - 4,
-              left: targetRect.left - 4,
-              width: targetRect.width + 8,
-              height: targetRect.height + 8,
-              transition: isTransitionEnabled ? undefined : "none"
-            }}
-          >
-            <div className={styles.highlightGlow}></div>
-          </div>
-        )}
-
-        {/* Guidance Popover Bubble */}
         {isPositionCalculated && (
           <div 
             className={styles.popover}

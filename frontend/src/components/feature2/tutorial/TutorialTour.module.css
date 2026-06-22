@@ -20,6 +20,7 @@
 .highlightMask {
   position: fixed;
   border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
   z-index: 999999;
   pointer-events: none;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
