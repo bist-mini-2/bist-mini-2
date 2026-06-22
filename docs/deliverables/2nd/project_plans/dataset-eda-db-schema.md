@@ -154,6 +154,17 @@ Kaggle ArXiv 전체 데이터셋에서 플랫폼이 지원하는 3대 타겟 영
     - **초고속 빌드 성능**: M4 로컬 직접 배치 임베딩 파이프라인(약 350 items/sec)을 가동할 경우, **단 43초**만에 전체 임베딩 변환 및 로컬 JSONL 저장을 완료할 수 있습니다.
     - **극도의 비용 절감**: OpenAI `text-embedding-3-large` API를 사용할 경우에도, 전체 추론 비용이 **단 $0.39 (한화 약 500원)** 내외로 발생하여 부담 없는 개발 및 부하 테스트 환경을 보장합니다.
 
+### 💾 1.6 현재 데이터베이스 데이터 적재 현황 (Database Ingestion Status)
+
+실제 데이터베이스(langchain pgvector 컬렉션)의 데이터 적재 수량 및 추가 마이그레이션 결과 현황입니다.
+
+| 학술 도메인 | 대상 컬렉션명 | 기존 적재 건수 | 추가 적재 건수 | 최종 적재 건수 (완료) | 적재 카테고리 및 비고 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **컴퓨터 과학 (CS)** | `cs_embeddings` | 10,000 건 | 7,825 건 | **17,825 건** | `cs.NE` (Neural and Evolutionary Computing) 전체 적재 완료 |
+| **천문학 (Astronomy)** | `astronomy_embeddings` | 10,000 건 | 25,083 건 | **35,083 건** | `astro-ph.EP` (Earth and Planetary Astrophysics) 전체 적재 완료 |
+| **생명공학 (Bio)** | `bio_embeddings` | 3,848 건 | 17,535 건 | **21,383 건** | `q-bio.GN` (Genomics) 및 주요 추가 카테고리(`q-bio.BM/MN/TO/CB/SC/OT`) 적재 완료 |
+| **합계** | - | 23,848 건 | 50,443 건 | **74,291 건** | 3대 도메인 주요 서브 카테고리 전체 적재 완료 |
+
 ---
 
 ## 🗄️ 2. 데이터베이스 논리적/물리적 설계 (Database ERD & Schema)

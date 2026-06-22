@@ -24,7 +24,9 @@ def anyio_backend():
 @pytest.mark.anyio
 async def test_common_rag_pipeline_similarity_search_success():
     """CommonRagPipeline이 PGVector와 코사인 유사도를 올바르게 계산하고 결과를 반환하는지 검증합니다."""
-    with patch("api.common.rag_pipeline.PGVector") as mock_pgvector:
+    with patch("api.common.rag_pipeline.PGVector") as mock_pgvector, \
+         patch.object(common_rag_pipeline, "get_embeddings") as mock_get_embeddings:
+        mock_get_embeddings.return_value = MagicMock()
         mock_instance = mock_pgvector.return_value
         
         # PGVector는 (Document, distance)의 튜플 리스트를 반환함

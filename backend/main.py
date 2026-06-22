@@ -60,6 +60,11 @@ async def lifespan(app: FastAPI):
         
     yield
     logging.getLogger("uvicorn").info("Application Shutting Down...")
+    try:
+        from api.v1.notification.notifier import notification_broadcaster
+        notification_broadcaster.close()
+    except Exception as e:
+        logging.getLogger("uvicorn").error(f"Error closing notification broadcaster: {e}")
     await engine.dispose()
 
 # ============================================
