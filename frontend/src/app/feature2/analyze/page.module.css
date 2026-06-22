@@ -26,3 +26,53 @@
     grid-template-columns: 2fr 1fr;
   }
 }
+
+.tabContainer {
+  display: inline-flex;
+  background-color: var(--sidebar-bg);
+  padding: 4px;
+  border-radius: 30px;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 25px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--menu-item-color);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tabBtn:hover {
+  color: var(--foreground);
+  transform: scale(1.03);
+}
+
+.tabBtnActive {
+  background-color: var(--accent-color);
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(116, 131, 109, 0.3);
+}
+
+.fadeIn {
+  opacity: 0;
+  animation: fadeInEffect 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInEffect {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
