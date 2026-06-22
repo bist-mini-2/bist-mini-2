@@ -43,12 +43,19 @@ export default function PipelineGraph({ result, query }) {
       ];
       
       styleProps.forEach(prop => {
-        const val = computed.getPropertyValue(prop);
+        let val = computed.getPropertyValue(prop);
         if (val) {
           // Exclude absolute external fonts that might taint canvas
           if (prop === "font-family") {
             clonedEl.style[prop] = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
           } else {
+            // Fallback: If computed color is white or light grey, map it to dark grey/slate to read perfectly on white SVG bg
+            if (prop === "color") {
+              const cleanVal = val.replace(/\s+/g, "").toLowerCase();
+              if (cleanVal === "rgb(236,239,237)" || cleanVal === "rgb(252,251,246)" || cleanVal === "rgb(255,255,255)" || cleanVal === "#ecefed" || cleanVal === "#ffffff") {
+                val = "#6e756f"; 
+              }
+            }
             clonedEl.style[prop] = val;
           }
         }
@@ -73,6 +80,12 @@ export default function PipelineGraph({ result, query }) {
       const originalTheme = document.documentElement.getAttribute("data-theme");
       document.documentElement.setAttribute("data-theme", "light");
 
+      // Force synchronous style recalculation (Reflow)
+      document.documentElement.offsetHeight;
+      if (containerRef.current) {
+        containerRef.current.offsetHeight;
+      }
+
       const clonedSvg = svgEl.cloneNode(true);
       
       // Inline styles to ensure colors and properties are hardcoded inside the elements
@@ -84,6 +97,9 @@ export default function PipelineGraph({ result, query }) {
       } else {
         document.documentElement.removeAttribute("data-theme");
       }
+
+      // Force style recalculation back to original theme
+      document.documentElement.offsetHeight;
 
       // Reset transform zoom/pan on cloned SVG for standard viewport export
       const zoomGroup = clonedSvg.querySelector(`.${styles.zoomGroup}`);
