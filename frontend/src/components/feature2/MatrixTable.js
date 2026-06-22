@@ -60,14 +60,14 @@ export default function MatrixTable({ result }) {
                         
                         return (
                           <li key={i} className={`mb-2.5 d-flex align-items-start ${quote ? styles.tooltipTrigger : ""}`}>
-                            <i className={`bi bi-check-circle-fill me-2.5 flex-shrink-0 ${styles.listIcon} ${styles.iconSuccess}`}></i>
+                            <i className={`bi bi-check-circle-fill me-3 flex-shrink-0 ${styles.listIcon} ${styles.iconSuccess}`}></i>
                             <span className={`text-secondary small ${quote ? styles.dashedUnderline : ""}`}>
                               {summary}
                             </span>
                             {quote && (
                               <div className={styles.customTooltip}>
                                 <div className={styles.tooltipHeader}>
-                                  <i className="bi bi-file-earmark-text-fill me-1.5 text-info"></i>
+                                  <i className="bi bi-file-earmark-text-fill me-2 text-info"></i>
                                   <span>원본 논문 인용구 (Verbatim Source)</span>
                                 </div>
                                 <div className={styles.tooltipBody}>
@@ -89,14 +89,14 @@ export default function MatrixTable({ result }) {
                         
                         return (
                           <li key={i} className={`mb-2.5 d-flex align-items-start ${quote ? styles.tooltipTrigger : ""}`}>
-                            <i className={`bi bi-dash-circle-fill me-2.5 flex-shrink-0 ${styles.listIcon} ${styles.iconDanger}`}></i>
+                            <i className={`bi bi-dash-circle-fill me-3 flex-shrink-0 ${styles.listIcon} ${styles.iconDanger}`}></i>
                             <span className={`text-secondary small ${quote ? styles.dashedUnderline : ""}`}>
                               {summary}
                             </span>
                             {quote && (
-                              <div className={styles.customTooltip}>
+                              <div className={`${styles.customTooltip} ${styles.tooltipRightAligned}`}>
                                 <div className={styles.tooltipHeader}>
-                                  <i className="bi bi-exclamation-triangle-fill me-1.5 text-warning"></i>
+                                  <i className="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
                                   <span>원본 논문 인용구 (Verbatim Source)</span>
                                 </div>
                                 <div className={styles.tooltipBody}>

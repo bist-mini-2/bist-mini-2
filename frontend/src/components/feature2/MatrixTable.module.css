@@ -214,3 +214,8 @@
   word-break: break-word;
 }
 
+.tooltipRightAligned {
+  left: auto;
+  right: 0;
+}
+
