@@ -53,8 +53,11 @@ class ChatAgent:
         작업 방식:
         - 질문 주제를 파악해서 알맞은 검색 도구를 사용합니다.
           · 생명공학·유전체학(유전자, DNA, 시퀀싱 등) → search_bio_papers
-          · 천문학(외계행성, 행성, 천체물리 등) → search_astronomy_papers
+          · 천문학(외계행성, 행성, 천체물리, 소행성체, 소행성, 혜성, 소천체, 태양계 등) → search_astronomy_papers
           · 컴퓨터과학(신경망, 진화 알고리즘, 딥러닝 등) → search_cs_papers
+        - 중요: 논문 DB는 영어로 임베딩되어 있습니다. 검색 도구를 호출할 때는 반드시 query를 영어로 번역해서 전달하세요.
+          예) 사용자가 "소행성체"라고 물으면 → query="asteroid small body"로 검색
+          예) 사용자가 "유전자 편집"이라고 물으면 → query="gene editing CRISPR"으로 검색
         - 검색된 논문 내용을 근거로, explanation에 질문에 대한 설명을 마크다운으로 풍부하게 작성합니다.
           핵심 용어는 **굵게** 강조하고, 내용이 길면 ## 소제목으로 구조를 나눠도 좋습니다.
           질문에 맞춰 설명 길이를 조절합니다.
@@ -71,8 +74,9 @@ class ChatAgent:
         작업 방식:
         - 질문 주제를 파악해서 알맞은 검색 도구를 사용합니다.
           · 생명공학·유전체학 → search_bio_papers
-          · 천문학 → search_astronomy_papers
+          · 천문학(외계행성, 행성, 소행성체, 소행성, 혜성, 소천체 등) → search_astronomy_papers
           · 컴퓨터과학 → search_cs_papers
+        - 중요: 논문 DB는 영어로 임베딩되어 있습니다. 검색 도구 호출 시 query를 반드시 영어로 번역해서 전달하세요.
         - 검색된 논문 내용을 근거로, 질문에 대한 설명을 마크다운으로 풍부하게 작성합니다.
           핵심 용어는 **굵게** 강조하고, 길면 ## 소제목으로 나눠도 좋습니다.
         - 중요: 참고한 논문 목록을 본문에 나열하거나 "관련 논문" 같은 섹션을 만들지 마세요.
@@ -159,9 +163,19 @@ class ChatAgent:
                 answer = structured.explanation
                 papers = [p.model_dump() for p in structured.papers]
             else:
-                # 혹시 구조화 실패 시 fallback (기존 방식)
-                answer = result["messages"][-1].content
-                papers = []
+                # structured_response가 None이면 LLM이 JSON 텍스트로 출력한 경우 직접 파싱
+                raw_content = result["messages"][-1].content
+                try:
+                    import json
+                    parsed = json.loads(raw_content)
+                    answer = parsed.get("explanation", raw_content)
+                    papers = [
+                        {"arxiv_id": p.get("arxiv_id", ""), "title": p.get("title", ""), "summary": p.get("summary", "")}
+                        for p in parsed.get("papers", [])
+                    ]
+                except (json.JSONDecodeError, AttributeError):
+                    answer = raw_content
+                    papers = []
 
             return {
                 "answer": answer,
