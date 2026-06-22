@@ -1,11 +1,16 @@
-"""기존 pgvector DB에 적재되지 않은 새로운 CS 및 천문학 논문을 추가 적재하는 스크립트."""
+"""기존 pgvector DB에 적재되지 않은 새로운 CS 및 천문학 논문을 전체 추가 적재하는 스크립트.
+
+기존에 적재된 도큐먼트들을 스캔하여 제외하고, cs_raw.json (총 17,825건) 및
+astronomy_raw.json (총 35,083건)의 나머지 모든 데이터를 적재합니다.
+"""
 
 import asyncio
 import json
 import os
 import sys
+import argparse
 from pathlib import Path
-from typing import Set
+from typing import Set, List
 
 import psycopg
 from dotenv import load_dotenv
@@ -30,17 +35,14 @@ ASTRO_RAW_PATH = Path(__file__).parents[2] / "data" / "raw" / "archive" / "astro
 load_dotenv(dotenv_path=ENV_FILE_PATH)
 CONNECTION = os.getenv("DATABASE_URL")
 if not CONNECTION:
-    raise ValueError("DATABASE_URL 환경 변수가 설정되어 있지 않습니다.")
+    raise ValueError("DATABASE_URL 환경 변수가 설정되어 있지 않습니다. backend/.env 파일을 확인하세요.")
 
-# langchain_postgres 용 비동기 드라이버 이름 치환
 if CONNECTION.startswith("postgresql://"):
     CONNECTION = CONNECTION.replace("postgresql://", "postgresql+psycopg_async://")
 elif CONNECTION.startswith("postgresql+asyncpg://"):
     CONNECTION = CONNECTION.replace("postgresql+asyncpg://", "postgresql+psycopg_async://")
 
 EMBED_MODEL = "openai:text-embedding-3-large"
-BATCH_SIZE = 100
-LIMIT_COUNT = 5000
 
 # 도메인 컬렉션 맵
 DOMAIN_COLLECTIONS = {
@@ -78,7 +80,7 @@ def get_existing_ids(collection_name: str) -> Set[str]:
         print(f"⚠️ 기존 ID 스캔 중 오류 발생 ({collection_name}): {e}")
     return existing_ids
 
-def load_new_documents(file_path: Path, existing_ids: Set[str], limit: int) -> list[Document]:
+def load_new_documents(file_path: Path, existing_ids: Set[str], limit: int | None = None) -> List[Document]:
     """JSON raw 파일에서 기존에 존재하지 않는 신규 문서를 선별하여 Document 객체 목록을 빌드합니다."""
     documents = []
     if not file_path.exists():
@@ -94,7 +96,7 @@ def load_new_documents(file_path: Path, existing_ids: Set[str], limit: int) -> l
             
     count = 0
     for paper in papers:
-        if count >= limit:
+        if limit is not None and count >= limit:
             break
             
         arxiv_id = paper.get("id") or paper.get("arxiv_id") or ""
@@ -104,7 +106,7 @@ def load_new_documents(file_path: Path, existing_ids: Set[str], limit: int) -> l
         title = (paper.get("title") or "").replace("\n", " ").strip()
         abstract = (paper.get("abstract") or "").replace("\n", " ").strip()
         
-        # 텍스트 구성 (기존 적재와 형식 통일)
+        # 텍스트 구성 (기존 적재와 형식 통일: Title + Abstract)
         content = f"Title: {title}\n\nAbstract: {abstract}"
         
         # 메타데이터 4개 필드 강제
@@ -120,14 +122,14 @@ def load_new_documents(file_path: Path, existing_ids: Set[str], limit: int) -> l
         
     return documents
 
-async def append_domain_embeddings(domain: str, documents: list[Document]):
+async def append_domain_embeddings(domain: str, documents: List[Document], batch_size: int = 100):
     """지정된 도메인 컬렉션에 비동기 방식으로 신규 문서를 추가 적재합니다."""
     if not documents:
         print(f"ℹ️ [{domain}] 추가할 신규 문서가 없습니다.")
         return
         
     collection_name = DOMAIN_COLLECTIONS[domain]
-    print(f"🚀 [{domain}] {len(documents)}건 추가 적재 시작 (컬렉션: {collection_name})...")
+    print(f"🚀 [{domain}] {len(documents):,}건 추가 적재 시작 (컬렉션: {collection_name}, 배치: {batch_size})...")
     
     vectorstore = PGVector(
         embeddings=init_embeddings(model=EMBED_MODEL),
@@ -137,33 +139,57 @@ async def append_domain_embeddings(domain: str, documents: list[Document]):
     )
     
     total = 0
-    batches = [documents[i:i + BATCH_SIZE] for i in range(0, len(documents), BATCH_SIZE)]
+    batches = [documents[i:i + batch_size] for i in range(0, len(documents), batch_size)]
     for batch in tqdm(batches, desc=f"[{domain}] 배치 적재"):
         await vectorstore.aadd_documents(batch)
         total += len(batch)
         
-    print(f"✅ [{domain}] 완료: {total}건 추가 완료 -> '{collection_name}'")
+    print(f"✅ [{domain}] 완료: {total:,}건 추가 완료 -> '{collection_name}'")
 
 async def main():
+    parser = argparse.ArgumentParser(description="arXiv 추가 데이터 적재 스크립트")
+    parser.add_argument("--domain", choices=["all", "cs", "astronomy"], default="all", help="적재할 도메인 (기본값: all)")
+    parser.add_argument("--limit", type=int, default=None, help="도메인별 최대 적재 문서 수 (기본값: 제한 없음)")
+    parser.add_argument("--batch-size", type=int, default=100, help="한 번에 적재할 배치 크기 (기본값: 100)")
+    
+    args = parser.parse_args()
+    
     if not os.getenv("OPENAI_API_KEY"):
         print("❌ OPENAI_API_KEY 가 설정되어 있지 않습니다.")
         return
         
+    print("==================================================")
+    print("  arXiv 추가 데이터 적재 프로세스를 시작합니다.")
+    print(f"  연결 정보: {CONNECTION}")
+    print(f"  모델명: {EMBED_MODEL}")
+    print(f"  대상 도메인: {args.domain}")
+    print(f"  도메인별 제한량: {args.limit}")
+    print(f"  배치 크기: {args.batch_size}")
+    print("==================================================")
+
     # 1. CS 추가 적재 진행
-    print("\n--- [1/2] 컴퓨터 과학 (CS) 추가 적재 ---")
-    cs_existing = get_existing_ids(DOMAIN_COLLECTIONS["cs"])
-    print(f"   기존 DB에 적재된 CS 문서 수: {len(cs_existing):,} 건")
-    cs_docs = load_new_documents(CS_RAW_PATH, cs_existing, LIMIT_COUNT)
-    print(f"   적재 후보 신규 CS 문서 수: {len(cs_docs):,} 건")
-    await append_domain_embeddings("cs", cs_docs)
-    
+    if args.domain in ["all", "cs"]:
+        print("\n--- [1] 컴퓨터 과학 (CS) 추가 적재 ---")
+        cs_existing = get_existing_ids(DOMAIN_COLLECTIONS["cs"])
+        print(f"   기존 DB에 적재된 CS 문서 수: {len(cs_existing):,} 건")
+        cs_docs = load_new_documents(CS_RAW_PATH, cs_existing, args.limit)
+        print(f"   적재 후보 신규 CS 문서 수: {len(cs_docs):,} 건")
+        if cs_docs:
+            await append_domain_embeddings("cs", cs_docs, args.batch_size)
+        else:
+            print("   -> 추가 적재할 새로운 문서가 없습니다.")
+            
     # 2. Astronomy 추가 적재 진행
-    print("\n--- [2/2] 천문학 (Astronomy) 추가 적재 ---")
-    astro_existing = get_existing_ids(DOMAIN_COLLECTIONS["astronomy"])
-    print(f"   기존 DB에 적재된 천문학 문서 수: {len(astro_existing):,} 건")
-    astro_docs = load_new_documents(ASTRO_RAW_PATH, astro_existing, LIMIT_COUNT)
-    print(f"   적재 후보 신규 천문학 문서 수: {len(astro_docs):,} 건")
-    await append_domain_embeddings("astronomy", astro_docs)
+    if args.domain in ["all", "astronomy"]:
+        print("\n--- [2] 천문학 (Astronomy) 추가 적재 ---")
+        astro_existing = get_existing_ids(DOMAIN_COLLECTIONS["astronomy"])
+        print(f"   기존 DB에 적재된 천문학 문서 수: {len(astro_existing):,} 건")
+        astro_docs = load_new_documents(ASTRO_RAW_PATH, astro_existing, args.limit)
+        print(f"   적재 후보 신규 천문학 문서 수: {len(astro_docs):,} 건")
+        if astro_docs:
+            await append_domain_embeddings("astronomy", astro_docs, args.batch_size)
+        else:
+            print("   -> 추가 적재할 새로운 문서가 없습니다.")
 
 if __name__ == "__main__":
     asyncio.run(main())
