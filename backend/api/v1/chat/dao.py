@@ -58,6 +58,7 @@ class ChatSessionDao:
                 message_index=message_index,
                 arxiv_id=src["arxiv_id"],
                 title=src["title"],
+                summary=src.get("summary")
             ))
         await self.orm_session.flush()
 
@@ -70,5 +71,9 @@ class ChatSessionDao:
         )
         return list(result.scalars().all())
 
+    async def commit(self) -> None:
+        """세션을 명시적으로 커밋한다.
+        StreamingResponse는 요청 의존성의 자동 커밋이 보장되지 않으므로 직접 호출한다."""
+        await self.orm_session.commit()
 
 ChatSessionDaoDep = Annotated[ChatSessionDao, Depends(ChatSessionDao)]

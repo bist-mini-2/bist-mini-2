@@ -63,7 +63,8 @@ class CommonRagPipeline:
             raise ValueError(f"지원하지 않는 도메인입니다: {domain}")
 
         collection_name = DOMAIN_COLLECTIONS[domain]
-        self.logger.info(f"RAG Similarity Search: Domain='{domain}', Collection='{collection_name}', k={k}")
+        self.logger.info(
+            f"RAG Similarity Search: Domain='{domain}', Collection='{collection_name}', k={k}")
 
         vectorstore = PGVector(
             embeddings=self.get_embeddings(),
@@ -79,7 +80,7 @@ class CommonRagPipeline:
             meta = doc.metadata or {}
             arxiv_id = meta.get("arxiv_id") or meta.get("doc_id") or ""
             title = meta.get("title", "")
-            
+
             # 코사인 유사도 계산 (1.0 - 거리 점수)
             similarity = round(1.0 - score, 4)
 
@@ -125,7 +126,10 @@ async def search_bio_papers(
         output_lines.append(f"arXiv ID: {arxiv_id}")
         output_lines.append(f"\n내용:\n{r['text_chunk']}\n")
         output_lines.append("-" * 80)
-        sources.append({"arxiv_id": arxiv_id, "title": title})
+        snippet = " ".join((r["text_chunk"] or "").split())
+        if len(snippet) > 160:
+            snippet = snippet[:160].rstrip() + "…"
+        sources.append({"arxiv_id": arxiv_id, "title": title, "summary": snippet})
 
     tool_text = "\n".join(output_lines)
     return Command(update={
@@ -157,14 +161,17 @@ async def search_cs_papers(
         arxiv_id = r["doc_id"]
         title = r["title"]
         score = r["score"]
-        
+
         output_lines.append(f"\n[논문 {idx}] (유사도: {score:.4f})")
         output_lines.append(f"제목: {title}")
         output_lines.append(f"arXiv ID: {arxiv_id}")
         output_lines.append(f"\n내용:\n{r['text_chunk']}\n")
         output_lines.append("-" * 80)
-        
-        sources.append({"arxiv_id": arxiv_id, "title": title})
+
+        snippet = " ".join((r["text_chunk"] or "").split())
+        if len(snippet) > 160:
+            snippet = snippet[:160].rstrip() + "…"
+        sources.append({"arxiv_id": arxiv_id, "title": title, "summary": snippet})
 
     tool_text = "\n".join(output_lines)
     return Command(update={
@@ -196,14 +203,17 @@ async def search_astronomy_papers(
         arxiv_id = r["doc_id"]
         title = r["title"]
         score = r["score"]
-        
+
         output_lines.append(f"\n[논문 {idx}] (유사도: {score:.4f})")
         output_lines.append(f"제목: {title}")
         output_lines.append(f"arXiv ID: {arxiv_id}")
         output_lines.append(f"\n내용:\n{r['text_chunk']}\n")
         output_lines.append("-" * 80)
-        
-        sources.append({"arxiv_id": arxiv_id, "title": title})
+
+        snippet = " ".join((r["text_chunk"] or "").split())
+        if len(snippet) > 160:
+            snippet = snippet[:160].rstrip() + "…"
+        sources.append({"arxiv_id": arxiv_id, "title": title, "summary": snippet})
 
     tool_text = "\n".join(output_lines)
     return Command(update={
