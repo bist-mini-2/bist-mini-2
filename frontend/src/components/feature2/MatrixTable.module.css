@@ -16,11 +16,17 @@
 }
 
 .matrixContainer {
-  overflow-x: auto;
+  overflow: visible; /* Prevent tooltip clipping on desktop */
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
   background-color: var(--card-bg);
   margin-top: 16px;
+}
+
+@media (max-width: 991px) {
+  .matrixContainer {
+    overflow-x: auto; /* Fallback for horizontal scroll on mobile/tablet */
+  }
 }
 
 .matrixTable {
@@ -108,12 +114,9 @@
 }
 
 .listIcon {
-  font-size: 0.85rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 1.5em; /* Match the line-height of the first line of text */
-  vertical-align: middle;
+  font-size: inherit; /* Ensure it matches the text font-size exactly */
+  align-self: flex-start;
+  margin-top: 0.15em; /* Adjusted to align icon center with text's visual center */
 }
 
 .iconSuccess {
@@ -173,11 +176,9 @@
   bottom: 110%;
   left: 0;
   width: 320px;
-  background: rgba(15, 23, 42, 0.93);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
   border-radius: 10px;
   padding: 12px 14px;
   z-index: 1050;
@@ -186,6 +187,10 @@
   transform: translateY(6px);
   transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
+}
+
+[data-theme="dark"] .customTooltip {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
 }
 
 .tooltipTrigger:hover .customTooltip {
@@ -197,20 +202,27 @@
 .tooltipHeader {
   font-size: 0.74rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--foreground);
+  opacity: 0.85;
   margin-bottom: 6px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--card-border);
   padding-bottom: 4px;
 }
 
 .tooltipBody {
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--foreground);
+  opacity: 0.95;
   font-style: italic;
   line-height: 1.45;
   font-family: 'Outfit', -apple-system, sans-serif;
   word-break: break-word;
+}
+
+.tooltipRightAligned {
+  left: auto;
+  right: 0;
 }
 

@@ -36,7 +36,7 @@ export default function ControlPanel({
               className={styles.devInput}
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              disabled={loading}
+              disabled={loading || (taskId && (status === "COMPLETED" || status === "FAILED"))}
             >
               <option value="cs">컴퓨터 과학 (Computer Science)</option>
               <option value="bio">생명공학 (Biotechnology)</option>
@@ -49,16 +49,18 @@ export default function ControlPanel({
               <input
                 type="text"
                 className={`${styles.devInput} flex-grow-1`}
-                placeholder="예: '임베딩 차원에 따른 RAG 성능 공백 분석'"
+                placeholder={taskId && (status === "COMPLETED" || status === "FAILED")
+                  ? "상세 이력 조회 중에는 수정이 제한됩니다. (새 분석은 왼쪽 메뉴를 이용하세요)"
+                  : "예: '임베딩 차원에 따른 RAG 성능 공백 분석'"}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 required
-                disabled={loading}
+                disabled={loading || (taskId && (status === "COMPLETED" || status === "FAILED"))}
               />
               <button
                 type="submit"
                 className={`${styles.devBtn} ${loading ? styles.devBtnLoading : ""}`}
-                disabled={loading || !query.trim()}
+                disabled={loading || !query.trim() || (taskId && (status === "COMPLETED" || status === "FAILED"))}
               >
                 {loading ? (
                   <>

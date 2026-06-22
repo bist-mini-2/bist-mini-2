@@ -40,7 +40,7 @@ export default function useResearchGap() {
   const currentTaskIdRef = useRef(null);
   const pollingIntervalRef = useRef(null);
 
-  // URL 쿼리 파라미터로 taskId가 넘어온 경우 해당 태스크 자동 로드 및 폴링
+  // URL 쿼리 파라미터로 taskId가 넘어온 경우 해당 태스크 자동 로드 및 폴링. 없는 경우 초기 상태로 리셋.
   useEffect(() => {
     if (queryTaskId) {
       setResult(null);
@@ -53,6 +53,23 @@ export default function useResearchGap() {
       setStatus("PENDING");
       setStatusText("선택된 분석 작업 데이터를 불러오는 중...");
       startPolling(queryTaskId);
+    } else {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+      setDomain("cs");
+      setQuery("");
+      setLoading(false);
+      setTaskId(null);
+      currentTaskIdRef.current = null;
+      setProgress(0);
+      setStatus("");
+      setStatusText("");
+      setResult(null);
+      setError(null);
+      setIsTranslated(false);
+      setTranslatedResult(null);
+      setTranslateLoading(false);
     }
   }, [queryTaskId]);
 

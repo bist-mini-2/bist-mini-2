@@ -86,14 +86,10 @@ export default function usePipelineLayout({ result, query, canvasWidth, canvasHe
     e.stopPropagation();
     if (zoomPan.isSpacePressed) return;
     if (!isNodeVisible(node.id)) return;
-    const repulsed = getRepulsedCoords({
-      activeFocusNode,
-      layoutData,
-      nodeId: node.id,
-      origX: node.x,
-      origY: node.y
-    });
-    focusOnNode(node.id, repulsed.x, repulsed.y);
+    
+    // 포커싱 노드는 포커스 적용 후 자신의 원래 기본 좌표(node.x, node.y)에 렌더링되므로, 
+    // 카메라 포커싱 타겟도 척력 좌표가 아닌 원래 기본 좌표로 지정해야 위치가 정확히 일치합니다.
+    focusOnNode(node.id, node.x, node.y);
     setSelectedNode((prev) => (prev?.type === node.id ? null : { type: node.id, data: node }));
   };
 
