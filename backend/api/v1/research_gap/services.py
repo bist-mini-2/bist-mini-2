@@ -162,9 +162,9 @@ class ResearchGapService:
                         if isinstance(chunks, list) and content not in chunks:
                             chunks.append(content)
                 
-                # 가장 유사도가 높은 순서대로 고유한 5개 논문 추출 및 청크 병합
+                # 가장 유사도가 높은 순서대로 고유한 4개 논문 추출 및 청크 병합
                 for arxiv_id, p_info in temp_papers.items():
-                    if len(papers_list) >= 5:
+                    if len(papers_list) >= 4:
                         break
                     joined_content = "\n\n".join(p_info["chunks"])
                     papers_list.append({
@@ -204,6 +204,7 @@ class ResearchGapService:
                         "You are an academic researcher analyzing a scientific paper abstract.\n"
                         "Extract the problems solved (or core methodologies proposed) and the limitations (or future gaps) "
                         "discussed in the provided text.\n"
+                        "You must extract at most 2 problems solved and at most 2 limitations per paper.\n"
                         "Response must be in English and structured in the requested format."
                     )),
                     ("user", "Title: {title}\nArXiv ID: {arxiv_id}\n\nContent:\n{content}")
