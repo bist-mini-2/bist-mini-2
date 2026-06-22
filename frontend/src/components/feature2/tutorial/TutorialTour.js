@@ -12,11 +12,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
   const [arrowClass, setArrowClass] = useState("");
   const [mounted, setMounted] = useState(false);
   const [isPositionCalculated, setIsPositionCalculated] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const [isTransitionEnabled, setIsTransitionEnabled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -47,10 +43,13 @@ export default function TutorialTour({ steps = [], matchPath }) {
       let left = 0;
       const gap = 14;
       const popoverWidth = 320;
-      const popoverHeight = 160; // Estimated height for boundary safety
+      const popoverHeight = 240; // Safer boundary check height
+
+      // If target element is extremely large (like a table), cap effective height to keep popover close to target start
+      const effectiveHeight = rect.height > 300 ? 100 : rect.height;
 
       if (pos === "bottom") {
-        top = rect.bottom + gap;
+        top = rect.top + effectiveHeight + gap;
         left = rect.left + (rect.width - popoverWidth) / 2;
         setArrowClass(styles.arrowTop);
       } else if (pos === "top") {
@@ -58,11 +57,11 @@ export default function TutorialTour({ steps = [], matchPath }) {
         left = rect.left + (rect.width - popoverWidth) / 2;
         setArrowClass(styles.arrowBottom);
       } else if (pos === "left") {
-        top = rect.top + (rect.height - popoverHeight) / 2;
+        top = rect.top + (effectiveHeight - popoverHeight) / 2;
         left = rect.left - popoverWidth - gap;
         setArrowClass(styles.arrowRight);
       } else if (pos === "right") {
-        top = rect.top + (rect.height - popoverHeight) / 2;
+        top = rect.top + (effectiveHeight - popoverHeight) / 2;
         left = rect.right + gap;
         setArrowClass(styles.arrowLeft);
       }
@@ -72,13 +71,19 @@ export default function TutorialTour({ steps = [], matchPath }) {
       if (left + popoverWidth > window.innerWidth - 10) {
         left = window.innerWidth - popoverWidth - 10;
       }
-      if (top < 10) top = rect.bottom + gap; // Flip to bottom if overflow top
-      if (top + popoverHeight > window.innerHeight - 10) {
-        top = window.innerHeight - popoverHeight - 10;
+      if (top < 10) {
+        top = rect.top + effectiveHeight + gap; // Flip to bottom
+        setArrowClass(styles.arrowTop);
+      } else if (top + popoverHeight > window.innerHeight - 10 && rect.top - popoverHeight - gap > 10) {
+        top = rect.top - popoverHeight - gap; // Flip to top
+        setArrowClass(styles.arrowBottom);
       }
 
       setPopoverPos({ top, left });
       setIsPositionCalculated(true);
+      setTimeout(() => {
+        setIsTransitionEnabled(true);
+      }, 50);
     } else {
       // Fallback: Center of the viewport if target element is not found
       const top = (window.innerHeight - 200) / 2;
@@ -87,6 +92,9 @@ export default function TutorialTour({ steps = [], matchPath }) {
       setPopoverPos({ top, left });
       setArrowClass("");
       setIsPositionCalculated(true);
+      setTimeout(() => {
+        setIsTransitionEnabled(true);
+      }, 50);
     }
   }, [isOpen, currentIndex, steps]);
 
@@ -97,6 +105,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
       // Start tour if pathname matches the target path configuration
       if (pathname === matchPath || (matchPath && pathname.startsWith(matchPath))) {
         setIsPositionCalculated(false);
+        setIsTransitionEnabled(false);
         setIsOpen(true);
         setCurrentIndex(0);
       }
@@ -112,16 +121,20 @@ export default function TutorialTour({ steps = [], matchPath }) {
   useEffect(() => {
     if (!isOpen || steps.length === 0) return;
 
+    // Reset transition state immediately to fade out current step cleanly
+    setIsPositionCalculated(false);
+    setIsTransitionEnabled(false);
+
     const currentStep = steps[currentIndex];
     const targetElement = document.querySelector(currentStep.target);
 
     if (targetElement) {
-      targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      targetElement.scrollIntoView({ behavior: "auto", block: "center" });
       
-      // Delay computation slightly until smooth scrolling finishes
+      // Delay computation slightly (50ms) to ensure DOM reflow has completed
       const timer = setTimeout(() => {
         updatePosition();
-      }, 350);
+      }, 50);
       return () => clearTimeout(timer);
     } else {
       updatePosition();
@@ -158,6 +171,7 @@ export default function TutorialTour({ steps = [], matchPath }) {
     setIsOpen(false);
     setTargetRect(null);
     setIsPositionCalculated(false);
+    setIsTransitionEnabled(false);
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("tutorial-ended"));
     }
@@ -168,69 +182,80 @@ export default function TutorialTour({ steps = [], matchPath }) {
   const currentStep = steps[currentIndex];
 
   return createPortal(
-    <div style={{ opacity: isPositionCalculated ? 1 : 0, transition: "opacity 0.2s ease" }}>
-      {/* Semi-transparent dark overlay */}
+    <>
+      {/* 1. Backdrop Area: Dim screen immediately on isOpen (opacity fade-in transition handled by CSS animation) */}
       <div className={styles.overlay} onClick={handleClose}></div>
 
-      {/* Target Element Highlight Box */}
-      {isPositionCalculated && targetRect && (
-        <div 
-          className={styles.highlightMask}
-          style={{
-            top: targetRect.top - 4,
-            left: targetRect.left - 4,
-            width: targetRect.width + 8,
-            height: targetRect.height + 8
-          }}
-        >
-          <div className={styles.highlightGlow}></div>
-        </div>
-      )}
-
-      {/* Guidance Popover Bubble */}
-      {isPositionCalculated && (
-        <div 
-          className={styles.popover}
-          style={{
-            top: popoverPos.top,
-            left: popoverPos.left
-          }}
-        >
-          {arrowClass && <div className={`${styles.arrow} ${arrowClass}`}></div>}
-          
-          <div className={styles.popoverHeader}>
-            <h4 className={styles.title}>
-              <i className="bi bi-info-circle-fill text-primary"></i>
-              {currentStep.title}
-            </h4>
-            <span className={styles.badge}>
-              {currentIndex + 1} / {steps.length}
-            </span>
+      {/* 2. Highlight Focus Border & Popover Guidance Bubble: Mounts and fades in together after scroll/calculation */}
+      <div 
+        style={{ 
+          opacity: isPositionCalculated ? 1 : 0, 
+          transition: "opacity 0.2s ease",
+          pointerEvents: isPositionCalculated ? "auto" : "none"
+        }}
+      >
+        {/* Highlight border box around target element */}
+        {isPositionCalculated && targetRect && (
+          <div 
+            className={styles.highlightMask}
+            style={{
+              top: targetRect.top - 4,
+              left: targetRect.left - 4,
+              width: targetRect.width + 8,
+              height: targetRect.height + 8,
+              transition: isTransitionEnabled ? undefined : "none"
+            }}
+          >
+            <div className={styles.highlightGlow}></div>
           </div>
+        )}
 
-          <p className={styles.content}>{currentStep.content}</p>
-
-          <div className={styles.footer}>
-            <button className={styles.skipBtn} onClick={handleClose}>
-              Skip
-            </button>
+        {/* Guidance Popover Bubble */}
+        {isPositionCalculated && (
+          <div 
+            className={styles.popover}
+            style={{
+              top: popoverPos.top,
+              left: popoverPos.left,
+              transition: isTransitionEnabled ? undefined : "none"
+            }}
+          >
+            {arrowClass && <div className={`${styles.arrow} ${arrowClass}`}></div>}
             
-            <div className={styles.btnGroup}>
-              <button 
-                className={styles.navBtn} 
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-              >
-                Prev
+            <div className={styles.popoverHeader}>
+              <h4 className={styles.title}>
+                <i className="bi bi-info-circle-fill text-primary"></i>
+                {currentStep.title}
+              </h4>
+              <span className={styles.badge}>
+                {currentIndex + 1} / {steps.length}
+              </span>
+            </div>
+
+            <p className={styles.content}>{currentStep.content}</p>
+
+            <div className={styles.footer}>
+              <button className={styles.skipBtn} onClick={handleClose}>
+                Skip
               </button>
-              <button className={styles.primaryBtn} onClick={handleNext}>
-                {currentIndex === steps.length - 1 ? "Finish" : "Next"}
-              </button>
+              
+              <div className={styles.btnGroup}>
+                <button 
+                  className={styles.navBtn} 
+                  onClick={handlePrev}
+                  disabled={currentIndex === 0}
+                >
+                  Prev
+                </button>
+                <button className={styles.primaryBtn} onClick={handleNext}>
+                  {currentIndex === steps.length - 1 ? "Finish" : "Next"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>,
+        )}
+      </div>
+    </>,
     document.body
   );
 }
