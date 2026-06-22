@@ -411,8 +411,12 @@ class ResearchGapService:
         prompt = ChatPromptTemplate.from_messages([
             ("system", (
                 "You are an expert academic translator specializing in computer science.\n"
-                "Translate the given Research Gap Matrix (including paper titles, problems solved, limitations, common limitations, and suggested directions) into natural and professional Korean.\n"
-                "Maintain the academic context and terminology accurately (e.g. keep common technical terms like RAG, LLM, prompt caching in English or use standard Korean translations).\n"
+                "Translate the given Research Gap Matrix (including paper titles, problems solved, limitations, common limitations, and suggested directions) into natural, professional, and clear Korean.\n\n"
+                "Strictly follow these translation guidelines:\n"
+                "1. DO NOT translate 'Transformer' as '변환기'. Translate it as '트랜스포머'.\n"
+                "2. Keep common AI/ML technical terms in English or use standard academic Korean (e.g., keep MLP, RAG, LLM, ICL, attention, contextual bandit in English or write them like '인컨텍스트 학습(ICL)', '어텐션 메커니즘').\n"
+                "3. Use a formal, concise academic tone appropriate for research reports (e.g., ending with nominalized phrases like '~을 해결함', '~을 규명함', '~을 제안함', or clear noun phrases like '~ 최적화', '~ 설계'). Avoid awkward machine-translated passive verbs.\n"
+                "4. Ensure paper titles are translated in a way that sounds natural to Korean researchers while preserving key technical terms.\n\n"
                 "Response must be structured in the requested format."
             )),
             ("user", "{matrix_json}")
@@ -510,6 +514,7 @@ class ResearchGapService:
                 message="요청하신 태스크 ID 목록에 대한 삭제 권한이 없거나 태스크가 존재하지 않습니다."
             )
         return deleted_count
+# Hot reload trigger test comment
 
 
 ResearchGapServiceDep = Annotated[ResearchGapService, Depends(ResearchGapService)]

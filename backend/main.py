@@ -41,6 +41,31 @@ class NoCacheStaticFiles(StaticFiles):
 async def lifespan(app: FastAPI):
     logging.getLogger("uvicorn").info("Application Starting Up...")
     
+    # Uvicorn 핫리로드 시 SSE 커넥션 교착(hang) 방지를 위한 시그널 핸들러 체이닝
+    import signal
+    from api.v1.notification.notifier import notification_broadcaster
+    
+    original_sigint = signal.getsignal(signal.SIGINT)
+    original_sigterm = signal.getsignal(signal.SIGTERM)
+    
+    def custom_signal_handler(signum, frame):
+        logging.getLogger("uvicorn").info(f"Signal {signum} caught. Closing notification broadcaster immediately...")
+        try:
+            notification_broadcaster.close()
+        except Exception:
+            pass
+        if signum == signal.SIGINT and callable(original_sigint):
+            original_sigint(signum, frame)
+        elif signum == signal.SIGTERM and callable(original_sigterm):
+            original_sigterm(signum, frame)
+            
+    try:
+        signal.signal(signal.SIGINT, custom_signal_handler)
+        signal.signal(signal.SIGTERM, custom_signal_handler)
+    except ValueError:
+        # 메인 스레드가 아닐 경우 대비
+        pass
+    
     # 데이터베이스 테이블 자동 생성
     from api.database.config.entity_base import Base
     from api.database.config.dbsession import engine
