@@ -100,7 +100,11 @@ async def chat_with_gem(
         message=request.message,
     )
     return GemChatResponseWrapper(
-        data=GemChatResponse(answer=result["answer"], sources=result["sources"])
+        data=GemChatResponse(
+            answer=result["answer"],
+            papers=result.get("papers", []),
+            sources=result.get("sources", []),
+        )
     )
 
 

@@ -46,7 +46,8 @@ class GemChatRequest(BaseDTO):
 class GemChatResponse(BaseDTO):
     """Gem 대화 응답 스키마."""
     answer: str
-    sources: list[dict]
+    papers: list[dict] = []   # LLM이 정리한 근거 논문 (arxiv_id, title, summary)
+    sources: list[dict] = []  # RAG 툴이 검색한 원본 출처
 
 
 class GemChatResponseWrapper(SuccessResponse):

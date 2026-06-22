@@ -671,7 +671,6 @@
 }
 
 .gem-msg-bubble {
-  max-width: 72%;
   padding: 0.7rem 1rem;
   border-radius: 16px;
   font-size: 0.9rem;
@@ -680,17 +679,25 @@
   word-break: break-word;
 }
 
+/* 유저 버블은 직접 max-width 적용 */
 .gem-msg-user .gem-msg-bubble {
+  max-width: 72%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
+/* assistant는 bubble-wrap이 너비를 담당 */
 .gem-msg-assistant .gem-msg-bubble {
   background: var(--card-bg, #fff);
   border: 1px solid var(--card-border, #e5e7eb);
   color: var(--foreground);
   border-bottom-left-radius: 4px;
+}
+
+/* bubble-wrap이 없는 경우(타이핑 등) 직접 max-width */
+.gem-msg-assistant > .gem-msg-bubble {
+  max-width: 72%;
 }
 
 /* 타이핑 애니메이션 */
@@ -1104,4 +1111,347 @@
   .gem-editor-right {
     padding: 1.25rem 1rem;
   }
+}
+
+/* =============================================================================
+   Gem Chat — 파일 업로드, 논문 패널, 저장 버튼
+   ============================================================================= */
+
+/* File upload */
+.gem-editor-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.gem-editor-file-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--card-bg, #f9fafb);
+  border: 1px solid var(--card-border, #e5e7eb);
+  border-radius: 8px;
+}
+
+.gem-editor-file-icon {
+  color: #6b7280;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.gem-editor-file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gem-editor-file-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gem-editor-file-size {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+.gem-editor-file-remove {
+  background: none;
+  border: none;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+  color: #9ca3af;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.gem-editor-file-remove:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.gem-editor-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 1.2rem 1rem;
+  border: 2px dashed var(--card-border, #e5e7eb);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: transparent;
+}
+
+.gem-editor-dropzone:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+}
+
+.gem-editor-dropzone-icon {
+  font-size: 1.5rem;
+  color: #9ca3af;
+}
+
+.gem-editor-dropzone:hover .gem-editor-dropzone-icon {
+  color: #6366f1;
+}
+
+.gem-editor-dropzone-text {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.gem-editor-dropzone-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.gem-editor-preview-files {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+/* Save button row */
+.gem-editor-save-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.gem-editor-save-btn-bottom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 2.2rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+.gem-editor-save-btn-bottom:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.gem-editor-save-btn-bottom:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* =============================================================================
+   Gem Chat — 논문 버튼 + 메시지 버블 래퍼
+   ============================================================================= */
+
+.gem-msg-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  max-width: 75%;
+}
+
+.gem-msg-papers-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6366f1;
+  background: #ede9fe;
+  border: 1px solid #c4b5fd;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.gem-msg-papers-btn:hover {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+/* =============================================================================
+   Gem Chat — 논문 패널
+   ============================================================================= */
+
+.gem-paper-panel {
+  flex-shrink: 0;
+  width: 0;
+  overflow: hidden;
+  background: var(--sidebar-bg, #f9fafb);
+  border-left: 1px solid transparent;
+  will-change: width;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gem-paper-panel-open {
+  width: 320px;
+  border-left-color: var(--card-border, #e5e7eb);
+}
+
+.gem-paper-panel-inner {
+  width: 320px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gem-paper-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--card-border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.gem-paper-panel-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--foreground, #111827);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gem-paper-panel-count {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #6366f1;
+  background: #ede9fe;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.gem-paper-panel-close {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: background 0.1s, color 0.1s;
+}
+
+.gem-paper-panel-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.gem-paper-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gem-paper-panel-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.gem-paper-panel-empty i {
+  font-size: 1.6rem;
+  opacity: 0.5;
+}
+
+.gem-paper-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--card-border, #e5e7eb);
+  text-decoration: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.gem-paper-card:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+}
+
+.gem-paper-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gem-paper-card-icon {
+  font-size: 0.82rem;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.gem-paper-card-title {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--foreground, #111827);
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.gem-paper-card-link {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.gem-paper-card-arxiv {
+  font-family: monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #6366f1;
+  letter-spacing: 0.02em;
+}
+
+.gem-paper-card-summary {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #6b7280;
 }
