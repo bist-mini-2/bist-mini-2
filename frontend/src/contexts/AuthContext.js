@@ -58,6 +58,8 @@ export function AuthContextProvider({ children }) {
 
   // 인증 상태 변화 시 로컬 스토리지 동기화
   useEffect(() => {
+    if (isLoading) return; // 최초 로드/인증 검증 중에는 동기화하지 않음
+    
     if (user !== "") {
       localStorage.setItem("user", user);
       localStorage.setItem("accessToken", accessToken);
@@ -65,7 +67,7 @@ export function AuthContextProvider({ children }) {
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
     }
-  }, [user, accessToken]);
+  }, [user, accessToken, isLoading]);
 
   // Response Interceptor: 401 Unauthorized 에러 발생 시 세션 만료 및 강제 로그아웃
   useEffect(() => {

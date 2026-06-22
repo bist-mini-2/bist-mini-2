@@ -51,6 +51,23 @@
     *   [endpoints.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/api/v1/gems/endpoints.py) & [gem_agent.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/api/v1/gems/gem_agent.py)
     *   *내용*: 도메인 RAG 소스 및 시스템 프롬프트 바인딩 젬 생성, 1:1 대화 연동.
 
-### 🧪 2.3 단위 테스트 & CI 검증 레이어
-*   **단위 테스트 코드**: [test_cs.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_cs.py)
-    *   *내용*: RAG 유사도 검색 동작 검증 및 CI/CD 환경 무중단 검증을 위해 `get_embeddings`를 모킹 처리한 API 테스트 스위트.
+### 🧪 2.3 단위 테스트 & CI 검증 레이어 (Unit Testing & CI Verification Layer)
+
+본 프로젝트는 핵심 도메인 RAG 파이프라인부터 세션 관리, AI 에이전트, 백엔드 비즈니스 로직 및 사용자 권한 체계까지 안정적인 동작을 보장하기 위해 단위 테스트 스위트를 구축하였습니다. 모든 테스트는 `pytest` 및 `FastAPI TestClient`를 기반으로 모킹(Mocking) 처리되어 데이터베이스/외부 API 의존성이 분리된 상태로 신속하고 안전하게 수행됩니다.
+
+*   **CS 도메인 API 테스트**: [test_cs.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_cs.py)
+    *   *내용*: CS 도메인 RAG 유사도 검색 동작 검증 및 `get_embeddings` 모킹을 통한 API 호출 정합성 검증.
+*   **일반 챗 API 테스트**: [test_chat.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_chat.py)
+    *   *내용*: 일반 챗 세션 CRUD, 세션 타이틀 생성, 그리고 LangGraph 기반 응답 스트리밍 기능 검증.
+*   **Gem 팩토리 API 테스트**: [test_gems.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_gems.py)
+    *   *내용*: 맞춤형 연구 비서 Gem의 생성, 목록 조회, 정보 갱신, 삭제(CRUD) 및 젬 기반 1:1 대화 기능 검증.
+*   **회원 및 인증 API 테스트**: [test_member.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_member.py)
+    *   *내용*: 회원가입, 정보 수정, 탈퇴 로직 및 JWT 토큰을 기반으로 한 일반 사용자/어드민 권한 부여(ROLE_ADMIN, ROLE_USER) 흐름 검증.
+*   **Research Gap 분석 API 테스트**: [test_research_gap.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_research_gap.py)
+    *   *내용*: 비동기 연구 격차 분석 작업 생성, 비동기 상태 조회, 그리고 백라운드 태스크 연동 흐름 검증.
+*   **실시간 알림 API 테스트**: [test_notification.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_notification.py)
+    *   *내용*: 사용자 알림 조회, 읽음 처리, 일괄 삭제 및 SSE(Server-Sent Events) 스트리밍 채널 연동 확인.
+*   **RAG 코사인 유사도 검색 테스트**: [test_similarity_search.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_similarity_search.py)
+    *   *내용*: 3대 도메인(CS, Bio, Astronomy) 코사인 유사도 기반 문서 검색 API 입출력 및 가용성 검증.
+*   **서버 헬스체크 테스트**: [test_health.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_health.py)
+    *   *내용*: 백엔드 API 서비스 정상 활성화 여부 확인을 위한 기본 헬스체크 엔드포인트 검증.

@@ -3,7 +3,7 @@
 import { useContext } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeContext } from "@/contexts/ThemeContext";
-import NotificationCenter from "./notification/NotificationCenter";
+import NotificationCenter from "../notification/NotificationCenter";
 import styles from "./Topbar.module.css";
 
 /**

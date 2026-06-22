@@ -1,7 +1,7 @@
 "use client"
 
 import styles from "./ControlPanel.module.css";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge from "@/components/status-badge/StatusBadge";
 
 /**
  * 대규모 문헌 비교 분석기의 제어판 서브 컴포넌트입니다.

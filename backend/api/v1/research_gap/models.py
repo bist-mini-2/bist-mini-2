@@ -60,8 +60,16 @@ class PaperAnalysisResult(BaseDTO):
     """개별 논문 분석 결과를 나타내는 Pydantic Structured Output용 DTO 스키마입니다."""
     title: str = Field(..., description="논문 제목")
     arxiv_id: str = Field(..., description="ArXiv 논문 고유 ID")
-    problems_solved: List[str] = Field(..., description="논문에서 해결한 주요 문제 및 제안한 핵심 방법론 목록")
-    limitations: List[str] = Field(..., description="논문에서 언급되었거나 식별된 한계점 및 향후 과제 목록")
+    problems_solved: List[str] = Field(
+        ...,
+        max_length=2,
+        description="논문에서 해결한 주요 문제 및 제안한 핵심 방법론 목록 (최대 2개)"
+    )
+    limitations: List[str] = Field(
+        ...,
+        max_length=2,
+        description="논문에서 언급되었거나 식별된 한계점 및 향후 과제 목록 (최대 2개)"
+    )
     similarity: Optional[float] = Field(None, description="유사도 스코어")
 
 

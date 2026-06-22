@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/sidebar/Sidebar";
-import Topbar from "@/components/Topbar";
+import Topbar from "@/components/topbar/Topbar";
 import styles from "./AppLayoutWrapper.module.css";
 
 /**
