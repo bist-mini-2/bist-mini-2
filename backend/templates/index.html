@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
     <!-- Mermaid Diagram rendering -->
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js"></script>
     
     <style>
         :root {
@@ -1138,6 +1138,9 @@
             // Show welcome gateway
             document.getElementById('welcome-gateway').style.display = 'block';
             
+            // Reset scroll position to top
+            window.scrollTo(0, 0);
+            
             // Clean up URL hash
             if (history.pushState) {
                 history.pushState(null, null, ' ');
@@ -1147,6 +1150,9 @@
         }
 
         function switchTab(tabId) {
+            // Reset scroll position to top
+            window.scrollTo(0, 0);
+
             // Hide welcome gateway
             document.getElementById('welcome-gateway').style.display = 'none';
 
@@ -1170,27 +1176,23 @@
 
             // Initialize/Center Mermaid when switching to ERD tab
             if (tabId === 'db-erd') {
-                if (!window.mermaidRendered) {
-                    window.mermaidRendered = true;
-                    // Trigger manual run on the pre element
-                    mermaid.run({
-                        nodes: [document.getElementById('erd-mermaid')]
-                    }).then(() => {
-                        initErdPanZoom();
-                        // Allow element display rendering bounds calculation (150ms delay)
-                        setTimeout(() => {
-                            centerErd();
-                        }, 150);
-                    }).catch(err => {
-                        console.error("Mermaid render error:", err);
-                        window.mermaidRendered = false; // allow retry on fail
-                    });
-                } else {
-                    initErdPanZoom();
+                setTimeout(() => {
+                    if (!window.mermaidRendered) {
+                        window.mermaidRendered = true;
+                        try {
+                            // v9 API call to initialize all .mermaid pre blocks in the active DOM
+                            mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+                        } catch(err) {
+                            console.error("Mermaid init error:", err);
+                            window.mermaidRendered = false;
+                        }
+                    }
+                    // Allow one frame for the rendered SVG to register dimensions
                     setTimeout(() => {
+                        initErdPanZoom();
                         centerErd();
-                    }, 150);
-                }
+                    }, 100);
+                }, 100);
             }
         }
 
@@ -1472,7 +1474,7 @@
             renderConfigList(configFields);
             renderTimeline(gitChangelog);
 
-            // Initialize Mermaid manually
+            // Initialize Mermaid manually (StartOnLoad set to false for explicit render calls)
             mermaid.initialize({
                 startOnLoad: false,
                 theme: 'dark',
