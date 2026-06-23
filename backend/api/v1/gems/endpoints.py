@@ -16,7 +16,7 @@ from api.v1.gems.services import GemServiceDep
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/gems", tags=["gems"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(prefix="/gems", tags=["연구 스페이스 (Gems)"], dependencies=[Depends(verify_access_token)])
 
 
 def _to_gem_response(gem_entity) -> GemResponse:
@@ -30,7 +30,7 @@ def _to_gem_response(gem_entity) -> GemResponse:
     )
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, summary="커스텀 연구 에이전트(Gem) 생성 API")
 async def create_gem(
     user: LoginCheckDep,
     request: GemCreateRequest,
@@ -55,7 +55,7 @@ async def create_gem(
     return GemResponseWrapper(data=_to_gem_response(gem_entity))
 
 
-@router.get("")
+@router.get("", summary="사용자 소유 커스텀 에이전트(Gem) 목록 조회 API")
 async def list_gems(
     user: LoginCheckDep,
     service: GemServiceDep,
@@ -73,7 +73,7 @@ async def list_gems(
     return GemListResponseWrapper(data=[_to_gem_response(g) for g in gems])
 
 
-@router.put("/{gem_id}")
+@router.put("/{gem_id}", summary="커스텀 에이전트(Gem) 정보 수정 API")
 async def update_gem(
     user: LoginCheckDep,
     gem_id: str,
@@ -101,7 +101,7 @@ async def update_gem(
     return GemResponseWrapper(data=_to_gem_response(gem_entity))
 
 
-@router.delete("/{gem_id}")
+@router.delete("/{gem_id}", summary="커스텀 에이전트(Gem) 영구 삭제 API")
 async def delete_gem(
     user: LoginCheckDep,
     gem_id: str,
@@ -121,7 +121,7 @@ async def delete_gem(
     return SuccessResponse(data={"message": f"Deleted Gem ID: {gem_id}"})
 
 
-@router.post("/{gem_id}/chat")
+@router.post("/{gem_id}/chat", summary="커스텀 에이전트(Gem)와의 RAG 대화 수행 API")
 async def chat_with_gem(
     user: LoginCheckDep,
     gem_id: str,
@@ -154,7 +154,7 @@ async def chat_with_gem(
     )
 
 
-@router.get("/{gem_id}/chat/{thread_id}/messages")
+@router.get("/{gem_id}/chat/{thread_id}/messages", summary="커스텀 에이전트(Gem) 대화 히스토리 내역 조회 API")
 async def get_gem_messages(
     user: LoginCheckDep,
     gem_id: str,

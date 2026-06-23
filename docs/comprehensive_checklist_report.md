@@ -81,6 +81,18 @@
 - **일체화된 폰트**: 브라우저 기본 서체를 전면 제거하고 `'Outfit'`, `'Inter'`, `'Noto Sans KR'` 웹 폰트를 통합 바인딩하여 텍스트 가독성 극대화.
 - **아이콘 장식**: 기호 이모지를 제거하고 **Bootstrap Icons**(`bi-rocket-takeoff-fill`, `bi-book-half`, `bi-cpu-fill`)로 깔끔하고 통일감 있는 비주얼 계층 구축.
 
+### 나. Swagger / ReDoc API 문서 태그 한국어 통일
+- **기존 상태**: 영어 대/소문자 혼용 및 한글이 섞여 일관성이 결여되어 있던 Swagger 및 ReDoc 사이드바 태그 분류를 모두 깔끔한 한국어 명칭으로 통일 완료하였습니다.
+  - `system` / `시스템` ➔ **시스템 헬스체크**
+  - `Authentication` ➔ **사용자 인증**
+  - `Member` ➔ **회원 관리**
+  - `chat` ➔ **논문 대화 에이전트**
+  - `Research Gap Analyzer` ➔ **연구 공백 분석**
+  - `gems` ➔ **연구 스페이스 (Gems)**
+  - `알림` ➔ **실시간 알림**
+  - `Similarity Search` ➔ **논문 유사도 검색**
+  - `defense_arena` ➔ **모의 디펜스 아레나**
+
 ---
 
 ## 🧪 4. 테스트 자동화 검증 결과 (Unit Test Verification)

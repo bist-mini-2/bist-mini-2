@@ -15,7 +15,7 @@ from api.v1.member.models import (
 )
 
 log = logging.getLogger(__name__)
-router = APIRouter(prefix="/member", tags=["Member"])
+router = APIRouter(prefix="/member", tags=["회원 관리"])
 
 
 @router.post("/join", response_class=JSONResponse, response_model=SuccessResponse, status_code=status.HTTP_201_CREATED, summary="신규 회원 가입 API")

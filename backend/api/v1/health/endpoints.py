@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from api.common.config import settings
 from api.database.config.dto_base import SuccessResponse
 
-router = APIRouter(prefix="/system", tags=["시스템"])
+router = APIRouter(prefix="/system", tags=["시스템 헬스체크"])
 
 # Simple uptime counter reference
 START_TIME = time.time()

@@ -7,7 +7,7 @@ from api.database.config.dto_base import SuccessResponse
 from api.v1.auth.services import AuthServiceDep
 from api.v1.auth.models import TokenResponse, UserInfoResponse
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["사용자 인증"])
 
 
 @router.post("/login", response_model=TokenResponse, summary="OAuth2 로그인 및 토큰 발급 API")

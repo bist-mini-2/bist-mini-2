@@ -6,7 +6,7 @@ from api.common.auth import LoginCheckDep, verify_access_token
 from api.v1.notification.services import NotificationServiceDep
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/notification", tags=["알림"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(prefix="/notification", tags=["실시간 알림"], dependencies=[Depends(verify_access_token)])
 
 
 @router.get(

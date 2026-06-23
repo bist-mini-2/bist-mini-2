@@ -7,7 +7,7 @@ from api.v1.research_gap.models import AnalyzeRequest, BulkDeleteRequest
 from api.v1.research_gap.services import ResearchGapServiceDep
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/research-gap", tags=["Research Gap Analyzer"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(prefix="/research-gap", tags=["연구 공백 분석"], dependencies=[Depends(verify_access_token)])
 
 
 @router.post(

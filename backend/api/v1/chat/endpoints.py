@@ -19,10 +19,10 @@ from api.v1.chat.services import ChatServiceDep
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/chat", tags=["chat"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(prefix="/chat", tags=["논문 대화 에이전트"], dependencies=[Depends(verify_access_token)])
 
 
-@router.post("/sessions")
+@router.post("/sessions", summary="신규 대화 세션 생성 API")
 async def create_session(
     user: LoginCheckDep,
     request: ChatSessionCreateRequest,
@@ -44,7 +44,7 @@ async def create_session(
     )
 
 
-@router.get("/sessions")
+@router.get("/sessions", summary="사용자 소유 대화 세션 목록 조회 API")
 async def list_sessions(
     user: LoginCheckDep,
     service: ChatServiceDep,
@@ -64,7 +64,7 @@ async def list_sessions(
     )
 
 
-@router.delete("/sessions/{session_id}")
+@router.delete("/sessions/{session_id}", summary="대화 세션 영구 삭제 API")
 async def delete_session(
     user: LoginCheckDep,
     session_id: str,
@@ -85,7 +85,7 @@ async def delete_session(
         data={"message": f"삭제된 채팅방 ID: {session_id}"}
     )
 
-@router.patch("/sessions/{session_id}")
+@router.patch("/sessions/{session_id}", summary="대화 세션 제목 수정 API")
 async def rename_session(
     user: LoginCheckDep,
     session_id: str,
@@ -109,7 +109,7 @@ async def rename_session(
     )
 
 
-@router.post("/sessions/{session_id}/messages")
+@router.post("/sessions/{session_id}/messages", summary="일반 대화 메시지 전송 및 답변 생성 API")
 async def send_message(
     user: LoginCheckDep,
     session_id: str,
@@ -133,7 +133,7 @@ async def send_message(
     )
 
 
-@router.post("/sessions/{session_id}/messages/stream")
+@router.post("/sessions/{session_id}/messages/stream", summary="실시간 스트리밍 대화 메시지 전송 API")
 async def send_message_stream(
     user: LoginCheckDep,
     session_id: str,
@@ -157,7 +157,7 @@ async def send_message_stream(
     )
 
 
-@router.get("/sessions/{session_id}/messages")
+@router.get("/sessions/{session_id}/messages", summary="대화 세션 내 모든 메시지 내역 조회 API")
 async def get_messages(
     user: LoginCheckDep,
     session_id: str,
@@ -179,7 +179,7 @@ async def get_messages(
     )
 
 
-@router.post("/sessions/{session_id}/generate-title")
+@router.post("/sessions/{session_id}/generate-title", summary="대화 맥락 기반 세션 타이틀 요약 생성 API")
 async def generate_title(
     user: LoginCheckDep,
     session_id: str,

@@ -15,10 +15,10 @@ from api.v1.defense_arena.services import DefenseArenaService, DefenseArenaServi
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/defense-arena", tags=["defense_arena"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(prefix="/defense-arena", tags=["모의 디펜스 아레나"], dependencies=[Depends(verify_access_token)])
 
 
-@router.post("/upload-isolated", status_code=201)
+@router.post("/upload-isolated", status_code=201, summary="보안 격리 구역 PDF 업로드 및 청킹 API")
 async def upload_isolated_pdf(
     user: LoginCheckDep,
     service: DefenseArenaServiceDep,
@@ -42,7 +42,7 @@ async def upload_isolated_pdf(
     ))
 
 
-@router.post("/peer-review")
+@router.post("/peer-review", summary="종합 학술 피어리뷰 보고서 생성 API")
 async def run_academic_peer_review(
     user: LoginCheckDep,
     service: DefenseArenaServiceDep,
@@ -64,7 +64,7 @@ async def run_academic_peer_review(
     return SuccessResponse(data=report)
 
 
-@router.post("/verify-hypothesis")
+@router.post("/verify-hypothesis", summary="학술 가설 다수결/자가일관성 검증 API")
 async def verify_hypothesis(
     user: LoginCheckDep,
     service: DefenseArenaServiceDep,
@@ -86,7 +86,7 @@ async def verify_hypothesis(
     return SuccessResponse(data=result)
 
 
-@router.post("/defense/chat")
+@router.post("/defense/chat", summary="모의 디펜스 심사위원 반론 및 질의응답 API")
 async def defense_chat_arena(
     user: LoginCheckDep,
     service: DefenseArenaServiceDep,

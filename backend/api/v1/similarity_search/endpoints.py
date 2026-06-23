@@ -14,7 +14,7 @@ from api.v1.similarity_search.models import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/similarity-search", tags=["Similarity Search"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(prefix="/similarity-search", tags=["논문 유사도 검색"], dependencies=[Depends(verify_access_token)])
 
 
 @router.post(
