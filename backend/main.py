@@ -135,10 +135,21 @@ async def lifespan(app: FastAPI):
         logging.getLogger("uvicorn").error(f"Error closing notification broadcaster: {e}")
     await engine.dispose()
     
-    # 미종료된 asyncio 백그라운드 태스크들을 강제 취소하여 uvicorn 리로드 대기 현상을 완전히 방지
+    # 미종료된 asyncio 백그라운드 태스크들을 강제 취소하여 uvicorn 리로드 대기 현상을 완전히 방지 (uvicorn 핵심 태스크는 제외)
     try:
         current_task = asyncio.current_task()
-        pending_tasks = [t for t in asyncio.all_tasks() if t is not current_task and t is not cleanup_task]
+        pending_tasks = []
+        for t in asyncio.all_tasks():
+            if t is current_task or t is cleanup_task:
+                continue
+            # 코루틴 이름을 검사하여 uvicorn/starlette 메인 태스크는 제외
+            coro_name = ""
+            if hasattr(t, "get_coro") and t.get_coro():
+                coro_name = getattr(t.get_coro(), "__name__", "")
+            if any(name in coro_name for name in ("serve", "Lifespan", "main_loop")):
+                continue
+            pending_tasks.append(t)
+            
         if pending_tasks:
             logging.getLogger("uvicorn").info(f"Cancelling {len(pending_tasks)} pending background tasks...")
             for task in pending_tasks:
