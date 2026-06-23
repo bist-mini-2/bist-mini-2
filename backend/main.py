@@ -91,9 +91,24 @@ async def lifespan(app: FastAPI):
 
     # 30분 미활동 보안 세션 소거 백그라운드 데몬 기동
     async def cleanup_daemon():
+        from sqlalchemy import text
         while True:
             try:
                 await asyncio.sleep(60) # 1분마다 주기적 스캔
+                
+                # 가벼운 DB 생존 여부 체크
+                db_alive = False
+                try:
+                    async with engine.connect() as conn:
+                        await conn.execute(text("SELECT 1"))
+                        db_alive = True
+                except Exception:
+                    pass
+
+                if not db_alive:
+                    logging.getLogger("uvicorn").warning("Database offline. Skipping cleanup daemon routine.")
+                    continue
+
                 from api.v1.defense_arena.services import DefenseArenaService
                 from api.v1.defense_arena.dao import DefenseArenaDao
                 from api.database.config.dbsession import session_maker
@@ -130,8 +145,8 @@ async def lifespan(app: FastAPI):
                 task.cancel()
             # CancelledError가 전파될 때까지 대기
             await asyncio.gather(*pending_tasks, return_exceptions=True)
-    except Exception as e:
-        logging.getLogger("uvicorn").error(f"Error cancelling pending tasks: {e}")
+    except BaseException as e:
+        logging.getLogger("uvicorn").info(f"Background tasks cleanup finished/cancelled: {type(e).__name__}")
 
 # ============================================
 # FastAPI Application Initialization
