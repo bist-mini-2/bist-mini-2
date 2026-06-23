@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useContext } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./page.module.css";
@@ -10,6 +9,8 @@ import { AuthContext } from "@/contexts/AuthContext";
 import StatusBadge from "@/components/status-badge/StatusBadge";
 import LoadingSpinner from "@/components/loading-spinner/LoadingSpinner";
 import TutorialTour from "@/components/feature2/tutorial/TutorialTour";
+import HistoryTable from "@/components/feature2/HistoryTable";
+import DeleteConfirmModal from "@/components/feature2/DeleteConfirmModal";
 
 /**
  * 대규모 문헌 비교 분석기 작업 이력 페이지입니다.
@@ -311,76 +312,17 @@ export default function ResearchGapHistoryPage() {
 
       {/* Task List Grid/Table */}
       {displayTasks.length > 0 ? (
-        <div className="card shadow-sm border border-light-subtle rounded-3 overflow-hidden">
-          <div className="table-responsive">
-            <table className={`table table-hover align-middle mb-0 ${styles.historyTable} tutorial-history-table`}>
-              <thead className={`text-secondary ${styles.tableHeader}`}>
-                <tr>
-                  <th className={`${styles.colCheck} ${isEditMode ? styles.colCheckActive : ""}`}>
-                    <div className={styles.checkboxWrapper}>
-                      <input
-                        type="checkbox"
-                        className={`${styles.customCheckbox} cursor-pointer`}
-                        onChange={handleSelectAllChange}
-                        checked={displayTasks.length > 0 && selectedTaskIds.length === displayTasks.length}
-                      />
-                    </div>
-                  </th>
-                  <th className={`px-4 py-3 ${styles.colDomain}`}>학술 도메인</th>
-                  <th className={`py-3 ${styles.colQuery}`}>분석 대상 주제 / 키워드</th>
-                  <th className={`py-3 ${styles.colStatus}`}>상태</th>
-                  <th className={`py-3 ${styles.colTime}`}>요청 시간</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayTasks.map((task) => {
-                  const isSelected = selectedTaskIds.includes(task.task_id);
-                  const isDeleting = deletingIds.includes(task.task_id);
-                  return (
-                    <tr
-                      key={task.task_id}
-                      onClick={(e) => handleRowClick(task, e)}
-                      className={`${styles.tableRowClickable} ${isSelected ? styles.rowSelected : ""} ${isDeleting ? styles.tableRowDeleting : ""}`}
-                    >
-                      <td
-                        className={`${styles.colCheckCell} ${isEditMode ? styles.colCheckCellActive : ""}`}
-                      >
-                        <div className={styles.checkboxWrapper}>
-                          <input
-                            type="checkbox"
-                            className={`${styles.customCheckbox} cursor-pointer`}
-                            checked={isSelected}
-                            onChange={() => handleCheckboxChange(task.task_id)}
-                          />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`badge px-2.5 py-1.5 rounded-pill ${styles.domainBadge} ${task.domain === "cs" ? styles.domainCs : styles.domainBio}`}
-                        >
-                          {task.domain}
-                        </span>
-                      </td>
-                      <td className="py-3 fw-semibold">
-                        <div className={`text-truncate ${styles.queryText}`} title={task.query}>
-                          {task.query}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        {renderStatusBadge(task.status, task.progress)}
-                      </td>
-                      <td className="py-3 text-secondary small">
-                        <i className="bi bi-clock me-1.5"></i>{" "}
-                        {formatDate(task.created_at)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
+        <HistoryTable
+          displayTasks={displayTasks}
+          isEditMode={isEditMode}
+          selectedTaskIds={selectedTaskIds}
+          deletingIds={deletingIds}
+          handleSelectAllChange={handleSelectAllChange}
+          handleCheckboxChange={handleCheckboxChange}
+          handleRowClick={handleRowClick}
+          formatDate={formatDate}
+          renderStatusBadge={renderStatusBadge}
+        />
       ) : (
         <div className="card shadow-sm border border-light-subtle rounded-3 p-5 text-center text-muted">
           <div className="py-5">
@@ -395,40 +337,12 @@ export default function ResearchGapHistoryPage() {
       )}
 
       {/* 커스텀 삭제 확인 모달 (블러 및 중앙 정렬) */}
-      {showConfirmModal && mounted && createPortal(
-        <div className={styles.modalOverlay} onClick={() => setShowConfirmModal(false)}>
-          <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div className={styles.warningIconWrapper}>
-                <i className={`bi bi-exclamation-triangle-fill ${styles.warningIcon}`}></i>
-              </div>
-              <h5 className={styles.modalTitle}>분석 이력 삭제</h5>
-            </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalMainText}>
-                선택한 <strong>{selectedTaskIds.length}개</strong>의 분석 보고서 이력을 삭제하시겠습니까?
-              </p>
-              <p className={styles.modalSubText}>
-                이 작업은 되돌릴 수 없으며, 모든 관련 데이터가 물리적으로 완전히 소거됩니다.
-              </p>
-            </div>
-            <div className={styles.modalFooter}>
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className={`btn ${styles.modalBtn} ${styles.modalCancelBtn}`}
-              >
-                아니오
-              </button>
-              <button
-                onClick={handleBulkDeleteConfirm}
-                className={`btn ${styles.modalBtn} ${styles.modalConfirmBtn}`}
-              >
-                삭제하기
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
+      {showConfirmModal && mounted && (
+        <DeleteConfirmModal
+          selectedCount={selectedTaskIds.length}
+          onCancel={() => setShowConfirmModal(false)}
+          onConfirm={handleBulkDeleteConfirm}
+        />
       )}
     </div>
   );
