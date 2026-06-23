@@ -1170,13 +1170,27 @@
 
             // Initialize/Center Mermaid when switching to ERD tab
             if (tabId === 'db-erd') {
-                // Ensure initialization starts
-                initErdPanZoom();
-                
-                // Allow browser to calculate bounds post display:block (150ms delay)
-                setTimeout(() => {
-                    centerErd();
-                }, 150);
+                if (!window.mermaidRendered) {
+                    window.mermaidRendered = true;
+                    // Trigger manual run on the pre element
+                    mermaid.run({
+                        nodes: [document.getElementById('erd-mermaid')]
+                    }).then(() => {
+                        initErdPanZoom();
+                        // Allow element display rendering bounds calculation (150ms delay)
+                        setTimeout(() => {
+                            centerErd();
+                        }, 150);
+                    }).catch(err => {
+                        console.error("Mermaid render error:", err);
+                        window.mermaidRendered = false; // allow retry on fail
+                    });
+                } else {
+                    initErdPanZoom();
+                    setTimeout(() => {
+                        centerErd();
+                    }, 150);
+                }
             }
         }
 
@@ -1458,9 +1472,9 @@
             renderConfigList(configFields);
             renderTimeline(gitChangelog);
 
-            // Initialize Mermaid
+            // Initialize Mermaid manually
             mermaid.initialize({
-                startOnLoad: true,
+                startOnLoad: false,
                 theme: 'dark',
                 themeVariables: {
                     background: 'transparent',
