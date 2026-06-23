@@ -4,6 +4,7 @@ import os
 import shutil
 import uuid
 import logging
+import asyncio
 from datetime import datetime
 from typing import Annotated, List, Tuple, Optional
 from fastapi import Depends, UploadFile
@@ -66,26 +67,38 @@ class DefenseArenaService:
         os.makedirs(session_dir, exist_ok=True)
         file_path = os.path.join(session_dir, filename)
         
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        def save_file_sync():
+            """업로드된 임시 파일을 동기 방식으로 물리 저장합니다."""
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        await asyncio.to_thread(save_file_sync)
 
         # 2. PDF 파싱 및 텍스트 추출 (pypdf)
-        try:
+        def parse_pdf_sync() -> str:
+            """물리 저장된 PDF 파일에서 텍스트 내용을 동기 방식으로 추출합니다.
+
+            Returns:
+                str: 추출된 전체 텍스트 내용.
+            """
             reader = PdfReader(file_path)
             raw_text = ""
             for page in reader.pages:
                 text = page.extract_text()
                 if text:
                     raw_text += text + "\n"
+            return raw_text
+
+        try:
+            raw_text = await asyncio.to_thread(parse_pdf_sync)
         except Exception as e:
             self.logger.error(f"Failed to parse PDF file: {e}")
             # 업로드한 임시 폴더 삭제
-            shutil.rmtree(session_dir, ignore_errors=True)
+            await asyncio.to_thread(shutil.rmtree, session_dir, ignore_errors=True)
             from api.common.exceptions import BusinessException
             raise BusinessException(message=f"PDF 파일 파싱에 실패했습니다: {str(e)}", error_code="PDF_PARSING_FAILED")
 
         if not raw_text.strip():
-            shutil.rmtree(session_dir, ignore_errors=True)
+            await asyncio.to_thread(shutil.rmtree, session_dir, ignore_errors=True)
             from api.common.exceptions import BusinessException
             raise BusinessException(message="PDF 문서에서 텍스트를 추출할 수 없습니다. 스캔된 이미지 PDF이거나 비어있습니다.", error_code="EMPTY_PDF_CONTENT")
 
@@ -455,7 +468,7 @@ class DefenseArenaService:
             # OS Path Guard (디렉토리 트래버스 방지)
             if target_dir.startswith(real_upload_dir) and target_dir != real_upload_dir:
                 try:
-                    shutil.rmtree(target_dir, ignore_errors=True)
+                    await asyncio.to_thread(shutil.rmtree, target_dir, ignore_errors=True)
                 except Exception as ex:
                     self.logger.error(f"Failed to delete session directory {target_dir}: {ex}")
 
