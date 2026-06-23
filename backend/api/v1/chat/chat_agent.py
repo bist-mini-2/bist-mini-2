@@ -8,16 +8,19 @@ from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from langgraph.graph import add_messages
-from api.common.rag_pipeline import search_bio_papers, search_astronomy_papers, search_cs_papers
+from api.common.rag_pipeline import search_bio_papers, search_astronomy_papers, search_cs_papers, search_web
 from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
 from pydantic import BaseModel, Field
+
+
 
 class BioAgentState(TypedDict):
     messages: Annotated[list, add_messages]
     sources: list[dict]   # 검색된 논문 출처 누적
+    web_sources: list[dict]    # 웹 검색 출처 누적
+
 
 logger = logging.getLogger(__name__)
-
 
 
 class BioPaperRef(BaseModel):
@@ -29,8 +32,11 @@ class BioPaperRef(BaseModel):
 
 class BioAnswer(BaseModel):
     """생명공학 RAG 답변 구조."""
-    explanation: str = Field(description="질문에 대한 자연스러운 설명. 논문 나열이 아니라 질문에 직접 답하는 서술형 설명을 작성한다.")
-    papers: list[BioPaperRef] = Field(default_factory=list, description="답변 근거가 된 논문 목록")
+    explanation: str = Field(
+        description="질문에 대한 자연스러운 설명. 논문 나열이 아니라 질문에 직접 답하는 서술형 설명을 작성한다.")
+    papers: list[BioPaperRef] = Field(
+        default_factory=list, description="답변 근거가 된 논문 목록")
+
 
 class ChatAgent:
     """대화 히스토리 + 생명공학 논문 RAG를 통합한 에이전트.
@@ -79,6 +85,9 @@ class ChatAgent:
           논문 출처는 화면에 별도 카드로 표시되므로, 당신은 설명에만 집중합니다.
         - 검색 결과에 없는 내용은 지어내지 말고, 못 찾으면 "관련 논문을 찾지 못했습니다"라고 적습니다.
         - 항상 사용자가 질문한 언어로 답합니다.
+        - 위 논문 검색 도구로 관련 자료를 찾지 못하거나, 질문이 arXiv 논문(생명공학·천문학·CS)
+          범위 밖이면 search_web으로 웹에서 정보를 찾아 답하세요.
+          웹 정보를 사용한 경우, 그 사실이 드러나게 자연스럽게 서술합니다.
         """
         self._initialized = False
         self._init_lock = asyncio.Lock()
@@ -97,14 +106,17 @@ class ChatAgent:
             if chat_psycopg_pool.closed:
                 await chat_psycopg_pool.open()
             # checkpointer/agent는 running event loop 안에서 생성해야 한다.
-            self.checkpointer = AsyncPostgresSaver(cast(Any, chat_psycopg_pool))
+            self.checkpointer = AsyncPostgresSaver(
+                cast(Any, chat_psycopg_pool))
             # 시스템 프롬프트는 create_agent에 전달 — 영구 저장되는 대화 기록에 매 턴 중복 누적되지 않도록.
             self.agent = create_agent(
                 model=self.model,
-                tools=[search_bio_papers, search_astronomy_papers, search_cs_papers],
+                tools=[search_bio_papers, search_astronomy_papers,
+                       search_cs_papers, search_web],
                 system_prompt=self.system_prompt,
                 checkpointer=self.checkpointer,
-                state_schema=cast(Any, BioAgentState),   # 출처 추적 위해 bio의 state 패턴 활용
+                # 출처 추적 위해 bio의 state 패턴 활용
+                state_schema=cast(Any, BioAgentState),
                 response_format=BioAnswer
             )
 
@@ -139,10 +151,8 @@ class ChatAgent:
         assert self.agent is not None
         try:
             result = await self.agent.ainvoke(
-                {
-                    "messages": [{"role": "user", "content": message}],
-                    "sources": [],
-                },
+                {"messages": [{"role": "user", "content": message}],
+                    "sources": [], "web_sources": []},
                 {"configurable": {"thread_id": conversation_id}},
             )
             # 출처 중복 제거 (arxiv_id 기준, 순서 유지) — 실제 검색된 출처
@@ -169,7 +179,8 @@ class ChatAgent:
                 "sources": unique_sources,
             }
         except Exception as e:
-            self.logger.error(f"대화 처리 실패 (conversation_id={conversation_id}): {e}")
+            self.logger.error(
+                f"대화 처리 실패 (conversation_id={conversation_id}): {e}")
             return {
                 "answer": "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
                 "papers": [],
@@ -193,7 +204,8 @@ class ChatAgent:
         if not hasattr(self, "_stream_agent") or self._stream_agent is None:
             self._stream_agent = create_agent(
                 model=self.model,
-                tools=[search_bio_papers, search_astronomy_papers, search_cs_papers],
+                tools=[search_bio_papers, search_astronomy_papers,
+                       search_cs_papers, search_web],
                 system_prompt=self.stream_system_prompt,
                 checkpointer=self.checkpointer,
                 state_schema=cast(Any, BioAgentState),
@@ -202,7 +214,8 @@ class ChatAgent:
 
         assert self._stream_agent is not None
         async for stream_mode, chunk in self._stream_agent.astream(
-            {"messages": [{"role": "user", "content": message}], "sources": []},
+            {"messages": [{"role": "user", "content": message}],
+                "sources": [], "web_sources": []},
             {"configurable": {"thread_id": conversation_id}},
             stream_mode=cast(Any, ["messages"]),
         ):
@@ -238,6 +251,23 @@ class ChatAgent:
                 seen.add(s["arxiv_id"])
                 unique_sources.append(s)
         return unique_sources
+
+    async def get_latest_web_sources(self, conversation_id: str) -> list[dict]:
+        """스트리밍 종료 후 state에 누적된 웹 검색 출처를 중복 제거(url 기준)하여 반환한다."""
+        await self._initialize()
+        agent = getattr(self, "_stream_agent", None) or self.agent
+        assert agent is not None
+        state = await agent.aget_state(
+            {"configurable": {"thread_id": conversation_id}}
+        )
+        raw = state.values.get("web_sources", []) if state.values else []
+        seen = set()
+        unique = []
+        for s in raw:
+            if s["url"] not in seen:
+                seen.add(s["url"])
+                unique.append(s)
+        return unique
 
     async def get_history(self, conversation_id: str) -> list[dict]:
         """대화 스레드의 사용자/어시스턴트 메시지 내역을 순서대로 반환한다.
@@ -300,9 +330,8 @@ class ChatAgent:
             self.logger.error(f"제목 생성 실패: {e}")
             # 실패 시 질문 앞부분으로 폴백
             return question[:30]
-    
-    
-    
+
+
 # 싱글톤으로 관리 — _initialized 플래그와 풀 생명주기를 요청 간에 유지하기 위함.
 _chat_agent = ChatAgent()
 
