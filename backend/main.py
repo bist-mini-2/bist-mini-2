@@ -224,10 +224,12 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def home(request: Request):
     logging.getLogger(__name__).info("Root welcome portal page requested.")
+    from api.v1.health.endpoints import get_dashboard_context
+    context = await get_dashboard_context(request)
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"app_name": settings.APP_NAME}
+        context=context
     )
 
 # ============================================
