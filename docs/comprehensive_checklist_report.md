@@ -93,6 +93,15 @@
   - `Similarity Search` ➔ **논문 유사도 검색**
   - `defense_arena` ➔ **모의 디펜스 아레나**
 
+### 다. Swagger API 문서 예시 값 (Example Value) 완비
+- **기존 상태**: 일부 DTO 모델의 필드들에 예시 값(Example Value)이 정의되어 있지 않아 Swagger UI에서 `string`, `0` 등의 기본 플레이스홀더가 채워진 상태였습니다.
+- **개선 조치**: 전체 API 스펙의 가독성과 명세 완성도를 극대화하기 위해, 예시 값이 부족했던 아래의 모든 DTO 모델 내 개별 필드들에 `Field(..., examples=[...])` 지정을 통해 구체적이고 실질적인 예시 데이터를 적용 완료하였습니다.
+  - **대화 에이전트 (`chat`)**: `ChatSessionCreateRequest`, `ChatSessionUpdateRequest`, `ChatSessionResponse`, `ChatMessageRequest`, `ChatMessageResponse`, `ChatHistoryItem`
+  - **모의 디펜스 (`defense_arena`)**: `UploadResponse`, `AgentOpinion`, `PeerReviewReport`, `HypothesisRequest`, `HypothesisVoteItem`, `HypothesisVerificationResult`, `DefenseChatRequest`, `DefenseChatResponse`, `ScoreDTO`
+  - **Gems (`gems`)**: `GemCreateRequest`, `GemResponse`, `GemUpdateRequest`, `GemChatRequest`, `GemChatResponse`
+  - **알림 (`notification`)**: `NotificationDTO`, `NotificationListResponse`
+  - **사용자 인증/회원 및 연구공백**: 기존에 이미 정의되어 있던 예시 값들을 유지 및 보강하였습니다.
+
 ---
 
 ## 🧪 4. 테스트 자동화 검증 결과 (Unit Test Verification)
