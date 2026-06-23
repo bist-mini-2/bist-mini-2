@@ -1,7 +1,6 @@
 """사용자 정의 Gem 에이전트 생성, 수정 및 대화 처리를 담당하는 비즈니스 서비스 모듈입니다."""
 
 import logging
-import json
 import uuid
 from typing import Annotated
 from fastapi import Depends
