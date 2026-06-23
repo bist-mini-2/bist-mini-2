@@ -885,61 +885,6 @@
                     <div class="stat-value">{{ frontend_pages_count }}개</div>
                 </div>
             </div>
-
-            <!-- Integrated Dashboard Navigation Cards (Elevated original welcome style) -->
-            <h3 style="margin-top: 50px; margin-bottom: 25px; font-family: var(--font-outfit); font-size: 24px; font-weight: 800; letter-spacing: -0.6px; background: linear-gradient(135deg, #ffffff 0%, var(--sage-green) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">대화형 개발자 리소스 바로가기</h3>
-            
-            <div class="overview-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; width: 100%;">
-                
-                <!-- Swagger Docs card -->
-                <div class="stat-card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; background: rgba(12, 14, 12, 0.45);">
-                    <div>
-                        <div style="font-size: 30px; color: var(--sage-green); margin-bottom: 12px;"><i class="bi bi-rocket-takeoff-fill"></i></div>
-                        <h4 style="font-family: var(--font-outfit); font-size: 19px; font-weight: 700; margin: 0 0 10px 0;">Interactive OpenAPI</h4>
-                        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">Fully interactive Swagger UI documentation. Directly test endpoints, view request/response DTO schemas, and authorize endpoints.</p>
-                    </div>
-                    <a href="/docs" target="_blank" class="quick-link-btn" style="width: fit-content; margin-top: auto; padding: 12px 18px; font-size: 13px;">
-                        Open Swagger UI <i class="bi bi-arrow-right"></i>
-                    </a>
-                </div>
-
-                <!-- ReDoc Card -->
-                <div class="stat-card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; background: rgba(12, 14, 12, 0.45);">
-                    <div>
-                        <div style="font-size: 30px; color: var(--sage-green); margin-bottom: 12px;"><i class="bi bi-book-half"></i></div>
-                        <h4 style="font-family: var(--font-outfit); font-size: 19px; font-weight: 700; margin: 0 0 10px 0;">Structured ReDoc</h4>
-                        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">Clean, three-panel structured API documentation powered by ReDoc. Excellent for reading, sharing, and design planning.</p>
-                    </div>
-                    <a href="/redoc" target="_blank" class="quick-link-btn" style="width: fit-content; margin-top: auto; padding: 12px 18px; font-size: 13px;">
-                        Open ReDoc <i class="bi bi-arrow-right"></i>
-                    </a>
-                </div>
-
-                <!-- Database ERD Card -->
-                <div class="stat-card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; background: rgba(12, 14, 12, 0.45);">
-                    <div>
-                        <div style="font-size: 30px; color: var(--sage-green); margin-bottom: 12px;"><i class="bi bi-database-fill-gear"></i></div>
-                        <h4 style="font-family: var(--font-outfit); font-size: 19px; font-weight: 700; margin: 0 0 10px 0;">Database ERD</h4>
-                        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">Interactive, dynamic ERD rendering. Features Spacebar panning, mouse-wheel zooming, and real-time schema reflection.</p>
-                    </div>
-                    <button onclick="switchTab('db-erd')" class="quick-link-btn" style="width: fit-content; margin-top: auto; padding: 12px 18px; font-size: 13px; cursor: pointer; border: 1px solid var(--card-border); background: rgba(151,171,144,0.06);">
-                        View ERD Canvas <i class="bi bi-arrow-right"></i>
-                    </button>
-                </div>
-
-                <!-- API & Test Map Card -->
-                <div class="stat-card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; background: rgba(12, 14, 12, 0.45);">
-                    <div>
-                        <div style="font-size: 30px; color: var(--sage-green); margin-bottom: 12px;"><i class="bi bi-braces"></i></div>
-                        <h4 style="font-family: var(--font-outfit); font-size: 19px; font-weight: 700; margin: 0 0 10px 0;">API Coverage Map</h4>
-                        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">Track live API routing and verified test coverage. Matches endpoints to pytest test suites with immediate validation status.</p>
-                    </div>
-                    <button onclick="switchTab('api-map')" class="quick-link-btn" style="width: fit-content; margin-top: auto; padding: 12px 18px; font-size: 13px; cursor: pointer; border: 1px solid var(--card-border); background: rgba(151,171,144,0.06);">
-                        Audit API Routes <i class="bi bi-arrow-right"></i>
-                    </button>
-                </div>
-
-            </div>
         </div>
 
         <!-- 2. API Map Panel -->
