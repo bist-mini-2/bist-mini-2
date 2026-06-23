@@ -70,7 +70,7 @@ function ResearchGapPageContent() {
   };
 
   const hasResult = gapState.result || isTutorialActive;
-  const currentDisplayResult = isTutorialActive && !gapState.result ? mockResult : gapState.displayResult;
+  const currentDisplayResult = isTutorialActive ? mockResult : gapState.displayResult;
 
   const tutorialSteps = [
     {
@@ -183,45 +183,45 @@ function ResearchGapPageContent() {
     link.click();
     document.body.removeChild(link);
   };
-
+ 
   // 2. PDF / Print Handler
   const handlePrintReport = () => {
     window.print();
   };
-
+ 
   // 3. Graph PNG Export trigger
   const handleExportGraphPng = () => {
     window.dispatchEvent(new CustomEvent("export-graph-png"));
   };
-
+ 
   // 4. Graph SVG Export trigger
   const handleExportGraphSvg = () => {
     window.dispatchEvent(new CustomEvent("export-graph-svg"));
   };
-
+ 
   return (
     <div className={styles.container}>
       {/* 튜토리얼 가이드 컴포넌트 마운트 */}
       <TutorialTour steps={tutorialSteps} matchPath="/feature2/analyze" />
-
+ 
       {/* ----------------- SCREEN ONLY VIEW (Hidden on PDF/Print) ----------------- */}
       <div className="d-print-none w-100">
         {/* Control Header & Task Submission Panel */}
         <div className="tutorial-control-panel">
           <ControlPanel
-            domain={gapState.domain}
+            domain={isTutorialActive ? "cs" : gapState.domain}
             setDomain={gapState.setDomain}
-            query={gapState.query}
+            query={isTutorialActive ? "Attention Mechanism in Transformer" : gapState.query}
             setQuery={gapState.setQuery}
-            loading={gapState.loading}
+            loading={isTutorialActive ? false : gapState.loading}
             onSubmit={gapState.handleAnalyze}
-            status={gapState.status}
-            progress={gapState.progress}
-            statusText={gapState.statusText}
-            taskId={gapState.taskId}
+            status={isTutorialActive ? "COMPLETED" : gapState.status}
+            progress={isTutorialActive ? 100 : gapState.progress}
+            statusText={isTutorialActive ? "분석 완료" : gapState.statusText}
+            taskId={isTutorialActive ? "tutorial-dummy-task" : gapState.taskId}
             error={gapState.error}
-            papersCount={gapState.result ? gapState.result.papers?.length : undefined}
-            isTranslated={gapState.isTranslated}
+            papersCount={isTutorialActive ? 1 : (gapState.result ? gapState.result.papers?.length : undefined)}
+            isTranslated={isTutorialActive ? false : gapState.isTranslated}
             onTranslateToggle={gapState.handleTranslateToggle}
             translateLoading={gapState.translateLoading}
           />
