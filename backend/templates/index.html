@@ -649,116 +649,51 @@
             line-height: 1.5;
         }
 
-        /* ERD Viewport and Panning/Zooming */
-        .erd-viewport {
+        /* ERD View Container */
+        .erd-container {
             width: 100%;
-            height: 720px;
-            border-radius: 24px;
+            overflow: auto;
+            background: #0f100f;
+            border-radius: 20px;
             border: 1px solid var(--card-border);
-            background-color: #0b0c0b;
-            background-image: radial-gradient(rgba(151, 171, 144, 0.08) 1.5px, transparent 1.5px);
-            background-size: 24px 24px;
-            overflow: hidden;
-            position: relative;
-            cursor: default;
-            user-select: none;
+            padding: 60px 40px 40px 40px;
             box-shadow: inset 0 0 45px rgba(0,0,0,0.85);
+            text-align: center;
+            min-height: 600px;
+            position: relative;
         }
-        
-        .erd-viewport.space-held {
-            cursor: grab;
-        }
-        
-        .erd-viewport.dragging {
-            cursor: grabbing;
-        }
-        
-        .erd-canvas {
-            transform-origin: 0 0;
-            position: absolute;
-            top: 0;
-            left: 0;
-            display: inline-block;
-            padding: 60px;
-        }
-        
-        .erd-canvas .mermaid {
+
+        .erd-container .mermaid {
             background: transparent !important;
-            margin: 0;
+            margin: 0 auto;
             padding: 0;
+            display: inline-block;
+            text-align: center;
         }
-        
-        .erd-canvas svg {
+
+        .erd-container svg {
             max-width: none !important;
-            max-height: none !important;
-            height: auto;
-            width: auto;
+            width: 1600px !important;
+            height: auto !important;
+            transition: width 0.15s ease;
         }
-        
-        /* Floating HUD controls */
-        .erd-overlay {
-            position: absolute;
-            top: 24px;
-            left: 24px;
-            z-index: 20;
-            display: flex;
-            gap: 12px;
-            pointer-events: none;
+
+        .erd-container.space-held {
+            cursor: grab !important;
         }
-        
-        .erd-overlay .badge {
-            background: rgba(16, 20, 16, 0.95);
-            border: 1px solid var(--card-border);
-            color: var(--text-primary);
-            padding: 10px 16px;
-            border-radius: 14px;
-            font-size: 13px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+
+        .erd-container.dragging {
+            cursor: grabbing !important;
         }
-        
-        .erd-overlay .badge i {
-            color: var(--sage-green);
+
+        .erd-container.space-held * {
+            cursor: grab !important;
+            user-select: none;
         }
-        
-        .erd-controls {
-            position: absolute;
-            bottom: 24px;
-            right: 24px;
-            z-index: 20;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .erd-controls .control-btn {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            border: 1px solid var(--card-border);
-            background: rgba(16, 20, 16, 0.95);
-            color: var(--text-primary);
-            font-size: 19px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-        }
-        
-        .erd-controls .control-btn:hover {
-            border-color: var(--sage-green);
-            color: var(--sage-green);
-            box-shadow: 0 0 15px var(--sage-glow);
-            transform: translateY(-3px);
+
+        .erd-container.dragging * {
+            cursor: grabbing !important;
+            user-select: none;
         }
 
         footer {
@@ -865,10 +800,10 @@
                     <div>
                         <div class="card-header-icon"><i class="bi bi-database-fill-gear"></i></div>
                         <h3 class="card-body-title">데이터베이스 ERD</h3>
-                        <p class="card-body-desc">SQLAlchemy ORM 메타데이터를 기반으로 실시간으로 빌드되는 데이터베이스 관계도입니다. Spacebar 드래그 및 휠 줌을 지원합니다.</p>
+                        <p class="card-body-desc">SQLAlchemy ORM 메타데이터를 기반으로 실시간으로 빌드되는 데이터베이스 관계도입니다. 라이브 테이블 구조와 외래 키 관계를 시각화하여 확인합니다.</p>
                     </div>
                     <div class="card-footer-btn">
-                        Open ERD Canvas <i class="bi bi-arrow-right"></i>
+                        Open ERD <i class="bi bi-arrow-right"></i>
                     </div>
                 </div>
 
@@ -1020,25 +955,30 @@
             <h2 class="panel-title">데이터베이스 ERD 시각화</h2>
             <p class="panel-description">SQLAlchemy ORM 메타데이터와 라이브 스키마 역공학을 통해 실시간 생성된 관계도입니다.</p>
             
-            <div class="erd-viewport" id="erd-viewport">
-                <!-- Helper overlay -->
-                <div class="erd-overlay">
-                    <span class="badge"><i class="bi bi-keyboard-fill"></i> Space + Left Drag : 이동</span>
-                    <span class="badge"><i class="bi bi-mouse3-fill"></i> 마우스 휠 : 확대 / 축소</span>
+            <div class="erd-container">
+                <!-- Floating Info helper -->
+                <div style="position: absolute; top: 20px; left: 20px; z-index: 10; display: flex; gap: 8px; pointer-events: none;">
+                    <span class="quick-action-btn" style="padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; background: rgba(16, 20, 16, 0.95); pointer-events: none;">
+                        <i class="bi bi-keyboard-fill" style="color: var(--sage-green);"></i> Space + Left Drag : 이동
+                    </span>
+                </div>
+
+                <!-- Floating Zoom Controls -->
+                <div style="position: absolute; top: 20px; right: 20px; z-index: 10; display: flex; gap: 8px;">
+                    <button onclick="zoomErd(200)" class="quick-action-btn" style="padding: 8px 14px; border-radius: 10px; cursor: pointer;" title="확대">
+                        <i class="bi bi-zoom-in"></i>
+                    </button>
+                    <button onclick="zoomErd(-200)" class="quick-action-btn" style="padding: 8px 14px; border-radius: 10px; cursor: pointer;" title="축소">
+                        <i class="bi bi-zoom-out"></i>
+                    </button>
+                    <button onclick="resetErdZoom()" class="quick-action-btn" style="padding: 8px 14px; border-radius: 10px; cursor: pointer;" title="기본 크기">
+                        100%
+                    </button>
                 </div>
                 
-                <!-- Control Buttons -->
-                <div class="erd-controls">
-                    <button class="control-btn" onclick="zoomIn()" title="확대"><i class="bi bi-zoom-in"></i></button>
-                    <button class="control-btn" onclick="zoomOut()" title="축소"><i class="bi bi-zoom-out"></i></button>
-                    <button class="control-btn" onclick="centerErd()" title="화면 맞춤"><i class="bi bi-arrows-angle-contract"></i></button>
-                </div>
-                
-                <div class="erd-canvas" id="erd-canvas">
-                    <pre class="mermaid" id="erd-mermaid">
+                <pre class="mermaid" id="erd-mermaid">
 {{ mermaid_code }}
-                    </pre>
-                </div>
+                </pre>
             </div>
         </div>
 
@@ -1174,7 +1114,7 @@
                 location.hash = '#' + tabId;
             }
 
-            // Initialize/Center Mermaid when switching to ERD tab
+            // Initialize Mermaid when switching to ERD tab
             if (tabId === 'db-erd') {
                 setTimeout(() => {
                     if (!window.mermaidRendered) {
@@ -1187,11 +1127,6 @@
                             window.mermaidRendered = false;
                         }
                     }
-                    // Allow one frame for the rendered SVG to register dimensions
-                    setTimeout(() => {
-                        initErdPanZoom();
-                        centerErd();
-                    }, 100);
                 }, 100);
             }
         }
@@ -1293,179 +1228,95 @@
             `).join('');
         }
 
-        // ERD Panning and Zooming Global States & Functions
-        let scale = 1.0;
-        let panX = 0;
-        let panY = 0;
+        // ERD Zoom/Pan functionality removed for native Mermaid scrollable view
+        let currentErdWidth = 1600;
+        window.zoomErd = function(amount) {
+            currentErdWidth = Math.max(1000, Math.min(3000, currentErdWidth + amount));
+            const svg = document.querySelector('.erd-container svg');
+            if (svg) {
+                svg.style.setProperty('width', currentErdWidth + 'px', 'important');
+            }
+        };
+        window.resetErdZoom = function() {
+            currentErdWidth = 1600;
+            const svg = document.querySelector('.erd-container svg');
+            if (svg) {
+                svg.style.setProperty('width', '1600px', 'important');
+            }
+        };
+
+        // ERD Spacebar grab & drag scroll panning implementation
+        let isSpacePressed = false;
         let isDragging = false;
         let startX = 0;
         let startY = 0;
-        let isSpacePressed = false;
+        let startScrollLeft = 0;
+        let startScrollTop = 0;
 
-        window.zoomIn = function() {
-            const viewport = document.getElementById('erd-viewport');
-            const vWidth = viewport.clientWidth;
-            const vHeight = viewport.clientHeight;
-            const centerX = vWidth / 2;
-            const centerY = vHeight / 2;
-
-            const canvasX = (centerX - panX) / scale;
-            const canvasY = (centerY - panY) / scale;
-
-            scale = Math.min(scale * 1.25, 5.0);
-            panX = centerX - canvasX * scale;
-            panY = centerY - canvasY * scale;
-            updateTransform();
-        };
-
-        window.zoomOut = function() {
-            const viewport = document.getElementById('erd-viewport');
-            const vWidth = viewport.clientWidth;
-            const vHeight = viewport.clientHeight;
-            const centerX = vWidth / 2;
-            const centerY = vHeight / 2;
-
-            const canvasX = (centerX - panX) / scale;
-            const canvasY = (centerY - panY) / scale;
-
-            scale = Math.max(scale / 1.25, 0.15);
-            panX = centerX - canvasX * scale;
-            panY = centerY - canvasY * scale;
-            updateTransform();
-        };
-
-        window.centerErd = function() {
-            const viewport = document.getElementById('erd-viewport');
-            const canvas = document.getElementById('erd-canvas');
-            const svg = canvas.querySelector('svg');
-            if (!svg) return;
-
-            // Reset transform to calculate bounds
-            canvas.style.transform = 'none';
-
-            const vWidth = viewport.clientWidth || 1000;
-            const vHeight = viewport.clientHeight || 720;
-
-            // Safe bounding box extraction with clientWidth fallback to handle hidden tags
-            let svgWidth = 800;
-            let svgHeight = 600;
-            
-            if (svg.getBBox) {
-                try {
-                    const bbox = svg.getBBox();
-                    if (bbox.width > 0 && bbox.height > 0) {
-                        svgWidth = bbox.width;
-                        svgHeight = bbox.height;
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                const dbPanel = document.getElementById('db-erd');
+                if (dbPanel && dbPanel.style.display === 'block') {
+                    // Ignore if typing in input/textarea
+                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                        return;
                     }
-                } catch(e) {
-                    // Fallback to clientWidth if getBBox errors out
+                    e.preventDefault();
+                    if (!isSpacePressed) {
+                        isSpacePressed = true;
+                        const container = document.querySelector('.erd-container');
+                        if (container) container.classList.add('space-held');
+                    }
                 }
             }
-            
-            if (svgWidth === 800 && svg.clientWidth > 0) {
-                svgWidth = svg.clientWidth;
-                svgHeight = svg.clientHeight || 600;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                isSpacePressed = false;
+                const container = document.querySelector('.erd-container');
+                if (container) {
+                    container.classList.remove('space-held');
+                    container.classList.remove('dragging');
+                }
+                isDragging = false;
             }
+        });
 
-            const padding = 80;
-            const scaleX = (vWidth - padding) / svgWidth;
-            const scaleY = (vHeight - padding) / svgHeight;
-            
-            scale = Math.min(scaleX, scaleY, 1.2);
-            scale = Math.max(scale, 0.25);
-
-            panX = (vWidth - svgWidth * scale) / 2;
-            panY = (vHeight - svgHeight * scale) / 2;
-
-            updateTransform();
-        };
-
-        function initErdPanZoom() {
-            if (window.erdPanZoomInitialized) return;
-            window.erdPanZoomInitialized = true;
-
-            const viewport = document.getElementById('erd-viewport');
-            const canvas = document.getElementById('erd-canvas');
-
-            window.updateTransform = function() {
-                canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
-            };
-
-            // Keyboard Spacebar track
-            window.addEventListener('keydown', (e) => {
-                if (e.code === 'Space') {
-                    const dbPanel = document.getElementById('db-erd');
-                    if (dbPanel && dbPanel.style.display === 'block') {
-                        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
-                            return;
-                        }
+        // Add mouse event listeners to the ERD container for drag-scroll
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.querySelector('.erd-container');
+            if (container) {
+                container.addEventListener('mousedown', (e) => {
+                    if (isSpacePressed) {
+                        isDragging = true;
+                        container.classList.add('dragging');
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        startScrollLeft = container.scrollLeft;
+                        startScrollTop = container.scrollTop;
                         e.preventDefault();
-                        if (!isSpacePressed) {
-                            isSpacePressed = true;
-                            viewport.classList.add('space-held');
-                        }
                     }
-                }
-            });
+                });
 
-            window.addEventListener('keyup', (e) => {
-                if (e.code === 'Space') {
-                    isSpacePressed = false;
-                    viewport.classList.remove('space-held');
+                container.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+                        container.scrollLeft = startScrollLeft - dx;
+                        container.scrollTop = startScrollTop - dy;
+                        e.preventDefault();
+                    }
+                });
+
+                window.addEventListener('mouseup', () => {
                     if (isDragging) {
                         isDragging = false;
-                        viewport.classList.remove('dragging');
+                        container.classList.remove('dragging');
                     }
-                }
-            });
-
-            // Dragging / Panning
-            viewport.addEventListener('mousedown', (e) => {
-                if (isSpacePressed || e.button === 1) {
-                    isDragging = true;
-                    viewport.classList.add('dragging');
-                    startX = e.clientX - panX;
-                    startY = e.clientY - panY;
-                    e.preventDefault();
-                }
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    panX = e.clientX - startX;
-                    panY = e.clientY - startY;
-                    updateTransform();
-                }
-            });
-
-            window.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    viewport.classList.remove('dragging');
-                }
-            });
-
-            // Zooming via Wheel
-            viewport.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const rect = viewport.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-
-                const canvasX = (mouseX - panX) / scale;
-                const canvasY = (mouseY - panY) / scale;
-
-                const zoomFactor = 1.08;
-                let newScale = e.deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
-                newScale = Math.max(0.15, Math.min(newScale, 5.0));
-
-                panX = mouseX - canvasX * newScale;
-                panY = mouseY - canvasY * newScale;
-                scale = newScale;
-
-                updateTransform();
-            }, { passive: false });
-        }
+                });
+            }
+        });
 
         // Initialization
         window.addEventListener('DOMContentLoaded', () => {
