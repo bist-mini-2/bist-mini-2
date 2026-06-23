@@ -812,7 +812,31 @@
             
             <!-- Gateway Cards Grid -->
             <div class="gateway-grid">
-                <!-- Card 1: Overview stats -->
+                <!-- Card 1: Interactive Swagger -->
+                <a href="/docs" target="_blank" class="gateway-card" style="text-decoration: none;">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-rocket-takeoff-fill"></i></div>
+                        <h3 class="card-body-title">Interactive Swagger</h3>
+                        <p class="card-body-desc">FastAPI 대화형 Swagger UI 명세서입니다. 브라우저에서 직접 엔드포인트를 호출하고 JWT 인증 테스트를 수행할 수 있습니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Swagger UI <i class="bi bi-arrow-up-right"></i>
+                    </div>
+                </a>
+
+                <!-- Card 2: Structured ReDoc -->
+                <a href="/redoc" target="_blank" class="gateway-card" style="text-decoration: none;">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-book-half"></i></div>
+                        <h3 class="card-body-title">Structured ReDoc</h3>
+                        <p class="card-body-desc">3단 레이아웃으로 정리된 ReDoc API 명세서입니다. 엔드포인트별 상세 DTO 스키마 및 가이드 문서를 깨끗하게 읽을 수 있습니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open ReDoc <i class="bi bi-arrow-up-right"></i>
+                    </div>
+                </a>
+
+                <!-- Card 3: Overview stats -->
                 <div class="gateway-card" onclick="switchTab('overview')">
                     <div>
                         <div class="card-header-icon"><i class="bi bi-speedometer2"></i></div>
