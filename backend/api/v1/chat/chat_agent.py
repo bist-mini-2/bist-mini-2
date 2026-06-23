@@ -14,7 +14,6 @@ from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
 from pydantic import BaseModel, Field
 
 
-
 class BioAgentState(TypedDict):
     """생명공학 에이전트의 대화 상태 및 검색된 출처 목록을 저장하는 상태 정의 딕셔너리입니다."""
     messages: Annotated[list, add_messages]
@@ -58,6 +57,11 @@ class ChatAgent:
         self.system_prompt = """
         당신은 생명공학·유전체학(q-bio.GN)과 천문학(astro-ph.EP) 논문을 다루는 연구 조력자입니다.
 
+        - 중요: 검색 도구에 전달하는 query는 반드시 영어로 작성하세요.
+            사용자가 한국어로 질문했더라도 핵심 개념을 영어 학술 용어로 번역해 검색합니다.
+            예) "소행성체 형성" → "planetesimal formation"
+                "외계행성 대기" → "exoplanet atmosphere"
+                "행성 이주" → "planetary migration"
         작업 방식:
         - 질문 주제를 파악해서 알맞은 검색 도구를 사용합니다.
           · 생명공학·유전체학(유전자, DNA, 시퀀싱 등) → search_bio_papers
@@ -78,7 +82,13 @@ class ChatAgent:
         # (참고 논문은 검색된 출처를 카드로 따로 보여줌)
         self.stream_system_prompt = """
         당신은 생명공학·유전체학(q-bio.GN), 천문학(astro-ph.EP), 컴퓨터과학(cs.NE) 논문을 다루는 연구 조력자입니다.
-
+        
+        - 중요: 검색 도구에 전달하는 query는 반드시 영어로 작성하세요.
+            사용자가 한국어로 질문했더라도 핵심 개념을 영어 학술 용어로 번역해 검색합니다.
+            예) "소행성체 형성" → "planetesimal formation"
+                "외계행성 대기" → "exoplanet atmosphere"
+                "행성 이주" → "planetary migration"
+        
         작업 방식:
         - 질문 주제를 파악해서 알맞은 검색 도구를 사용합니다.
           · 생명공학·유전체학 → search_bio_papers
@@ -213,7 +223,7 @@ class ChatAgent:
             self._stream_agent = create_agent(
                 model=self.model,
                 tools=[search_bio_papers, search_astronomy_papers,
-                       search_cs_papers, search_web],
+                       search_cs_papers, search_web, get_current_datetime],
                 system_prompt=self.stream_system_prompt,
                 checkpointer=self.checkpointer,
                 state_schema=cast(Any, BioAgentState),
@@ -221,6 +231,17 @@ class ChatAgent:
             )
 
         assert self._stream_agent is not None
+
+        # 도구 이름 → 프론트 상태값 매핑
+        TOOL_STATUS = {
+            "search_web": "web_search",
+            "search_bio_papers": "paper_search",
+            "search_astronomy_papers": "paper_search",
+            "search_cs_papers": "paper_search",
+            "get_current_datetime": "datetime",
+        }
+        announced_tools = set()   # 같은 도구 상태를 두 번 보내지 않도록
+
         async for stream_mode, chunk in self._stream_agent.astream(
             {"messages": [{"role": "user", "content": message}],
                 "sources": [], "web_sources": []},
@@ -228,15 +249,30 @@ class ChatAgent:
             stream_mode=cast(Any, ["messages"]),
         ):
             token, metadata = chunk
-            # 도구 노드에서 나온 토큰(검색 결과 등)은 답변이 아니므로 건너뛴다.
+
+            # 도구 호출 시작 감지 → 상태 이벤트 (도구 이름이 처음 등장할 때 1회)
+            names = []
+            for tc in (getattr(token, "tool_call_chunks", None) or []):
+                if tc.get("name"):
+                    names.append(tc["name"])
+            for tc in (getattr(token, "tool_calls", None) or []):
+                if tc.get("name"):
+                    names.append(tc["name"])
+            for name in names:
+                if name not in announced_tools:
+                    announced_tools.add(name)
+                    yield {"type": "status", "data": TOOL_STATUS.get(name, "tool")}
+
+            # 도구 노드 토큰(검색 결과)은 답변이 아니므로 건너뛴다.
             if isinstance(metadata, dict) and metadata.get("langgraph_node") == "tools":
                 continue
-            # 도구 호출(tool_calls)만 담은 AI 토큰도 답변 텍스트가 아니므로 건너뛴다.
+            # 도구 호출만 담은 AI 토큰도 답변 텍스트가 아니므로 건너뛴다.
             if getattr(token, "tool_calls", None):
                 continue
             content = getattr(token, "content", "")
-            if isinstance(content, str) and content:
-                yield content
+            if not content:
+                continue
+            yield {"type": "token", "data": content}
 
     async def get_latest_sources(self, conversation_id: str) -> list[dict]:
         """스트리밍 종료 후 state(checkpointer)에 누적된 검색 출처를 중복 제거하여 반환한다.

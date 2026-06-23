@@ -80,7 +80,7 @@ export async function getMessages(sessionId) {
  * @param {(token: string) => void} onToken 토큰이 도착할 때마다 호출되는 콜백
  * @returns {Promise<void>} 스트리밍이 끝나면 resolve됩니다.
  */
-export async function sendMessageStream(sessionId, message, onToken) {
+export async function sendMessageStream(sessionId, message, onToken, onStatus) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
   const res = await fetch(
@@ -98,12 +98,34 @@ export async function sendMessageStream(sessionId, message, onToken) {
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
+  let buffer = "";
+
+  // JSON 한 줄을 파싱해 타입별로 콜백 분기
+  const handleLine = (line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    let event;
+    try {
+      event = JSON.parse(trimmed);
+    } catch {
+      return; // 깨진 줄은 무시
+    }
+    if (event.type === "token") onToken?.(event.data);
+    else if (event.type === "status") onStatus?.(event.data);
+  };
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    if (chunk) onToken(chunk);
+    buffer += decoder.decode(value, { stream: true });
+    // 완성된 줄(개행 기준)만 처리하고, 나머지는 버퍼에 남긴다
+    let nl;
+    while ((nl = buffer.indexOf("\n")) >= 0) {
+      handleLine(buffer.slice(0, nl));
+      buffer = buffer.slice(nl + 1);
+    }
   }
+  handleLine(buffer); // 개행 없이 끝난 마지막 줄 처리
 }
 
 

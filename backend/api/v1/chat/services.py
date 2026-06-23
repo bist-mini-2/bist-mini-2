@@ -1,6 +1,7 @@
 """채팅 세션 관리 및 RAG 기반 AI 상담 비즈니스 로직을 처리하는 모듈입니다."""
 
 import logging
+import json
 import uuid
 from typing import Annotated, AsyncGenerator
 from fastapi import Depends
@@ -64,7 +65,7 @@ class ChatService:
             ChatSessionEntity: 검증 완료된 채팅 세션 엔티티 정보.
 
         Raises:
-            BusinessException: 채팅방이 존재하지 않거나 소유 권한이 없는 경우.
+            BusinessException: 채팅방이 존재하지 않거나 소유 권한F이 없는 경우.
         """
         chat_session_entity = await self.chat_session_dao.select_by_id(session_id)
         if not chat_session_entity:
@@ -153,9 +154,8 @@ class ChatService:
         """
         await self._get_owned_session(member_id, session_id)
 
-        async for token in self.chat_agent.run_stream(message, session_id):
-            if isinstance(token, str) and token:
-                yield token
+        async for event in self.chat_agent.run_stream(message, session_id):
+            yield json.dumps(event, ensure_ascii=False) + "\n"
 
         # 스트리밍 종료 후 출처 저장 (실패해도 대화에는 영향 없음)
         try:

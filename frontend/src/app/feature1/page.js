@@ -24,6 +24,7 @@ export default function Feature1Page() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [panelIndex, setPanelIndex] = useState(null); // 오른쪽 패널에 띄울 메시지 index (null이면 닫힘)
+  const [streamStatus, setStreamStatus] = useState(null); // 스트리밍 중 도구 상태: web_search|paper_search|datetime|null
 
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
@@ -94,6 +95,7 @@ export default function Feature1Page() {
     if (!text || sendingRef.current) return;
     sendingRef.current = true;
     setIsSending(true);
+    setStreamStatus(null); 
 
     let activeSessionId = sessionId;
     let isNewSession = false;   // ← 새 방인지 표시
@@ -131,7 +133,9 @@ export default function Feature1Page() {
           }
           return next;
         });
-      });
+      },
+      (status) => setStreamStatus(status),
+    );
 
       // 스트리밍이 끝나면 검색된 출처(sources)를 다시 불러와 마지막 답변에 붙인다.
       try {
@@ -166,6 +170,7 @@ export default function Feature1Page() {
     } finally {
       sendingRef.current = false;
       setIsSending(false);
+      setStreamStatus(null); 
     }
   };
 
@@ -269,7 +274,7 @@ export default function Feature1Page() {
             ))
           )}
 
-          {isWaitingFirstToken && <LoadingBubble />}
+          {isWaitingFirstToken && <LoadingBubble status={streamStatus}/>}
         </div>
 
         {inputArea}
@@ -365,7 +370,12 @@ function MessageBubble({ message, index, isActive, onTogglePanel }) {
 /**
  * 답변 생성 중 표시되는 로딩 말풍선. 클로버 펄스 인디케이터를 포함한다.
  */
-function LoadingBubble() {
+function LoadingBubble({ status }) {
+  const text =
+    status === "web_search" ? "웹 검색 중" :
+    status === "paper_search" ? "논문 검색 중" :
+    status === "datetime" ? "날짜 확인 중" :
+    "답변 생성 중";
   return (
     <div className={styles.messageRow}>
       <div className={styles.aiAvatar}>
@@ -375,7 +385,7 @@ function LoadingBubble() {
         <div className={styles.cloverLoader}>
           <CloverMark size={28} />
         </div>
-        <span className={styles.loadingText}>답변 생성 중</span>
+        <span className={styles.loadingText}>{text}</span>
       </div>
     </div>
   );
