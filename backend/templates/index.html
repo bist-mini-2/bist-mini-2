@@ -15,10 +15,10 @@
     
     <style>
         :root {
-            --bg-color: #0c0e0c;
-            --card-bg: rgba(20, 24, 20, 0.55);
-            --card-border: rgba(163, 178, 156, 0.08);
-            --card-border-hover: rgba(163, 178, 156, 0.25);
+            --bg-color: #0b0c0b;
+            --card-bg: rgba(18, 22, 18, 0.55);
+            --card-border: rgba(151, 171, 144, 0.08);
+            --card-border-hover: rgba(151, 171, 144, 0.25);
             --text-primary: #f2f5f2;
             --text-secondary: #8a9488;
             --sage-green: #97ab90;
@@ -42,16 +42,16 @@
         * {
             box-sizing: border-box;
             scrollbar-width: thin;
-            scrollbar-color: var(--sage-green) rgba(20, 24, 20, 0.2);
+            scrollbar-color: var(--sage-green) rgba(18, 22, 18, 0.2);
         }
 
-        /* Custom Scrollbar for modern web experience */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: rgba(20, 24, 20, 0.2);
+            background: rgba(18, 22, 18, 0.2);
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb {
@@ -90,7 +90,7 @@
         .blob-1 {
             width: 600px;
             height: 600px;
-            background-color: rgba(151, 171, 144, 0.08);
+            background-color: rgba(151, 171, 144, 0.07);
             top: -15%;
             left: -10%;
         }
@@ -98,7 +98,7 @@
         .blob-2 {
             width: 700px;
             height: 700px;
-            background-color: rgba(30, 42, 30, 0.35);
+            background-color: rgba(25, 36, 25, 0.3);
             bottom: -10%;
             right: -10%;
             animation-duration: 28s;
@@ -108,7 +108,7 @@
         .blob-3 {
             width: 500px;
             height: 500px;
-            background-color: rgba(151, 171, 144, 0.05);
+            background-color: rgba(151, 171, 144, 0.04);
             top: 35%;
             left: 35%;
             animation-duration: 20s;
@@ -129,7 +129,7 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--card-border);
-            background: rgba(12, 14, 12, 0.75);
+            background: rgba(11, 12, 11, 0.75);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
         }
@@ -182,112 +182,174 @@
         }
 
         .container {
-            display: flex;
             flex: 1;
             position: relative;
             z-index: 10;
-            max-width: 1680px;
+            max-width: 1440px;
             width: 100%;
             margin: 0 auto;
-            padding: 30px 50px 50px 50px;
-            gap: 35px;
-        }
-
-        .sidebar {
-            width: 300px;
-            flex-shrink: 0;
+            padding: 40px 50px 60px 50px;
             display: flex;
             flex-direction: column;
-            gap: 14px;
         }
 
-        .sidebar-btn {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            width: 100%;
-            padding: 18px 22px;
-            border-radius: 18px;
+        /* Welcome Gateway Grid Layout (No Sidebar) */
+        #welcome-gateway {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .gateway-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 26px;
+            margin-top: 20px;
+        }
+
+        /* Glassmorphism Cards */
+        .gateway-card {
+            border-radius: 24px;
             border: 1px solid var(--card-border);
             background: var(--card-bg);
-            color: var(--text-secondary);
-            font-size: 16px;
-            font-weight: 600;
-            text-align: left;
-            cursor: pointer;
+            padding: 35px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 280px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
             position: relative;
             overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
         }
-        
-        .sidebar-btn::before {
+
+        .gateway-card::before {
             content: '';
             position: absolute;
+            top: 0;
             left: 0;
-            top: 15%;
-            height: 70%;
-            width: 4px;
-            background-color: var(--sage-green);
-            border-radius: 0 4px 4px 0;
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s ease;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(151, 171, 144, 0.05) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
         }
 
-        .sidebar-btn:hover {
-            border-color: var(--card-border-hover);
+        .gateway-card:hover {
+            border-color: var(--sage-green);
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--sage-glow);
+        }
+
+        .gateway-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header-icon {
+            font-size: 34px;
+            color: var(--sage-green);
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px var(--sage-glow);
+            display: flex;
+            align-items: center;
+        }
+
+        .card-body-title {
+            font-family: var(--font-outfit);
+            font-size: 22px;
+            font-weight: 800;
+            margin: 0 0 12px 0;
             color: var(--text-primary);
-            box-shadow: 0 8px 24px rgba(151, 171, 144, 0.05);
+            letter-spacing: -0.5px;
+        }
+
+        .card-body-desc {
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            line-height: 1.6;
+            margin: 0 0 25px 0;
+            flex-grow: 1;
+        }
+
+        .card-footer-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: rgba(151, 171, 144, 0.08);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: fit-content;
+        }
+
+        .gateway-card:hover .card-footer-btn {
+            background: rgba(151, 171, 144, 0.2);
+            border-color: var(--sage-green);
+            box-shadow: 0 0 10px var(--sage-glow);
+        }
+        
+        .card-footer-btn i {
+            transition: transform 0.2s ease;
+        }
+        .gateway-card:hover .card-footer-btn i {
             transform: translateX(4px);
         }
-        
-        .sidebar-btn:hover::before {
-            transform: scaleX(1);
-        }
 
-        .sidebar-btn.active {
-            border-color: var(--sage-green);
-            background: rgba(151, 171, 144, 0.12);
-            color: var(--text-primary);
-            box-shadow: 0 8px 25px var(--sage-glow);
-        }
-        
-        .sidebar-btn.active::before {
-            transform: scaleX(1);
-            height: 100%;
-            top: 0;
-            border-radius: 0;
-        }
-
+        /* Detail Panel Layout */
         .content-panel {
-            flex: 1;
+            width: 100%;
             border-radius: 28px;
             border: 1px solid var(--card-border);
             background: var(--card-bg);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
-            padding: 40px;
+            padding: 45px;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
             display: none;
             animation: fadeIn 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
-            min-height: 600px;
-        }
-        
-        .content-panel.active {
-            display: block;
+            min-height: 650px;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Back to welcome portal navigation */
+        .back-nav {
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 22px;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: rgba(12, 14, 12, 0.5);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .back-btn:hover {
+            border-color: var(--sage-green);
+            color: var(--sage-green);
+            box-shadow: 0 0 15px var(--sage-glow);
+            transform: translateX(-4px);
         }
 
         .panel-title {
             font-family: var(--font-outfit);
-            font-size: 32px;
+            font-size: 34px;
             font-weight: 800;
             margin: 0 0 12px 0;
             letter-spacing: -0.8px;
@@ -303,11 +365,11 @@
             line-height: 1.6;
         }
 
-        /* Overview Styling */
+        /* Overview Page Styling */
         .overview-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 22px;
+            gap: 24px;
             margin-bottom: 35px;
         }
 
@@ -319,7 +381,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: all 0.3s ease;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
@@ -377,46 +439,7 @@
             border: 1px solid rgba(225, 140, 140, 0.2);
         }
 
-        .quick-links {
-            display: flex;
-            gap: 18px;
-            flex-wrap: wrap;
-            margin-top: 25px;
-        }
-        
-        .quick-link-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 26px;
-            border-radius: 16px;
-            border: 1px solid var(--card-border);
-            background: rgba(151, 171, 144, 0.06);
-            color: var(--text-primary);
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 15px;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        }
-        
-        .quick-link-btn:hover {
-            background: rgba(151, 171, 144, 0.15);
-            border-color: var(--sage-green);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px var(--sage-glow);
-        }
-        
-        .quick-link-btn i {
-            transition: transform 0.2s ease;
-            font-size: 16px;
-        }
-        
-        .quick-link-btn:hover i {
-            transform: translateX(4px);
-        }
-
-        /* Modern Tables styling */
+        /* Modern Tables */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -467,7 +490,6 @@
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            text-align: center;
         }
         
         .method-badge.get { background: var(--badge-get); color: var(--badge-get-text); }
@@ -525,13 +547,12 @@
             color: var(--text-primary);
             font-size: 15px;
             transition: all 0.3s ease;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
         }
         
         .search-box:focus {
             outline: none;
             border-color: var(--sage-green);
-            box-shadow: 0 0 15px var(--sage-glow), inset 0 2px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 0 15px var(--sage-glow);
         }
 
         /* Timeline Changelog */
@@ -586,7 +607,7 @@
         .timeline-card:hover {
             border-color: var(--sage-green);
             transform: translateX(6px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 10px rgba(151, 171, 144, 0.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         
         .timeline-header {
@@ -628,7 +649,7 @@
             line-height: 1.5;
         }
 
-        /* ERD Figma-like canvas styling */
+        /* ERD Viewport and Panning/Zooming */
         .erd-viewport {
             width: 100%;
             height: 720px;
@@ -686,7 +707,7 @@
         }
         
         .erd-overlay .badge {
-            background: rgba(16, 20, 16, 0.9);
+            background: rgba(16, 20, 16, 0.95);
             border: 1px solid var(--card-border);
             color: var(--text-primary);
             padding: 10px 16px;
@@ -720,14 +741,14 @@
             height: 48px;
             border-radius: 14px;
             border: 1px solid var(--card-border);
-            background: rgba(16, 20, 16, 0.9);
+            background: rgba(16, 20, 16, 0.95);
             color: var(--text-primary);
             font-size: 19px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: all 0.3s ease;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             box-shadow: 0 6px 20px rgba(0,0,0,0.4);
@@ -753,23 +774,6 @@
             position: relative;
             z-index: 10;
         }
-
-        @media (max-width: 1200px) {
-            .container {
-                flex-direction: column;
-                padding: 20px;
-            }
-            .sidebar {
-                width: 100%;
-                flex-direction: row;
-                overflow-x: auto;
-                padding-bottom: 14px;
-            }
-            .sidebar-btn {
-                white-space: nowrap;
-                padding: 14px 20px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -794,38 +798,102 @@
     </header>
 
     <div class="container">
-        <aside class="sidebar">
-            <button class="sidebar-btn active" onclick="switchTab('overview')">
-                <i class="bi bi-speedometer2"></i> 대시보드 개요
-            </button>
-            <button class="sidebar-btn" onclick="switchTab('api-map')">
-                <i class="bi bi-braces"></i> API & 테스트 맵
-            </button>
-            <button class="sidebar-btn" onclick="switchTab('db-erd')">
-                <i class="bi bi-database-fill-gear"></i> 데이터베이스 ERD
-            </button>
-            <button class="sidebar-btn" onclick="switchTab('fe-router')">
-                <i class="bi bi-bezier2"></i> 프론트 라우트 맵
-            </button>
-            <button class="sidebar-btn" onclick="switchTab('config-board')">
-                <i class="bi bi-sliders"></i> 시스템 환경설정
-            </button>
-            <button class="sidebar-btn" onclick="switchTab('git-changelog')">
-                <i class="bi bi-git"></i> Git 변경 이력
-            </button>
-        </aside>
-
-        <!-- 1. Overview Panel -->
-        <div id="overview" class="content-panel active">
+        <!-- 1. Welcome Gateway (No Sidebar) -->
+        <div id="welcome-gateway">
             <!-- Premium Welcome Hero -->
-            <section class="hero" style="text-align: center; margin: 1.5rem auto 3.5rem auto; max-width: 820px;">
-                <h1 style="font-family: var(--font-outfit); font-size: 3.2rem; font-weight: 800; line-height: 1.15; letter-spacing: -1.2px; margin-bottom: 1.4rem; color: #fff;">
+            <section class="hero" style="text-align: center; margin: 2rem auto 4rem auto; max-width: 850px;">
+                <h1 style="font-family: var(--font-outfit); font-size: 3.5rem; font-weight: 800; line-height: 1.15; letter-spacing: -1.2px; margin-bottom: 1.4rem; color: #fff;">
                     Accelerate Academic Research with <br><span style="background: linear-gradient(135deg, var(--sage-green) 0%, #ffffff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FastAPI Secure Engine</span>
                 </h1>
-                <p style="color: var(--text-secondary); font-size: 1.15rem; font-weight: 300; line-height: 1.7; margin: 0;">
-                    Welcome to the {{ app_name }} Developer Portal. Easily audit API coverage, map dynamic database structures using real-time reflection, and monitor development environments.
+                <p style="color: var(--text-secondary); font-size: 1.2rem; font-weight: 300; line-height: 1.7; margin: 0;">
+                    Welcome to the {{ app_name }} Developer Portal. Auditing API maps, reflecting live database structures, and monitoring runtime configurations in a premium gateway.
                 </p>
             </section>
+            
+            <!-- Gateway Cards Grid -->
+            <div class="gateway-grid">
+                <!-- Card 1: Overview stats -->
+                <div class="gateway-card" onclick="switchTab('overview')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-speedometer2"></i></div>
+                        <h3 class="card-body-title">대시보드 개요</h3>
+                        <p class="card-body-desc">실시간 서버 가동 상태, DB 커넥션, OpenAI API 키 검증 등 핵심 시스템 헬스 상태와 주요 통계를 종합 진단합니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Overview <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 2: API & Test Map -->
+                <div class="gateway-card" onclick="switchTab('api-map')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-braces"></i></div>
+                        <h3 class="card-body-title">API & 테스트 맵</h3>
+                        <p class="card-body-desc">FastAPI 서버의 모든 활성 엔드포인트 목록을 매핑하고, 매칭된 Pytest 단위/통합 테스트 코드 존재 여부를 실시간 검증합니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open API Map <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 3: Database ERD -->
+                <div class="gateway-card" onclick="switchTab('db-erd')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-database-fill-gear"></i></div>
+                        <h3 class="card-body-title">데이터베이스 ERD</h3>
+                        <p class="card-body-desc">SQLAlchemy ORM 메타데이터를 기반으로 실시간으로 빌드되는 데이터베이스 관계도입니다. Spacebar 드래그 및 휠 줌을 지원합니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open ERD Canvas <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 4: Frontend Router Map -->
+                <div class="gateway-card" onclick="switchTab('fe-router')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-bezier2"></i></div>
+                        <h3 class="card-body-title">프론트 라우트 맵</h3>
+                        <p class="card-body-desc">Next.js App Router 디렉토리 구조 스캔을 통해 프론트엔드 라우트 경로와 해당 Jest 테스트 파일 목록을 매핑합니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Route Map <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 5: System Config -->
+                <div class="gateway-card" onclick="switchTab('config-board')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-sliders"></i></div>
+                        <h3 class="card-body-title">시스템 환경설정</h3>
+                        <p class="card-body-desc">Pydantic BaseSettings 모델과 .env 파일에서 가져온 실시간 시스템 설정 목록입니다. 보안 민감 정보는 자동 마스킹됩니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Configuration <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 6: Git Changelog -->
+                <div class="gateway-card" onclick="switchTab('git-changelog')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-git"></i></div>
+                        <h3 class="card-body-title">Git 최근 변경 이력</h3>
+                        <p class="card-body-desc">현재 원격/로컬 Git 저장소의 실시간 커밋 타임라인을 파싱하여 최근 20개의 변경 이력 상세 내역을 타임라인으로 보여줍니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Changelog <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. Overview Panel -->
+        <div id="overview" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
+            <h2 class="panel-title">대시보드 개요</h2>
+            <p class="panel-description">Bist Mini 2의 실시간 시스템 헬스 상태, 의존성 연동 여부 및 핵심 통계를 종합 조회합니다.</p>
             
             <!-- System Stats Grid -->
             <div class="overview-grid">
@@ -889,6 +957,10 @@
 
         <!-- 2. API Map Panel -->
         <div id="api-map" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
             <h2 class="panel-title">백엔드 API 및 테스트 매핑</h2>
             <p class="panel-description">FastAPI 서버에 라우팅 등록된 실시간 API 엔드포인트 목록과 테스트 커버리지 파일 매칭 현황입니다.</p>
             
@@ -917,6 +989,10 @@
 
         <!-- 3. DB ERD Panel -->
         <div id="db-erd" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
             <h2 class="panel-title">데이터베이스 ERD 시각화</h2>
             <p class="panel-description">SQLAlchemy ORM 메타데이터와 라이브 스키마 역공학을 통해 실시간 생성된 관계도입니다.</p>
             
@@ -944,6 +1020,10 @@
 
         <!-- 4. Frontend Routes Panel -->
         <div id="fe-router" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
             <h2 class="panel-title">프론트엔드 라우팅 및 테스트 매핑</h2>
             <p class="panel-description">Next.js App Router 디렉토리 구조(`/frontend/src/app`)를 스캔하여 매핑된 웹 페이지 및 Jest 테스트 파일 목록입니다.</p>
             
@@ -970,6 +1050,10 @@
 
         <!-- 5. Settings Board Panel -->
         <div id="config-board" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
             <h2 class="panel-title">시스템 환경설정 검증</h2>
             <p class="panel-description">Pydantic BaseSettings 모델과 <code>.env</code> 파일로부터 로드된 현재 설정 목록입니다. (민감정보는 마스킹 처리됨)</p>
             
@@ -992,6 +1076,10 @@
 
         <!-- 6. Git Changelog Panel -->
         <div id="git-changelog" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
             <h2 class="panel-title">Git 최근 변경 이력</h2>
             <p class="panel-description">현재 저장소에서 커밋된 최근 20개의 변경 이력 타임라인입니다.</p>
             
@@ -1018,25 +1106,35 @@
         const configFields = JSON.parse(document.getElementById('config-fields-data').textContent);
         const gitChangelog = JSON.parse(document.getElementById('git-changelog-data').textContent);
 
-        function switchTab(tabId) {
-            // Active button class
-            document.querySelectorAll('.sidebar-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Find button by its onclick containing the tabId
-            const btn = document.querySelector(`.sidebar-btn[onclick*="${tabId}"]`);
-            if (btn) {
-                btn.classList.add('active');
-            }
-
-            // Active panel class
+        function showWelcomeGateway() {
+            // Hide all detail panels
             document.querySelectorAll('.content-panel').forEach(panel => {
-                panel.classList.remove('active');
+                panel.style.display = 'none';
             });
+            // Show welcome gateway
+            document.getElementById('welcome-gateway').style.display = 'block';
+            
+            // Clean up URL hash
+            if (history.pushState) {
+                history.pushState(null, null, ' ');
+            } else {
+                location.hash = '';
+            }
+        }
+
+        function switchTab(tabId) {
+            // Hide welcome gateway
+            document.getElementById('welcome-gateway').style.display = 'none';
+
+            // Hide other panels
+            document.querySelectorAll('.content-panel').forEach(panel => {
+                panel.style.display = 'none';
+            });
+
+            // Show active panel
             const panel = document.getElementById(tabId);
             if (panel) {
-                panel.classList.add('active');
+                panel.style.display = 'block';
             }
 
             // Update URL Hash without jumping the page
@@ -1046,19 +1144,15 @@
                 location.hash = '#' + tabId;
             }
 
-            // Re-render Mermaid when switching to ERD tab
+            // Initialize/Center Mermaid when switching to ERD tab
             if (tabId === 'db-erd') {
-                const checkSvg = setInterval(() => {
-                    const canvas = document.getElementById('erd-canvas');
-                    const svg = canvas ? canvas.querySelector('svg') : null;
-                    if (svg) {
-                        clearInterval(checkSvg);
-                        initErdPanZoom();
-                        centerErd();
-                    }
-                }, 100);
-                mermaid.run();
-                setTimeout(() => clearInterval(checkSvg), 5000);
+                // Ensure initialization starts
+                initErdPanZoom();
+                
+                // Allow browser to calculate bounds post display:block (150ms delay)
+                setTimeout(() => {
+                    centerErd();
+                }, 150);
             }
         }
 
@@ -1209,12 +1303,29 @@
             // Reset transform to calculate bounds
             canvas.style.transform = 'none';
 
-            const vWidth = viewport.clientWidth;
-            const vHeight = viewport.clientHeight;
+            const vWidth = viewport.clientWidth || 1000;
+            const vHeight = viewport.clientHeight || 720;
 
-            const bbox = svg.getBBox ? svg.getBBox() : { width: svg.clientWidth, height: svg.clientHeight };
-            const svgWidth = bbox.width || svg.clientWidth || 800;
-            const svgHeight = bbox.height || svg.clientHeight || 600;
+            // Safe bounding box extraction with clientWidth fallback to handle hidden tags
+            let svgWidth = 800;
+            let svgHeight = 600;
+            
+            if (svg.getBBox) {
+                try {
+                    const bbox = svg.getBBox();
+                    if (bbox.width > 0 && bbox.height > 0) {
+                        svgWidth = bbox.width;
+                        svgHeight = bbox.height;
+                    }
+                } catch(e) {
+                    // Fallback to clientWidth if getBBox errors out
+                }
+            }
+            
+            if (svgWidth === 800 && svg.clientWidth > 0) {
+                svgWidth = svg.clientWidth;
+                svgHeight = svg.clientHeight || 600;
+            }
 
             const padding = 80;
             const scaleX = (vWidth - padding) / svgWidth;
@@ -1244,7 +1355,7 @@
             window.addEventListener('keydown', (e) => {
                 if (e.code === 'Space') {
                     const dbPanel = document.getElementById('db-erd');
-                    if (dbPanel && dbPanel.classList.contains('active')) {
+                    if (dbPanel && dbPanel.style.display === 'block') {
                         if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
                             return;
                         }
@@ -1325,7 +1436,7 @@
 
             // Initialize Mermaid
             mermaid.initialize({
-                startOnLoad: false,
+                startOnLoad: true,
                 theme: 'dark',
                 themeVariables: {
                     background: 'transparent',
@@ -1341,6 +1452,8 @@
             const hash = window.location.hash.substring(1);
             if (hash) {
                 switchTab(hash);
+            } else {
+                showWelcomeGateway();
             }
         });
 
@@ -1349,6 +1462,8 @@
             const hash = window.location.hash.substring(1);
             if (hash) {
                 switchTab(hash);
+            } else {
+                showWelcomeGateway();
             }
         });
     </script>
