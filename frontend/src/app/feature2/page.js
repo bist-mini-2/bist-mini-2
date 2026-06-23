@@ -22,6 +22,34 @@ export default function ResearchGapHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isTutorialActive, setIsTutorialActive] = useState(false);
+
+  const displayTasks = isTutorialActive ? [
+    {
+      task_id: "dummy-task-1",
+      domain: "cs",
+      query: "Attention Mechanism in Neural Machine Translation",
+      status: "COMPLETED",
+      progress: 100,
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+    },
+    {
+      task_id: "dummy-task-2",
+      domain: "bio",
+      query: "CRISPR-Cas9 Gene Editing Accuracy and Off-target Effects",
+      status: "COMPLETED",
+      progress: 100,
+      created_at: new Date(Date.now() - 3600000 * 5).toISOString()
+    },
+    {
+      task_id: "dummy-task-3",
+      domain: "cs",
+      query: "Zero-Shot Learning in Large Language Models",
+      status: "RUNNING",
+      progress: 45,
+      created_at: new Date(Date.now() - 1800000).toISOString()
+    }
+  ] : tasks;
 
   const tutorialSteps = [
     {
@@ -50,6 +78,23 @@ export default function ResearchGapHistoryPage() {
   const [mounted, setMounted] = useState(false);
   const [deletingIds, setDeletingIds] = useState([]);
   const [isExiting, setIsExiting] = useState(false);
+
+  // 튜토리얼 활성화 여부 리스너
+  useEffect(() => {
+    const handleStart = () => {
+      setIsTutorialActive(true);
+    };
+    const handleEnd = () => {
+      setIsTutorialActive(false);
+    };
+
+    window.addEventListener("trigger-page-tutorial", handleStart);
+    window.addEventListener("tutorial-ended", handleEnd);
+    return () => {
+      window.removeEventListener("trigger-page-tutorial", handleStart);
+      window.removeEventListener("tutorial-ended", handleEnd);
+    };
+  }, []);
 
   // 마운트 여부 설정 (Portal용)
   useEffect(() => {
@@ -152,7 +197,7 @@ export default function ResearchGapHistoryPage() {
   // 전체 선택 체크박스 토글
   const handleSelectAllChange = (e) => {
     if (e.target.checked) {
-      const allIds = tasks.map((t) => t.task_id);
+      const allIds = displayTasks.map((t) => t.task_id);
       setSelectedTaskIds(allIds);
     } else {
       setSelectedTaskIds([]);
@@ -218,7 +263,7 @@ export default function ResearchGapHistoryPage() {
           <p className="text-secondary small mb-0">지금까지 요청하신 대규모 문헌 비교 분석 및 AI Research Gap 보고서 목록입니다.</p>
         </div>
         <div className="d-flex align-items-center gap-2">
-          {tasks.length > 0 && (
+          {displayTasks.length > 0 && (
             <>
               {isEditMode ? (
                 <>
@@ -265,7 +310,7 @@ export default function ResearchGapHistoryPage() {
       )}
 
       {/* Task List Grid/Table */}
-      {tasks.length > 0 ? (
+      {displayTasks.length > 0 ? (
         <div className="card shadow-sm border border-light-subtle rounded-3 overflow-hidden">
           <div className="table-responsive">
             <table className={`table table-hover align-middle mb-0 ${styles.historyTable} tutorial-history-table`}>
@@ -277,7 +322,7 @@ export default function ResearchGapHistoryPage() {
                         type="checkbox"
                         className={`${styles.customCheckbox} cursor-pointer`}
                         onChange={handleSelectAllChange}
-                        checked={tasks.length > 0 && selectedTaskIds.length === tasks.length}
+                        checked={displayTasks.length > 0 && selectedTaskIds.length === displayTasks.length}
                       />
                     </div>
                   </th>
@@ -288,7 +333,7 @@ export default function ResearchGapHistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {tasks.map((task) => {
+                {displayTasks.map((task) => {
                   const isSelected = selectedTaskIds.includes(task.task_id);
                   const isDeleting = deletingIds.includes(task.task_id);
                   return (
