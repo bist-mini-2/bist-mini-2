@@ -18,6 +18,7 @@ from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
 
 
 class GemAgentState(TypedDict):
+    """Gem 에이전트의 대화 상태 및 검색된 출처 목록을 저장하는 상태 정의 딕셔너리입니다."""
     messages: Annotated[list, add_messages]
     sources: list[dict]   # 검색된 논문 출처 누적
 

@@ -75,17 +75,59 @@ async def lifespan(app: FastAPI):
     from api.v1.chat.entity import ChatSessionEntity
     from api.v1.gems.entity import GemEntity
     from api.v1.notification.entity import NotificationEntity
+    from api.v1.defense_arena.entity import DefenseArenaSessionEntity, DefenseArenaChunkEntity, DefenseHistoryEntity
     
-    async with engine.begin() as conn:
-        # PostgreSQL인 경우 pgvector 익스텐션 자동 활성화
-        if "postgresql" in settings.DATABASE_URL:
-            from sqlalchemy import text
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-            await conn.execute(text("ALTER TABLE research_gap_task ADD COLUMN IF NOT EXISTS translated_result JSON;"))
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            # PostgreSQL인 경우 pgvector 익스텐션 자동 활성화
+            if "postgresql" in settings.DATABASE_URL:
+                from sqlalchemy import text
+                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                await conn.execute(text("ALTER TABLE research_gap_task ADD COLUMN IF NOT EXISTS translated_result JSON;"))
+            await conn.run_sync(Base.metadata.create_all)
+        logging.getLogger("uvicorn").info("Database tables initialized successfully.")
+    except Exception as e:
+        logging.getLogger("uvicorn").error(f"Database initialization deferred (server offline?): {e}")
+
+    # 30분 미활동 보안 세션 소거 백그라운드 데몬 기동
+    async def cleanup_daemon():
+        from sqlalchemy import text
+        while True:
+            try:
+                await asyncio.sleep(60) # 1분마다 주기적 스캔
+                
+                # 가벼운 DB 생존 여부 체크
+                db_alive = False
+                try:
+                    async with engine.connect() as conn:
+                        await conn.execute(text("SELECT 1"))
+                        db_alive = True
+                except Exception:
+                    pass
+
+                if not db_alive:
+                    logging.getLogger("uvicorn").warning("Database offline. Skipping cleanup daemon routine.")
+                    continue
+
+                from api.v1.defense_arena.services import DefenseArenaService
+                from api.v1.defense_arena.dao import DefenseArenaDao
+                from api.database.config.dbsession import session_maker
+                async with session_maker() as session:
+                    dao = DefenseArenaDao(session)
+                    service = DefenseArenaService(dao)
+                    await service.wipe_out_expired_sessions(expire_minutes=30)
+                    await session.commit()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logging.getLogger("uvicorn").error(f"Error in cleanup_daemon: {e}")
+
+    cleanup_task = asyncio.create_task(cleanup_daemon())
         
     yield
     logging.getLogger("uvicorn").info("Application Shutting Down...")
+    cleanup_task.cancel()
+    
     try:
         from api.v1.notification.notifier import notification_broadcaster
         notification_broadcaster.close()
@@ -93,18 +135,29 @@ async def lifespan(app: FastAPI):
         logging.getLogger("uvicorn").error(f"Error closing notification broadcaster: {e}")
     await engine.dispose()
     
-    # 미종료된 asyncio 백그라운드 태스크들을 강제 취소하여 uvicorn 리로드 대기 현상을 완전히 방지
+    # 미종료된 asyncio 백그라운드 태스크들을 강제 취소하여 uvicorn 리로드 대기 현상을 완전히 방지 (uvicorn 핵심 태스크는 제외)
     try:
         current_task = asyncio.current_task()
-        pending_tasks = [t for t in asyncio.all_tasks() if t is not current_task]
+        pending_tasks = []
+        for t in asyncio.all_tasks():
+            if t is current_task or t is cleanup_task:
+                continue
+            # 코루틴 이름을 검사하여 uvicorn/starlette 메인 태스크는 제외
+            coro_name = ""
+            if hasattr(t, "get_coro") and t.get_coro():
+                coro_name = getattr(t.get_coro(), "__name__", "")
+            if any(name in coro_name for name in ("serve", "Lifespan", "main_loop")):
+                continue
+            pending_tasks.append(t)
+            
         if pending_tasks:
             logging.getLogger("uvicorn").info(f"Cancelling {len(pending_tasks)} pending background tasks...")
             for task in pending_tasks:
                 task.cancel()
             # CancelledError가 전파될 때까지 대기
             await asyncio.gather(*pending_tasks, return_exceptions=True)
-    except Exception as e:
-        logging.getLogger("uvicorn").error(f"Error cancelling pending tasks: {e}")
+    except BaseException as e:
+        logging.getLogger("uvicorn").info(f"Background tasks cleanup finished/cancelled: {type(e).__name__}")
 
 # ============================================
 # FastAPI Application Initialization
@@ -201,10 +254,12 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def home(request: Request):
     logging.getLogger(__name__).info("Root welcome portal page requested.")
+    from api.v1.health.endpoints import get_dashboard_context
+    context = await get_dashboard_context(request)
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"app_name": settings.APP_NAME}
+        context=context
     )
 
 # ============================================

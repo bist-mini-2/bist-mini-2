@@ -1,3 +1,5 @@
+"""사용자 정의 Gem 에이전트 생성, 수정 및 대화 처리를 담당하는 비즈니스 서비스 모듈입니다."""
+
 import logging
 import uuid
 from typing import Annotated
@@ -14,6 +16,12 @@ class GemService:
     """Gem 생성/조회/삭제 및 Gem 대화 처리 비즈니스 로직을 담당합니다."""
 
     def __init__(self, gem_dao: GemDaoDep, gem_agent: GemAgentDep) -> None:
+        """GemService의 인스턴스를 초기화하고 Gem DAO 및 Agent 의존성을 주입합니다.
+
+        Args:
+            gem_dao (GemDaoDep): Gem 데이터 액세스 객체.
+            gem_agent (GemAgentDep): 멀티 도메인 RAG 및 프롬프트를 처리하는 에이전트 인스턴스.
+        """
         self.logger = logging.getLogger(f"{__name__}.GemService")
         self.gem_dao = gem_dao
         self.gem_agent = gem_agent

@@ -4,7 +4,7 @@ import logging
 from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
-from api.common.auth import LoginCheckDep
+from api.common.auth import LoginCheckDep, verify_access_token
 from api.database.config.dto_base import SuccessResponse
 from api.common.rag_pipeline import common_rag_pipeline
 from api.v1.similarity_search.models import (
@@ -14,7 +14,7 @@ from api.v1.similarity_search.models import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/similarity-search", tags=["Similarity Search"])
+router = APIRouter(prefix="/similarity-search", tags=["논문 유사도 검색"], dependencies=[Depends(verify_access_token)])
 
 
 @router.post(

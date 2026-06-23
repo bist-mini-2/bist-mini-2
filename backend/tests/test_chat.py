@@ -24,7 +24,7 @@ def override_auth_dependency():
 # Chat Session Endpoint Tests
 # =====================================================================
 
-@patch("api.v1.chat.service.ChatService.create_session")
+@patch("api.v1.chat.services.ChatService.create_session")
 def test_create_session_endpoint(mock_create):
     """채팅 세션 생성 API가 정상적으로 세션을 생성하는지 검증합니다."""
     from api.v1.chat.entity import ChatSessionEntity
@@ -48,7 +48,7 @@ def test_create_session_endpoint(mock_create):
     mock_create.assert_called_once_with("test-user", "새로운 채팅방")
 
 
-@patch("api.v1.chat.service.ChatService.list_sessions")
+@patch("api.v1.chat.services.ChatService.list_sessions")
 def test_list_sessions_endpoint(mock_list):
     """사용자의 채팅 세션 목록 조회 API를 테스트합니다."""
     from api.v1.chat.entity import ChatSessionEntity
@@ -71,7 +71,7 @@ def test_list_sessions_endpoint(mock_list):
     mock_list.assert_called_once_with("test-user")
 
 
-@patch("api.v1.chat.service.ChatService.delete_session")
+@patch("api.v1.chat.services.ChatService.delete_session")
 def test_delete_session_endpoint(mock_delete):
     """채팅 세션 삭제 API를 테스트합니다."""
     mock_delete.return_value = None
@@ -84,7 +84,7 @@ def test_delete_session_endpoint(mock_delete):
     mock_delete.assert_called_once_with("test-user", "session-1")
 
 
-@patch("api.v1.chat.service.ChatService.rename_session")
+@patch("api.v1.chat.services.ChatService.rename_session")
 def test_rename_session_endpoint(mock_rename):
     """채팅 세션 제목 변경 API를 테스트합니다."""
     from api.v1.chat.entity import ChatSessionEntity
@@ -107,7 +107,7 @@ def test_rename_session_endpoint(mock_rename):
     mock_rename.assert_called_once_with("test-user", "session-1", "변경된 방 이름")
 
 
-@patch("api.v1.chat.service.ChatService.generate_and_set_title")
+@patch("api.v1.chat.services.ChatService.generate_and_set_title")
 def test_generate_title_endpoint(mock_gen_title):
     """첫 질문 기반 채팅 제목 자동 생성 API를 테스트합니다."""
     mock_gen_title.return_value = "자동 생성된 제목"
@@ -127,7 +127,7 @@ def test_generate_title_endpoint(mock_gen_title):
 # Chat Message Send and History Endpoint Tests
 # =====================================================================
 
-@patch("api.v1.chat.service.ChatService.send_message")
+@patch("api.v1.chat.services.ChatService.send_message")
 def test_send_message_endpoint(mock_send):
     """비스트리밍 메시지 전송 API를 검증합니다."""
     mock_send.return_value = {
@@ -147,7 +147,7 @@ def test_send_message_endpoint(mock_send):
     mock_send.assert_called_once_with("test-user", "session-1", "질문")
 
 
-@patch("api.v1.chat.service.ChatService.send_message_stream")
+@patch("api.v1.chat.services.ChatService.send_message_stream")
 def test_send_message_stream_endpoint(mock_send_stream):
     """스트리밍 메시지 전송 API를 검증합니다."""
     async def mock_generator(*args, **kwargs):
@@ -169,7 +169,7 @@ def test_send_message_stream_endpoint(mock_send_stream):
     mock_send_stream.assert_called_once_with("test-user", "session-1", "인사")
 
 
-@patch("api.v1.chat.service.ChatService.get_messages")
+@patch("api.v1.chat.services.ChatService.get_messages")
 def test_get_messages_history_endpoint(mock_history):
     """대화 내역 조회 API를 검증합니다."""
     from datetime import datetime

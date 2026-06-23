@@ -46,7 +46,8 @@ export default function Sidebar({ isCollapsed, onToggle }) {
   const menus = [
     { name: "Chat Hub", path: "/feature1", icon: "bi-gear" },
     { name: "Research Gap Analyzer", path: "/feature2", icon: "bi-tools" },
-    { name: "Gems", path: "/feature3", icon: "bi-bar-chart" }
+    { name: "Gems", path: "/feature3", icon: "bi-bar-chart" },
+    { name: "Peer Review & Arena", path: "/feature4", icon: "bi-shield-check" }
   ];
 
   // 활성 경로에 따른 동적 서브 사이드바 렌더링 함수
