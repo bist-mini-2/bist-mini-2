@@ -77,9 +77,10 @@
 ### 가. 디자인 특징 (Design Aesthetics)
 - **배경 테마**: 보라/파란색 네온 계열에서 세이지 그린 기반의 딥 다크 모드(`#141614`)로 전면 전환.
 - **배경 애니메이션**: 은은하고 부드러운 그린/다크 블러 방울(`.blob`)이 화면에 둥둥 떠다니는 듯한 유기적 플로팅 효과(Floating Background Animation) 연출.
-- **글래스모피즘**: 카드 컴포넌트(`Swagger UI`, `ReDoc`, `Health Check`)에 `backdrop-filter: blur(20px)`와 은은한 미세 그린 테두리(`rgba(163, 178, 156, 0.12)`) 및 호버 시의 광채(Glow) 효과 부여.
+- **글래스모피즘**: 카드 컴포넌트(`Swagger UI`, `ReDoc`, `Health Check`, `Database ERD`)에 `backdrop-filter: blur(20px)`와 은은한 미세 그린 테두리(`rgba(163, 178, 156, 0.12)`) 및 호버 시의 광채(Glow) 효과 부여.
 - **일체화된 폰트**: 브라우저 기본 서체를 전면 제거하고 `'Outfit'`, `'Inter'`, `'Noto Sans KR'` 웹 폰트를 통합 바인딩하여 텍스트 가독성 극대화.
-- **아이콘 장식**: 기호 이모지를 제거하고 **Bootstrap Icons**(`bi-rocket-takeoff-fill`, `bi-book-half`, `bi-cpu-fill`)로 깔끔하고 통일감 있는 비주얼 계층 구축.
+- **아이콘 장식**: 기호 이모지를 제거하고 **Bootstrap Icons**(`bi-rocket-takeoff-fill`, `bi-book-half`, `bi-cpu-fill`, `bi-database-fill-gear`)로 깔끔하고 통일감 있는 비주얼 계층 구축.
+- **대화형 데이터베이스 ERD 추가**: FastAPI 웰컴 포탈 메인에 데이터베이스 ERD 바로가기를 추가하고, 클릭 시 전체 데이터베이스 관계와 스키마를 실시간 분석해 렌더링하는 대화형 Mermaid.js 시각화 명세서 페이지(`/api/v1/system/erd`)를 새로 구현하였습니다.
 
 ### 나. Swagger / ReDoc API 문서 태그 한국어 통일
 - **기존 상태**: 영어 대/소문자 혼용 및 한글이 섞여 일관성이 결여되어 있던 Swagger 및 ReDoc 사이드바 태그 분류를 모두 깔끔한 한국어 명칭으로 통일 완료하였습니다.
