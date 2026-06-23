@@ -60,3 +60,10 @@ class DefenseChatResponse(BaseDTO):
     feedback: Optional[str] = Field(None, description="방금 제출한 사용자의 답변에 대한 심사위원의 크리틱 피드백 (첫 턴의 경우 null)")
     is_finished: bool = Field(..., description="디펜스 세션 종료 여부 (보통 3~5턴 완료 시 True)")
     final_report: Optional[str] = Field(None, description="세션 종료 시 산출되는 종합 스코어카드 및 모의 디펜스 최종 평가서")
+
+
+class ScoreDTO(BaseDTO):
+    """답변에 대한 실시간 채점 및 크리틱 피드백 DTO."""
+    score: int = Field(..., ge=0, le=100, description="답변에 대한 논리적 방어 점수")
+    feedback: str = Field(..., description="촌철살인 평가 피드백 및 논리 보충 조언")
+

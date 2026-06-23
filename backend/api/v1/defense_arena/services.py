@@ -1,3 +1,5 @@
+"""기밀 유지 보안 격리 구역 내 PDF 업로드, 피어리뷰 시뮬레이션 및 모의 디펜스를 처리하는 서비스 모듈입니다."""
+
 import os
 import shutil
 import uuid
@@ -21,7 +23,7 @@ from api.v1.defense_arena.entity import DefenseArenaSessionEntity, DefenseArenaC
 from api.v1.defense_arena.models import (
     PeerReviewReport, AgentOpinion,
     HypothesisVerificationResult, HypothesisVoteItem,
-    DefenseChatResponse
+    DefenseChatResponse, ScoreDTO
 )
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,11 @@ class DefenseArenaService:
     """보안 격리 샌드박스 피어 리뷰 및 디펜스 아레나 비즈니스 로직을 처리하는 서비스입니다."""
 
     def __init__(self, defense_arena_dao: DefenseArenaDaoDep):
+        """DefenseArenaService의 인스턴스를 초기화하고 DAO 의존성을 주입합니다.
+
+        Args:
+            defense_arena_dao (DefenseArenaDaoDep): 보안 격리 세션 및 대화 내역 저장을 위한 DAO.
+        """
         self.logger = logging.getLogger(f"{__name__}.DefenseArenaService")
         self.defense_arena_dao = defense_arena_dao
 
@@ -44,15 +51,20 @@ class DefenseArenaService:
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         session_dir = os.path.join(UPLOAD_DIR, session_id)
         
+        filename = file.filename
+        if not filename:
+            from api.common.exceptions import BusinessException
+            raise BusinessException(message="파일명이 누락되었거나 올바르지 않습니다.", error_code="INVALID_FILE_NAME")
+
         # OS Path Guard (Directory Traversal 방지 검증)
         real_upload_dir = os.path.realpath(UPLOAD_DIR)
-        target_path = os.path.realpath(os.path.join(session_dir, file.filename))
+        target_path = os.path.realpath(os.path.join(session_dir, filename))
         if not target_path.startswith(real_upload_dir):
             from api.common.exceptions import BusinessException
             raise BusinessException(message="허용되지 않는 파일 업로드 경로 접근 시도입니다.", error_code="PATH_GUARD_VIOLATION")
 
         os.makedirs(session_dir, exist_ok=True)
-        file_path = os.path.join(session_dir, file.filename)
+        file_path = os.path.join(session_dir, filename)
         
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -85,7 +97,7 @@ class DefenseArenaService:
         session_entity = DefenseArenaSessionEntity(
             session_id=session_id,
             member_id=mid,
-            file_name=file.filename,
+            file_name=filename,
             file_path=file_path,
             chunk_count=len(chunks)
         )
@@ -109,7 +121,7 @@ class DefenseArenaService:
 
         return {
             "session_id": session_id,
-            "file_name": file.filename,
+            "file_name": filename,
             "chunk_count": len(chunks)
         }
 
@@ -230,7 +242,7 @@ class DefenseArenaService:
             "REFUTE": refute_count,
             "INSUFFICIENT_EVIDENCE": insufficient_count
         }
-        verdict = max(votes_map, key=votes_map.get)
+        verdict = max(votes_map, key=lambda k: votes_map[k])
         consensus_ratio = votes_map[verdict] / 3.0
 
         return HypothesisVerificationResult(
@@ -285,7 +297,7 @@ class DefenseArenaService:
 
             chain = prompt | llm
             question_obj = await chain.ainvoke({"context": document_context})
-            question_text = question_obj.content
+            question_text = question_obj.content if isinstance(question_obj.content, str) else str(question_obj.content)
 
             # DB에 첫 질문 레코드 저장
             new_history = DefenseHistoryEntity(
@@ -316,10 +328,6 @@ class DefenseArenaService:
             raise BusinessException(message="이전 디펜스 대화 이력을 찾을 수 없습니다.", error_code="PREV_HISTORY_NOT_FOUND")
 
         # 1) 이전 답변에 대한 실시간 채점 및 크리틱 피드백 수행 (LLM)
-        class ScoreDTO(BaseDTO):
-            score: int = Field(..., ge=0, le=100, description="답변에 대한 논리적 방어 점수")
-            feedback: str = Field(..., description="촌철살인 평가 피드백 및 논리 보충 조언")
-
         score_llm = llm.with_structured_output(ScoreDTO)
         score_prompt = ChatPromptTemplate.from_messages([
             ("system", (
@@ -373,7 +381,7 @@ class DefenseArenaService:
 
             report_chain = report_prompt | llm
             final_report_obj = await report_chain.ainvoke({"summary": history_summary})
-            final_report_text = final_report_obj.content
+            final_report_text = final_report_obj.content if isinstance(final_report_obj.content, str) else str(final_report_obj.content)
 
             return DefenseChatResponse(
                 session_id=session_id,
@@ -403,7 +411,7 @@ class DefenseArenaService:
             "prev_answer": user_response,
             "critique": grading.feedback
         })
-        next_question_text = next_question_obj.content
+        next_question_text = next_question_obj.content if isinstance(next_question_obj.content, str) else str(next_question_obj.content)
 
         # DB에 다음 턴 질문 레코드 미리 생성
         new_next_history = DefenseHistoryEntity(

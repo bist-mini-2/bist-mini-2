@@ -1,3 +1,5 @@
+"""보안 격리 세션 및 모의 디펜스 대화 이력의 데이터베이스 CRUD 작업을 전담하는 DAO 모듈입니다."""
+
 import logging
 from datetime import datetime, timedelta
 from typing import Annotated
@@ -11,6 +13,11 @@ class DefenseArenaDao:
     """defense_arena_session 및 defense_history 테이블에 대한 ORM 작업을 처리하는 DAO입니다."""
 
     def __init__(self, orm_session: OrmSessionDep):
+        """DefenseArenaDao 인스턴스를 초기화하고 ORM 세션을 주입합니다.
+
+        Args:
+            orm_session (OrmSessionDep): 데이터베이스 ORM 세션 의존성.
+        """
         self.logger = logging.getLogger(f"{__name__}.DefenseArenaDao")
         self.orm_session = orm_session
 

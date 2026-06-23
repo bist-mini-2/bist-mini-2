@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from api.v1.health.endpoints import router as health_router
 from api.v1.auth.endpoints import router as auth_router
 from api.v1.member.endpoints import router as member_router
-from api.v1.chat.controller import router as chat_router
+from api.v1.chat.endpoints import router as chat_router
 from api.v1.research_gap.endpoints import router as research_gap_router
 from api.v1.gems.endpoints import router as gems_router
 from api.v1.notification.endpoints import router as notification_router

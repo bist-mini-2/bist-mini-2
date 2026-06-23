@@ -1,3 +1,5 @@
+"""대규모 학술 문체 비교 및 연구 공백(Research Gap) 분석을 수행하는 서비스 모듈입니다."""
+
 import asyncio
 import json
 import logging
@@ -20,6 +22,11 @@ class ResearchGapService:
     """대규모 문헌 비교 및 학계 연구 공백(Research Gap) 분석을 수행하는 서비스입니다."""
 
     def __init__(self, research_gap_dao: ResearchGapDaoDep) -> None:
+        """ResearchGapService의 인스턴스를 초기화하고 DAO 의존성을 주입합니다.
+
+        Args:
+            research_gap_dao (ResearchGapDaoDep): 연구 공백 분석 결과 저장용 DAO.
+        """
         self.logger = logging.getLogger(f"{__name__}.ResearchGapService")
         self.research_gap_dao = research_gap_dao
 
@@ -120,6 +127,12 @@ class ResearchGapService:
         """백그라운드에서 실행되는 비동기 분석 배치 처리 코어 로직입니다.
 
         독자적인 DB 세션을 생성하여 단계별 상태 및 진행률을 커밋하고 완료 시 SSE 이벤트를 방출합니다.
+
+        Args:
+            task_id (str): 배치 태스크 고유 ID.
+            domain (str): 학술 분야 (cs, bio, astronomy 등).
+            query (str): 검색 및 분석용 키워드 질문.
+            mid (str): 분석을 요청한 회원의 아이디.
         """
         self.logger.info(f"Background batch task {task_id} started (mid={mid}, domain={domain}, query={query})")
 

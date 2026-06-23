@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Annotated, TypedDict, Any, cast
+from typing import Annotated, TypedDict, Any, cast, AsyncGenerator
 
 from fastapi import Depends
 from langchain.agents import create_agent
@@ -13,6 +13,7 @@ from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
 from pydantic import BaseModel, Field
 
 class BioAgentState(TypedDict):
+    """생명공학 에이전트의 대화 상태 및 검색된 출처 목록을 저장하는 상태 정의 딕셔너리입니다."""
     messages: Annotated[list, add_messages]
     sources: list[dict]   # 검색된 논문 출처 누적
 
@@ -176,7 +177,7 @@ class ChatAgent:
                 "sources": [],
             }
 
-    async def run_stream(self, message: str, conversation_id: str):
+    async def run_stream(self, message: str, conversation_id: str) -> AsyncGenerator[str, None]:
         """메시지를 처리하면서 답변 텍스트(explanation)를 토큰 단위로 흘려보낸다(스트리밍).
 
         run()과 달리 response_format(structured output)을 쓰지 않는다. structured output은
@@ -214,9 +215,8 @@ class ChatAgent:
             if getattr(token, "tool_calls", None):
                 continue
             content = getattr(token, "content", "")
-            if not content:
-                continue
-            yield content
+            if isinstance(content, str) and content:
+                yield content
 
     async def get_latest_sources(self, conversation_id: str) -> list[dict]:
         """스트리밍 종료 후 state(checkpointer)에 누적된 검색 출처를 중복 제거하여 반환한다.

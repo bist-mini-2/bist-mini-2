@@ -11,7 +11,11 @@ START_TIME = time.time()
 
 @router.get("/health", response_model=SuccessResponse, summary="시스템 헬스체크 수행 API")
 async def health_check():
-    """FastAPI 서버의 상태와 가동 시간(uptime) 및 기본 설정을 조회하여 헬스체크를 수행합니다."""
+    """FastAPI 서버의 상태와 가동 시간(uptime) 및 기본 설정을 조회하여 헬스체크를 수행합니다.
+
+    Returns:
+        SuccessResponse: 시스템 상태, 가동 시간, 설정 정보를 포함하는 성공 응답 객체.
+    """
     uptime = time.time() - START_TIME
     return SuccessResponse(
         data={

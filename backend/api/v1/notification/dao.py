@@ -1,3 +1,5 @@
+"""실시간 및 오프라인 누적 알림 데이터의 DB 상태 관리를 수행하는 DAO 모듈입니다."""
+
 import logging
 from typing import Annotated, List, Optional
 from fastapi import Depends
@@ -10,6 +12,11 @@ class NotificationDao:
     """실시간 및 오프라인 누적 알림 데이터의 DB 상태 관리를 수행하는 DAO 클래스입니다."""
 
     def __init__(self, orm_session: OrmSessionDep):
+        """NotificationDao의 인스턴스를 초기화하고 ORM 세션을 주입합니다.
+
+        Args:
+            orm_session (OrmSessionDep): 데이터베이스 ORM 세션 의존성.
+        """
         self.logger = logging.getLogger(f"{__name__}.NotificationDao")
         self.orm_session = orm_session
 

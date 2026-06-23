@@ -1,3 +1,5 @@
+"""3개 도메인의 공통 RAG 임베딩 검색 파이프라인 및 LangChain 도구(Tools)를 관리하는 모듈입니다."""
+
 import logging
 from typing import Any, Dict, List
 from langchain.embeddings import init_embeddings
@@ -27,11 +29,16 @@ class CommonRagPipeline:
     """
 
     def __init__(self) -> None:
+        """CommonRagPipeline 인스턴스를 초기화합니다."""
         self.logger = logging.getLogger(f"{__name__}.CommonRagPipeline")
         self._embeddings = None
 
     def get_embeddings(self):
-        """임베딩 인스턴스를 지연 로딩으로 초기화 및 공유합니다."""
+        """임베딩 인스턴스를 지연 로딩으로 초기화 및 공유합니다.
+
+        Returns:
+            Embeddings: 초기화된 임베딩 생성 모델 인스턴스.
+        """
         if self._embeddings is None:
             self._embeddings = init_embeddings(model=EMBED_MODEL)
         return self._embeddings
@@ -104,8 +111,17 @@ async def search_bio_papers(
     runtime: ToolRuntime,
     k: int = 3
 ) -> Command:
-    """생명공학·유전체학(q-bio.GN) 논문에서 관련 내용을 검색하는 도구.
-    유전체학, 유전자 매핑, 시퀀싱 분석 등 생물학 질문에 사용.
+    """생명공학·유전체학(q-bio.GN) 논문 데이터베이스에서 관련 내용을 검색합니다.
+
+    유전체학, 유전자 매핑, 시퀀싱 분석 등 생명공학/유전학 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요.
+
+    Args:
+        query (str): 검색할 핵심 키워드 또는 영어 학술 질문.
+        runtime (ToolRuntime): LangGraph 라이브러리에서 관리하는 툴 런타임 컨텍스트.
+        k (int): 반환할 상위 유사 논문 청크의 개수. 기본값은 3.
+
+    Returns:
+        Command: LangGraph의 메시지 상태(messages)와 검색 출처(sources)를 업데이트하는 흐름 제어 명령 객체.
     """
     results = await common_rag_pipeline.similarity_search("bio", query, k=k)
 
@@ -144,8 +160,17 @@ async def search_cs_papers(
     runtime: ToolRuntime,
     k: int = 3
 ) -> Command:
-    """컴퓨터 과학(Neural and Evolutionary Computing, cs.NE 카테고리) 관련 학술 논문 데이터베이스에서 검색을 수행합니다.
-    인공신경망, 진화 컴퓨팅, 유전 알고리즘, 신경망 학습 다이내믹스 등의 개념에 대한 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요.
+    """컴퓨터 과학(cs.NE) 관련 학술 논문 데이터베이스에서 관련 내용을 검색합니다.
+
+    인공신경망, 진화 알고리즘, 딥러닝 등에 대한 정보가 필요하거나 질문에 대답할 때 이 툴을 사용하세요.
+
+    Args:
+        query (str): 검색할 핵심 키워드 또는 영어 학술 질문.
+        runtime (ToolRuntime): LangGraph 라이브러리에서 관리하는 툴 런타임 컨텍스트.
+        k (int): 반환할 상위 유사 논문 청크의 개수. 기본값은 3.
+
+    Returns:
+        Command: LangGraph의 메시지 상태(messages)와 검색 출처(sources)를 업데이트하는 흐름 제어 명령 객체.
     """
     results = await common_rag_pipeline.similarity_search("cs", query, k=k)
 
@@ -186,8 +211,17 @@ async def search_astronomy_papers(
     runtime: ToolRuntime,
     k: int = 3
 ) -> Command:
-    """지구 및 행성 천체물리학(astro-ph.EP) 논문에서 관련 내용을 검색하는 도구입니다.
+    """지구 및 행성 천체물리학(astro-ph.EP) 논문 데이터베이스에서 관련 내용을 검색합니다.
+
     행성 대기, Mars 지질학, 행성 형성 등에 관한 질문에 대답하거나 참고 자료가 필요할 때 이 툴을 사용하세요.
+
+    Args:
+        query (str): 검색할 핵심 키워드 또는 영어 학술 질문.
+        runtime (ToolRuntime): LangGraph 라이브러리에서 관리하는 툴 런타임 컨텍스트.
+        k (int): 반환할 상위 유사 논문 청크의 개수. 기본값은 3.
+
+    Returns:
+        Command: LangGraph의 메시지 상태(messages)와 검색 출처(sources)를 업데이트하는 흐름 제어 명령 객체.
     """
     results = await common_rag_pipeline.similarity_search("astronomy", query, k=k)
 

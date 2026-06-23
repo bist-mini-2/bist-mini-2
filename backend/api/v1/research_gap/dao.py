@@ -1,3 +1,5 @@
+"""연구 공백(Research Gap) 분석 태스크의 데이터베이스 CRUD를 처리하는 DAO 모듈입니다."""
+
 import logging
 from typing import Annotated, Optional
 from fastapi import Depends
@@ -10,6 +12,11 @@ class ResearchGapDao:
     """대규모 문헌 비교 분석 태스크의 DB 상태 관리를 수행하는 데이터 액세스 객체(DAO)입니다."""
 
     def __init__(self, orm_session: OrmSessionDep):
+        """ResearchGapDao 인스턴스를 초기화하고 ORM 세션을 주입합니다.
+
+        Args:
+            orm_session (OrmSessionDep): 데이터베이스 ORM 세션 의존성.
+        """
         self.logger = logging.getLogger(f"{__name__}.ResearchGapDao")
         self.orm_session = orm_session
 
