@@ -8,7 +8,8 @@ from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from langgraph.graph import add_messages
-from api.common.rag_pipeline import search_bio_papers, search_astronomy_papers, search_cs_papers, search_web
+from api.common.rag_pipeline import search_bio_papers, search_astronomy_papers, search_cs_papers
+from api.common.tools import get_current_datetime, search_web
 from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
 from pydantic import BaseModel, Field
 
@@ -61,6 +62,9 @@ class ChatAgent:
           · 생명공학·유전체학(유전자, DNA, 시퀀싱 등) → search_bio_papers
           · 천문학(외계행성, 행성, 천체물리 등) → search_astronomy_papers
           · 컴퓨터과학(신경망, 진화 알고리즘, 딥러닝 등) → search_cs_papers
+          · 위 논문 DB로 답할 수 없는 주제(최신 동향, 일반 상식, arXiv 범위 밖) → search_web
+          · 오늘 날짜·현재 시각이 필요한 질문(오늘, 지금, 최근 등) → get_current_datetime
+          
         - 검색된 논문 내용을 근거로, explanation에 질문에 대한 설명을 마크다운으로 풍부하게 작성합니다.
           핵심 용어는 **굵게** 강조하고, 내용이 길면 ## 소제목으로 구조를 나눠도 좋습니다.
           질문에 맞춰 설명 길이를 조절합니다.
@@ -79,6 +83,9 @@ class ChatAgent:
           · 생명공학·유전체학 → search_bio_papers
           · 천문학 → search_astronomy_papers
           · 컴퓨터과학 → search_cs_papers
+          · arXiv 범위 밖·최신 정보 → search_web
+          · 오늘 날짜·현재 시각 → get_current_datetime
+          
         - 검색된 논문 내용을 근거로, 질문에 대한 설명을 마크다운으로 풍부하게 작성합니다.
           핵심 용어는 **굵게** 강조하고, 길면 ## 소제목으로 나눠도 좋습니다.
         - 중요: 참고한 논문 목록을 본문에 나열하거나 "관련 논문" 같은 섹션을 만들지 마세요.
@@ -112,7 +119,7 @@ class ChatAgent:
             self.agent = create_agent(
                 model=self.model,
                 tools=[search_bio_papers, search_astronomy_papers,
-                       search_cs_papers, search_web],
+                       search_cs_papers, search_web, get_current_datetime],
                 system_prompt=self.system_prompt,
                 checkpointer=self.checkpointer,
                 # 출처 추적 위해 bio의 state 패턴 활용
