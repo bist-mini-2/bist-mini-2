@@ -7,6 +7,7 @@ from langchain_postgres import PGVector
 from langchain.tools import tool, ToolRuntime
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
+from langchain_community.tools.tavily_search import TavilySearchResults
 from api.common.config import settings
 
 logger = logging.getLogger(__name__)
@@ -254,3 +255,5 @@ async def search_astronomy_papers(
         "messages": [ToolMessage(content=tool_text, tool_call_id=runtime.tool_call_id)],
         "sources": sources,
     })
+
+

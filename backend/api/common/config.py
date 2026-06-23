@@ -23,7 +23,8 @@ class Settings(BaseSettings):
 
     # OpenAI API Key Configuration
     OPENAI_API_KEY: str = ""
-
+    # 웹검색 API Key
+    TAVILY_API_KEY: str = ""
     # Automatically load from .env file if it exists
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -45,3 +46,5 @@ settings = Settings()
 if settings.OPENAI_API_KEY:
     os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
 
+if settings.TAVILY_API_KEY:                                 # ← 추가
+    os.environ["TAVILY_API_KEY"] = settings.TAVILY_API_KEY
