@@ -34,13 +34,15 @@ export default function ResearchGapHistoryPage() {
       target: ".tutorial-new-request-btn",
       title: "새 분석 요청",
       content: "새로운 학술 주제나 특정 키워드를 지정하여 인공지능 연구 공백 분석 작업을 신규 기동합니다.",
-      position: "bottom"
+      position: "bottom",
+      arrowAlign: "right"
     },
     {
       target: ".tutorial-delete-mode-btn",
       title: "이력 선택 삭제",
       content: "불필요해진 과거 분석 이력들을 여러 개 선택하여 한 번에 영구 삭제할 수 있는 관리 도구입니다.",
-      position: "bottom"
+      position: "bottom",
+      arrowAlign: "right"
     }
   ];
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);

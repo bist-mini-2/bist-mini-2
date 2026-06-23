@@ -3,16 +3,145 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import styles from "./TutorialTour.module.css";
+import TutorialPopover from "./TutorialPopover";
 
+const POPOVER_WIDTH = 320;
+const POPOVER_HEIGHT = 220; // conservative estimate for wrapped Korean text
+const GAP = 14;             // gap between target and popover
+const SCREEN_MARGIN = 10;   // minimum distance from viewport edges
+
+/**
+ * 포커스 타겟의 rect와 스텝 설정을 받아 팝오버 top/left와 말꼬리 방향/오프셋을 계산합니다.
+ *
+ * @param {DOMRect} rect - 타겟 요소의 뷰포트 기준 bounding rect
+ * @param {object} step - 현재 스텝 설정 ({ position, arrowAlign, arrowTarget })
+ * @returns {{ top, left, arrowDir, arrowStyle }} - 계산된 위치 및 말꼬리 방향/스타일 정보
+ */
+function computePosition(rect, step) {
+  const { position = "bottom", arrowAlign, arrowTarget } = step;
+
+  const effectiveHeight = rect.height > 300 ? 140 : rect.height;
+
+  let top = 0;
+  let left = 0;
+  let arrowDir = ""; // "top" | "bottom" | "left" | "right"
+
+  // ── 1단계: 요청된 position으로 기본 좌표 계산 ──────────────────────────
+  if (position === "bottom") {
+    top = rect.top + effectiveHeight + GAP;
+    arrowDir = "top"; // 팝오버가 아래 → 말꼬리가 위쪽(▲)에 위치
+    if (arrowAlign === "left") {
+      left = rect.left;
+    } else if (arrowAlign === "right") {
+      left = rect.right - POPOVER_WIDTH;
+    } else {
+      left = rect.left + (rect.width - POPOVER_WIDTH) / 2;
+    }
+  } else if (position === "top") {
+    const topAnchor = rect.height > 300 ? rect.top + effectiveHeight : rect.top;
+    top = topAnchor - POPOVER_HEIGHT - GAP;
+    arrowDir = "bottom"; // 팝오버가 위 → 말꼬리가 아래쪽(▼)에 위치
+    if (arrowAlign === "left") {
+      left = rect.left;
+    } else if (arrowAlign === "right") {
+      left = rect.right - POPOVER_WIDTH;
+    } else {
+      left = rect.left + (rect.width - POPOVER_WIDTH) / 2;
+    }
+  } else if (position === "left") {
+    left = rect.left - POPOVER_WIDTH - GAP;
+    top = rect.top + (effectiveHeight - POPOVER_HEIGHT) / 2;
+    arrowDir = "right"; // 팝오버가 왼쪽 → 말꼬리가 오른쪽(►)에 위치
+  } else if (position === "right") {
+    left = rect.right + GAP;
+    top = rect.top + (effectiveHeight - POPOVER_HEIGHT) / 2;
+    arrowDir = "left"; // 팝오버가 오른쪽 → 말꼬리가 왼쪽(◄)에 위치
+  }
+
+  // ── 2단계: 뷰포트 경계 클램핑 (수평) ────────────────────────────────────
+  if (left < SCREEN_MARGIN) left = SCREEN_MARGIN;
+  if (left + POPOVER_WIDTH > window.innerWidth - SCREEN_MARGIN) {
+    left = window.innerWidth - POPOVER_WIDTH - SCREEN_MARGIN;
+  }
+
+  // ── 3단계: 수직 플리핑 — 공간이 없으면 반대편으로 ────────────────────────
+  let finalPos = position;
+  if (top < SCREEN_MARGIN) {
+    top = rect.top + effectiveHeight + GAP;
+    arrowDir = "top";
+    finalPos = "bottom";
+  } else if (
+    top + POPOVER_HEIGHT > window.innerHeight - SCREEN_MARGIN &&
+    rect.top - POPOVER_HEIGHT - GAP > SCREEN_MARGIN
+  ) {
+    top = rect.top - POPOVER_HEIGHT - GAP;
+    arrowDir = "bottom";
+    finalPos = "top";
+  }
+
+  // ── 4단계: 말꼬리 위치 계산 ─────────────────────────────────────────────
+  // arrowTarget이 지정된 경우 해당 하위 요소의 중심을 조준, 아니면 자체 계산
+  let arrowStyle = {};
+
+  if (finalPos === "bottom" || finalPos === "top") {
+    // 말꼬리가 수평으로 위치하는 경우 (left 값 결정)
+    let pointX;
+
+    if (arrowTarget) {
+      // 서브 셀렉터 방식: 지정한 자식 요소의 중심을 정확히 조준
+      const subEl = document.querySelector(arrowTarget);
+      pointX = subEl
+        ? subEl.getBoundingClientRect().left + subEl.getBoundingClientRect().width / 2
+        : rect.left + rect.width / 2;
+    } else if (rect.width > POPOVER_WIDTH) {
+      // 팝오버보다 넓은 요소(테이블 등): arrowAlign 방향의 내측 포인트를 조준
+      if (arrowAlign === "left") {
+        pointX = rect.left + 60;
+      } else if (arrowAlign === "right") {
+        pointX = rect.right - 60;
+      } else {
+        pointX = rect.left + rect.width / 2;
+      }
+    } else {
+      // 좁은 요소(버튼 등): 정확히 중앙을 조준
+      pointX = rect.left + rect.width / 2;
+    }
+
+    // 팝오버 카드 내에서의 말꼬리 left 오프셋 (중심 - 8px = 화살표 중심)
+    let arrowLeft = pointX - left - 8;
+
+    // 둥근 모서리(border-radius: 12px) 안쪽으로 최소 30px 여백 보장
+    arrowLeft = Math.max(30, Math.min(arrowLeft, POPOVER_WIDTH - 46));
+
+    arrowStyle = { left: `${arrowLeft}px`, top: undefined };
+  } else {
+    // 말꼬리가 수직으로 위치하는 경우 (top 값 결정)
+    const pointY = rect.top + effectiveHeight / 2;
+    let arrowTop = pointY - top - 8;
+    arrowTop = Math.max(30, Math.min(arrowTop, POPOVER_HEIGHT - 46));
+    arrowStyle = { top: `${arrowTop}px`, left: undefined };
+  }
+
+  return { top, left, arrowDir, arrowStyle };
+}
+
+/**
+ * 튜토리얼 투어 (TutorialTour) 오버레이 컴포넌트입니다.
+ * React Portal을 통해 body 최상단에 렌더링되며,
+ * 타겟 요소를 하이라이트하고 가이드 팝오버를 표시합니다.
+ *
+ * @param {Array} steps - 투어 스텝 배열
+ * @param {string} matchPath - 이 투어가 활성화될 pathname
+ */
 export default function TutorialTour({ steps = [], matchPath }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
-  const [arrowClass, setArrowClass] = useState("");
+  const [arrowDir, setArrowDir] = useState("");
   const [arrowStyle, setArrowStyle] = useState({});
   const [mounted, setMounted] = useState(false);
-  const [isPositionCalculated, setIsPositionCalculated] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [isTransitionEnabled, setIsTransitionEnabled] = useState(false);
 
   useEffect(() => {
@@ -20,161 +149,86 @@ export default function TutorialTour({ steps = [], matchPath }) {
     return () => setMounted(false);
   }, []);
 
-  // 1. Calculate positions dynamically
+  // ── 좌표 계산 함수 ────────────────────────────────────────────────────────
   const updatePosition = useCallback(() => {
     if (!isOpen || steps.length === 0 || currentIndex >= steps.length) return;
 
-    const currentStep = steps[currentIndex];
-    const targetElement = document.querySelector(currentStep.target);
+    const step = steps[currentIndex];
+    const targetEl = document.querySelector(step.target);
 
-    if (targetElement) {
-      const rect = targetElement.getBoundingClientRect();
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      const { top, left, arrowDir: ad, arrowStyle: as } = computePosition(rect, step);
 
-      // Highlight target coordinates (using viewport-relative coordinates for fixed styling)
       setTargetRect({
         top: rect.top,
         left: rect.left,
         width: rect.width,
-        height: rect.height
+        height: rect.height,
       });
-
-      // Calculate popover coordinates based on position option
-      const pos = currentStep.position || "bottom";
-      let top = 0;
-      let left = 0;
-      const gap = 14;
-      const popoverWidth = 320;
-      const popoverHeight = 170; // Safer boundary check height
-
-      // If target element is extremely large (like a table), cap effective height to keep popover close to target start
-      const effectiveHeight = rect.height > 300 ? 100 : rect.height;
-
-      if (pos === "bottom") {
-        top = rect.top + effectiveHeight + gap;
-        left = rect.left + (rect.width - popoverWidth) / 2;
-        setArrowClass(styles.arrowTop);
-      } else if (pos === "top") {
-        top = rect.top - popoverHeight - gap;
-        left = rect.left + (rect.width - popoverWidth) / 2;
-        setArrowClass(styles.arrowBottom);
-      } else if (pos === "left") {
-        top = rect.top + (effectiveHeight - popoverHeight) / 2;
-        left = rect.left - popoverWidth - gap;
-        setArrowClass(styles.arrowRight);
-      } else if (pos === "right") {
-        top = rect.top + (effectiveHeight - popoverHeight) / 2;
-        left = rect.right + gap;
-        setArrowClass(styles.arrowLeft);
-      }
-
-      // boundary safety checks to keep popover inside the viewport
-      if (left < 10) left = 10;
-      if (left + popoverWidth > window.innerWidth - 10) {
-        left = window.innerWidth - popoverWidth - 10;
-      }
-
-      let finalPos = pos;
-      if (top < 10) {
-        top = rect.top + effectiveHeight + gap; // Flip to bottom
-        setArrowClass(styles.arrowTop);
-        finalPos = "bottom";
-      } else if (top + popoverHeight > window.innerHeight - 10 && rect.top - popoverHeight - gap > 10) {
-        top = rect.top - popoverHeight - gap; // Flip to top
-        setArrowClass(styles.arrowBottom);
-        finalPos = "top";
-      }
-
-      // Calculate dynamic arrow styling to point precisely at target center point
-      const targetCenterX = rect.left + rect.width / 2;
-      const targetCenterY = rect.top + effectiveHeight / 2;
-      let arrowStyleObj = {};
-
-      if (finalPos === "bottom" || finalPos === "top") {
-        let arrowLeft = targetCenterX - left - 8;
-        if (arrowLeft < 15) arrowLeft = 15;
-        if (arrowLeft > 297) arrowLeft = 297;
-        arrowStyleObj = { left: arrowLeft };
-      } else {
-        let arrowTop = targetCenterY - top - 8;
-        if (arrowTop < 15) arrowTop = 15;
-        if (arrowTop > 147) arrowTop = 147;
-        arrowStyleObj = { top: arrowTop };
-      }
-
-      setArrowStyle(arrowStyleObj);
       setPopoverPos({ top, left });
-      setIsPositionCalculated(true);
-      setTimeout(() => {
-        setIsTransitionEnabled(true);
-      }, 50);
+      setArrowDir(ad);
+      setArrowStyle(as);
+      setIsReady(true);
+      setTimeout(() => setIsTransitionEnabled(true), 50);
     } else {
-      // Fallback: Center of the viewport if target element is not found
-      const top = (window.innerHeight - 200) / 2;
-      const left = (window.innerWidth - 320) / 2;
+      // 타겟 없을 시 뷰포트 중앙 폴백
       setTargetRect(null);
-      setPopoverPos({ top, left });
+      setPopoverPos({
+        top: (window.innerHeight - POPOVER_HEIGHT) / 2,
+        left: (window.innerWidth - POPOVER_WIDTH) / 2,
+      });
       setArrowClass("");
       setArrowStyle({});
-      setIsPositionCalculated(true);
-      setTimeout(() => {
-        setIsTransitionEnabled(true);
-      }, 50);
+      setIsReady(true);
+      setTimeout(() => setIsTransitionEnabled(true), 50);
     }
   }, [isOpen, currentIndex, steps]);
 
-  // 2. Listen to global window trigger event from Topbar
+  // ── 트리거 이벤트 수신 ────────────────────────────────────────────────────
   useEffect(() => {
     const handleTrigger = (e) => {
       const { pathname } = e.detail;
-      // Start tour if pathname matches the target path configuration
       if (pathname === matchPath || (matchPath && pathname.startsWith(matchPath))) {
-        setIsPositionCalculated(false);
+        setIsReady(false);
         setIsTransitionEnabled(false);
         setIsOpen(true);
         setCurrentIndex(0);
       }
     };
-
     window.addEventListener("trigger-page-tutorial", handleTrigger);
-    return () => {
-      window.removeEventListener("trigger-page-tutorial", handleTrigger);
-    };
+    return () => window.removeEventListener("trigger-page-tutorial", handleTrigger);
   }, [matchPath]);
 
-  // 3. Auto scroll and recalculate positions when index changes
+  // ── 스텝 변경 시 스크롤 + 좌표 재계산 ──────────────────────────────────────
   useEffect(() => {
     if (!isOpen || steps.length === 0) return;
 
-    // Reset transition state immediately to fade out current step cleanly
-    setIsPositionCalculated(false);
+    setIsReady(false);
     setIsTransitionEnabled(false);
 
-    const currentStep = steps[currentIndex];
-    const targetElement = document.querySelector(currentStep.target);
+    const step = steps[currentIndex];
+    const targetEl = document.querySelector(step.target);
 
-    if (targetElement) {
-      targetElement.scrollIntoView({ behavior: "auto", block: "center" });
-      
-      // Delay computation slightly (50ms) to ensure DOM reflow has completed
-      const timer = setTimeout(() => {
-        updatePosition();
-      }, 50);
-      return () => clearTimeout(timer);
+    if (targetEl) {
+      // position=top 스텝은 타겟 상단을 화면에 보이게 스크롤해야 팝오버 위 공간 확보
+      const scrollBlock = step.position === "top" ? "start" : "center";
+      targetEl.scrollIntoView({ behavior: "auto", block: scrollBlock });
+      // 레이아웃 리플로우 완료 후 3회 재계산으로 정확도 보장
+      const t1 = setTimeout(() => updatePosition(), 60);
+      const t2 = setTimeout(() => updatePosition(), 160);
+      const t3 = setTimeout(() => updatePosition(), 360);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     } else {
       updatePosition();
     }
   }, [isOpen, currentIndex, steps, updatePosition]);
 
-  // 4. Bind window events (resize, scroll) to keep coordinates synced
+  // ── 리사이즈 시 실시간 재계산 ────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
-
     window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition);
-    };
+    return () => window.removeEventListener("resize", updatePosition);
   }, [isOpen, updatePosition]);
 
   const handleNext = () => {
@@ -186,15 +240,13 @@ export default function TutorialTour({ steps = [], matchPath }) {
   };
 
   const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
+    if (currentIndex > 0) setCurrentIndex((prev) => prev - 1);
   };
 
   const handleClose = () => {
     setIsOpen(false);
     setTargetRect(null);
-    setIsPositionCalculated(false);
+    setIsReady(false);
     setIsTransitionEnabled(false);
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("tutorial-ended"));
@@ -207,79 +259,43 @@ export default function TutorialTour({ steps = [], matchPath }) {
 
   return createPortal(
     <>
-      {/* 1. Backdrop Area: Dim screen immediately on isOpen */}
-      <div 
-        style={{ 
-          opacity: isOpen ? 1 : 0, 
-          transition: "opacity 0.3s ease",
-          pointerEvents: "auto"
-        }}
-      >
-        {/* Transparent click guard backdrop (retains blur filter from styles.overlay) */}
-        <div 
-          className={styles.overlay} 
-          style={{ backgroundColor: "transparent" }} 
-          onClick={handleClose}
-        ></div>
+      {/* 어두운 배경 오버레이 */}
+      <div
+        className={styles.overlay}
+        style={{ backgroundColor: "transparent" }}
+        onClick={handleClose}
+      />
 
-        {/* Dark Mask: Dims screen immediately, and opens visual window only when coordinates calculated */}
-        <div 
+      {/* 하이라이트 마스크 */}
+      {isReady && targetRect && (
+        <div
           className={styles.highlightMask}
           style={{
-            top: isPositionCalculated && targetRect ? targetRect.top - 4 : 0,
-            left: isPositionCalculated && targetRect ? targetRect.left - 4 : 0,
-            width: isPositionCalculated && targetRect ? targetRect.width + 8 : 0,
-            height: isPositionCalculated && targetRect ? targetRect.height + 8 : 0,
-            transition: isTransitionEnabled ? undefined : "none"
+            top: targetRect.top - 4,
+            left: targetRect.left - 4,
+            width: targetRect.width + 8,
+            height: targetRect.height + 8,
+            transition: isTransitionEnabled ? undefined : "none",
           }}
         >
-          {isPositionCalculated && targetRect && <div className={styles.highlightGlow}></div>}
+          <div className={styles.highlightGlow} />
         </div>
-      </div>
+      )}
 
-      {/* 2. Popover Guidance Bubble: Renders at the very top level of body to maintain z-index: 1000000 */}
-      {isPositionCalculated && (
-        <div 
-          className={styles.popover}
-          style={{
-            top: popoverPos.top,
-            left: popoverPos.left,
-            transition: isTransitionEnabled ? undefined : "none"
-          }}
-        >
-          {arrowClass && <div className={`${styles.arrow} ${arrowClass}`} style={arrowStyle}></div>}
-          
-          <div className={styles.popoverHeader}>
-            <h4 className={styles.title}>
-              <i className="bi bi-info-circle-fill text-primary"></i>
-              {currentStep.title}
-            </h4>
-            <span className={styles.badge}>
-              {currentIndex + 1} / {steps.length}
-            </span>
-          </div>
-
-          <p className={styles.content}>{currentStep.content}</p>
-
-          <div className={styles.footer}>
-            <button className={styles.skipBtn} onClick={handleClose}>
-              Skip
-            </button>
-            
-            <div className={styles.btnGroup}>
-              <button 
-                className={styles.navBtn} 
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-              >
-                Prev
-              </button>
-              <button className={styles.primaryBtn} onClick={handleNext}>
-                {currentIndex === steps.length - 1 ? "Finish" : "Next"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* 가이드 팝오버 */}
+      {isReady && (
+        <TutorialPopover
+          currentStep={currentStep}
+          currentIndex={currentIndex}
+          totalSteps={steps.length}
+          popoverPos={popoverPos}
+          arrowDir={arrowDir}
+          arrowStyle={arrowStyle}
+          isTransitionEnabled={isTransitionEnabled}
+          handlePrev={handlePrev}
+          handleNext={handleNext}
+          handleClose={handleClose}
+        />
       )}
     </>,
     document.body

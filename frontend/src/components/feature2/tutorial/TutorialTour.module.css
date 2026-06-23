@@ -12,8 +12,13 @@
 }
 
 @keyframes overlayFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .highlightMask {
@@ -38,8 +43,13 @@
 }
 
 @keyframes pulseGlow {
-  0% { opacity: 0.4; }
-  100% { opacity: 0.8; }
+  0% {
+    opacity: 0.4;
+  }
+
+  100% {
+    opacity: 0.8;
+  }
 }
 
 .popover {
@@ -52,14 +62,20 @@
   padding: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   box-sizing: border-box;
-  backdrop-filter: blur(10px);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   animation: popoverFadeIn 0.3s ease;
 }
 
 @keyframes popoverFadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .popoverHeader {
@@ -77,6 +93,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.infoIcon {
+  color: var(--accent-color) !important;
 }
 
 .badge {
@@ -111,16 +131,16 @@
 .skipBtn {
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--menu-item-color);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   padding: 6px 10px;
-  transition: opacity 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 .skipBtn:hover {
-  opacity: 0.8;
+  color: var(--foreground);
 }
 
 .navBtn {
@@ -160,102 +180,5 @@
   opacity: 0.9;
 }
 
-/* Arrow indicators pointing to target - unified with popover border & background */
-.arrow {
-  position: absolute;
-  pointer-events: none;
-  width: 16px;
-  height: 16px;
-}
-
-.arrowTop {
-  top: -8px;
-  left: 20px;
-}
-.arrowTop::before {
-  content: "";
-  position: absolute;
-  border-width: 0 8px 8px 8px;
-  border-style: solid;
-  border-color: transparent transparent var(--card-border) transparent;
-  top: 0;
-  left: 0;
-}
-.arrowTop::after {
-  content: "";
-  position: absolute;
-  border-width: 0 7px 7px 7px;
-  border-style: solid;
-  border-color: transparent transparent var(--card-bg) transparent;
-  top: 1px;
-  left: 1px;
-}
-
-.arrowBottom {
-  bottom: -8px;
-  left: 20px;
-}
-.arrowBottom::before {
-  content: "";
-  position: absolute;
-  border-width: 8px 8px 0 8px;
-  border-style: solid;
-  border-color: var(--card-border) transparent transparent transparent;
-  top: 0;
-  left: 0;
-}
-.arrowBottom::after {
-  content: "";
-  position: absolute;
-  border-width: 7px 7px 0 7px;
-  border-style: solid;
-  border-color: var(--card-bg) transparent transparent transparent;
-  top: 0;
-  left: 1px;
-}
-
-.arrowLeft {
-  left: -8px;
-  top: 20px;
-}
-.arrowLeft::before {
-  content: "";
-  position: absolute;
-  border-width: 8px 8px 8px 0;
-  border-style: solid;
-  border-color: transparent var(--card-border) transparent transparent;
-  top: 0;
-  left: 0;
-}
-.arrowLeft::after {
-  content: "";
-  position: absolute;
-  border-width: 7px 7px 7px 0;
-  border-style: solid;
-  border-color: transparent var(--card-bg) transparent transparent;
-  top: 1px;
-  left: 1px;
-}
-
-.arrowRight {
-  right: -8px;
-  top: 20px;
-}
-.arrowRight::before {
-  content: "";
-  position: absolute;
-  border-width: 8px 0 8px 8px;
-  border-style: solid;
-  border-color: transparent transparent transparent var(--card-border);
-  top: 0;
-  left: 0;
-}
-.arrowRight::after {
-  content: "";
-  position: absolute;
-  border-width: 7px 0 7px 7px;
-  border-style: solid;
-  border-color: transparent transparent transparent var(--card-bg);
-  top: 1px;
-  left: 0;
-}
+/* Arrow indicators are now rendered as inline SVG in TutorialPopover.js */
+/* All arrow positioning and styling is handled via inline styles on the <svg> element */
