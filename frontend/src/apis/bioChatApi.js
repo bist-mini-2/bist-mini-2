@@ -1,4 +1,4 @@
-import { apiClient } from "./axiosConfig";
+import { apiClient, backendUrl } from "./axiosConfig";
 
 /**
  * 새로운 채팅방(세션)을 생성합니다.
@@ -84,7 +84,7 @@ export async function sendMessageStream(sessionId, message, onToken, onStatus) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
   const res = await fetch(
-    `http://localhost:8000/api/v1/chat/sessions/${sessionId}/messages/stream`,
+    `${backendUrl}/chat/sessions/${sessionId}/messages/stream`,
     {
       method: "POST",
       headers: {
