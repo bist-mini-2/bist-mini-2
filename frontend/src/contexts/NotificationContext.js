@@ -9,6 +9,7 @@ import {
   deleteNotification,
   deleteAllNotifications
 } from "@/apis/notification";
+import { backendUrl } from "@/apis/axiosConfig";
 
 export const NotificationContext = createContext();
 
@@ -175,7 +176,7 @@ export function NotificationContextProvider({ children }) {
       return;
     }
 
-    const sseUrl = `http://localhost:8000/api/v1/notification/stream?accessToken=${accessToken}`;
+    const sseUrl = `${backendUrl}/notification/stream?accessToken=${accessToken}`;
     logger("Connecting to centralized SSE notification stream...");
     
     const es = new EventSource(sseUrl);
