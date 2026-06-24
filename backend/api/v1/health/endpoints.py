@@ -1,5 +1,6 @@
 import os
 import time
+import asyncio
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -192,11 +193,14 @@ async def get_dashboard_context(request: Request) -> dict:
     # 5. Git Changelog 수집 (최근 20개 커밋)
     git_changelog = []
     try:
-        git_log = subprocess.check_output(
-            ["git", "log", "-n", "20", "--pretty=format:%h|%an|%ar|%s"],
-            cwd=workspace_root,
-            text=True
+        proc = await asyncio.create_subprocess_exec(
+            "git", "log", "-n", "20", "--pretty=format:%h|%an|%ar|%s",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=workspace_root
         )
+        stdout, _ = await proc.communicate()
+        git_log = stdout.decode("utf-8")
         for line in git_log.split("\n"):
             if "|" in line:
                 h, an, ar, s = line.split("|", 3)

@@ -24,7 +24,7 @@ import AppLayoutWrapper from "@/components/app-layout-wrapper/AppLayoutWrapper";
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
         <BootstrapClient />
         <ThemeContextProvider>

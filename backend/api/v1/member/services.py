@@ -1,6 +1,7 @@
 """회원 서비스 및 인증 비즈니스 로직을 처리하는 모듈입니다."""
 
 import logging
+import asyncio
 from typing import Annotated
 from fastapi import Depends
 import bcrypt
@@ -42,8 +43,12 @@ class MemberService:
         if existing:
             raise BusinessException("이미 존재하는 회원 아이디입니다.", error_code="MEMBER_DUPLICATE")
 
-        hashed = bcrypt.hashpw(member_entity.mpassword.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        member_entity.mpassword = hashed
+        hashed = await asyncio.to_thread(
+            bcrypt.hashpw,
+            member_entity.mpassword.encode('utf-8'),
+            bcrypt.gensalt()
+        )
+        member_entity.mpassword = hashed.decode('utf-8')
         member_entity = await self.member_dao.insert(member_entity)
         return member_entity
 
@@ -65,7 +70,12 @@ class MemberService:
         db_member_entity = await self.member_dao.select_by_mid(mid)
         if not db_member_entity:
             raise MemberNotFoundError("존재하지 않는 회원 아이디")
-        if not bcrypt.checkpw(password.encode('utf-8'), db_member_entity.mpassword.encode('utf-8')):
+        is_valid = await asyncio.to_thread(
+            bcrypt.checkpw,
+            password.encode('utf-8'),
+            db_member_entity.mpassword.encode('utf-8')
+        )
+        if not is_valid:
             raise InvalidPasswordError("회원 비밀번호가 틀림")
         return db_member_entity
 
@@ -90,8 +100,12 @@ class MemberService:
             MemberEntity: 업데이트 완료 및 해싱된 비밀번호가 적용된 회원 엔티티 정보.
         """
         if member_entity.mpassword:
-            hashed = bcrypt.hashpw(member_entity.mpassword.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            member_entity.mpassword = hashed
+            hashed = await asyncio.to_thread(
+                bcrypt.hashpw,
+                member_entity.mpassword.encode('utf-8'),
+                bcrypt.gensalt()
+            )
+            member_entity.mpassword = hashed.decode('utf-8')
         return await self.member_dao.update(member_entity)
 
     async def delete(self, mid: str):
