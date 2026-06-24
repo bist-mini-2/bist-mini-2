@@ -7,6 +7,7 @@ import { AuthContext } from "@/contexts/AuthContext";
 import Feature1Sidebar from "./Feature1Sidebar";
 import Feature2Sidebar from "./Feature2Sidebar";
 import Feature3Sidebar from "./Feature3Sidebar";
+import Feature4Sidebar from "./Feature4Sidebar";
 import styles from "./Sidebar.module.css";
 
 /**
@@ -61,6 +62,8 @@ export default function Sidebar({ isCollapsed, onToggle }) {
       subComponent = <Feature2Sidebar isCollapsed={isCollapsed} />;
     } else if (pathname.startsWith("/feature3")) {
       subComponent = <Feature3Sidebar isCollapsed={isCollapsed} />;
+    } else if (pathname.startsWith("/feature4")) {
+      subComponent = <Feature4Sidebar isCollapsed={isCollapsed} />;
     }
 
     if (!subComponent) return null;

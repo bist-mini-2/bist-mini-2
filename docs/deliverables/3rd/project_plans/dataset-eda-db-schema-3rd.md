@@ -79,8 +79,8 @@ Kaggle ArXiv 전체 데이터셋에서 플랫폼이 지원하는 3대 타겟 영
 | :--- | :--- | :---: | :--- |
 | **컴퓨터 과학 (CS)** | `cs_embeddings` | **17,825 건** | `cs.NE` (Neural and Evolutionary Computing) 전체 적재 완료 |
 | **천문학 (Astronomy)** | `astronomy_embeddings` | **35,083 건** | `astro-ph.EP` (Earth and Planetary Astrophysics) 전체 적재 완료 |
-| **생명공학 (Bio)** | `bio_embeddings` | **21,383 건** | `q-bio.GN` 및 주요 추가 카테고리(`q-bio.BM/MN/TO/CB/SC/OT`) 적재 완료 |
-| **합계** | - | **74,291 건** | **3대 도메인 핵심 카테고리 전체 적재 완료** |
+| **생명공학 (Bio)** | `bio_embeddings` | **54,066 건** | `q-bio.GN` 및 주요 추가 카테고리(`q-bio.BM/MN/TO/CB/SC/OT`) 적재 완료 |
+| **합계** | - | **106,974 건** | **3대 도메인 핵심 카테고리 전체 적재 완료** |
 
 ---
 
@@ -165,13 +165,45 @@ erDiagram
         timestamp updated_at "수정 일시"
     }
 
+    DEFENSE_ARENA_SESSION {
+        string session_id PK "세션 UUID (String 36)"
+        string member_id "소유자 ID (String 20)"
+        string file_name "파일명 (String 255)"
+        string file_path "물리 파일 경로 (String 500)"
+        integer chunk_count "청크 수 (Integer)"
+        timestamp created_at "생성 일시"
+        timestamp updated_at "수정 일시"
+    }
+
+    DEFENSE_ARENA_CHUNK {
+        integer id PK "청크 ID (Serial)"
+        string session_id FK "세션 UUID (References defense_arena_session)"
+        integer chunk_index "청크 인덱스 (Integer)"
+        text text_chunk "청크 본문 (Text)"
+        vector embedding "3072차원 벡터 (vector(3072))"
+    }
+
+    DEFENSE_HISTORY {
+        integer id PK "대화 ID (Serial)"
+        string session_id FK "세션 UUID (References defense_arena_session)"
+        integer turn "대화 턴 (Integer)"
+        text question "심사위원 질문 (Text)"
+        text answer "사용자 반론 (Text, Nullable)"
+        integer score "점수 (Integer, Nullable)"
+        text feedback "피드백 (Text, Nullable)"
+        timestamp created_at "생성 일시"
+    }
+
     MEMBER ||--o{ CHAT_SESSION : "owns"
     MEMBER ||--o{ GEM : "creates"
     MEMBER ||--o{ NOTIFICATION : "receives"
     MEMBER ||--o{ RESEARCH_GAP_TASK : "requests"
+    MEMBER ||--o{ DEFENSE_ARENA_SESSION : "owns"
     
     CHAT_SESSION ||--o{ CHAT_SOURCE : "contains"
     LANGCHAIN_PG_COLLECTION ||--o{ LANGCHAIN_PG_EMBEDDING : "has"
+    DEFENSE_ARENA_SESSION ||--o{ DEFENSE_ARENA_CHUNK : "contains"
+    DEFENSE_ARENA_SESSION ||--o{ DEFENSE_HISTORY : "tracks"
 ```
 
 ---
@@ -280,5 +312,37 @@ CREATE TABLE research_gap_task (
     error_message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- =========================================================================
+-- 8. 보안 피어 리뷰 및 가설 디펜스 아레나 테이블
+-- =========================================================================
+CREATE TABLE defense_arena_session (
+    session_id VARCHAR(36) PRIMARY KEY,
+    member_id VARCHAR(20) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    chunk_count INTEGER DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE defense_arena_chunk (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(36) NOT NULL REFERENCES defense_arena_session(session_id) ON DELETE CASCADE,
+    chunk_index INTEGER NOT NULL,
+    text_chunk TEXT NOT NULL,
+    embedding vector(3072) NOT NULL
+);
+
+CREATE TABLE defense_history (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(36) NOT NULL REFERENCES defense_arena_session(session_id) ON DELETE CASCADE,
+    turn INTEGER NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT,
+    score INTEGER,
+    feedback TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 ```

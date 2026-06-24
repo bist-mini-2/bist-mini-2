@@ -75,3 +75,72 @@ export async function defenseChatArena(sessionId, userResponse) {
   });
   return response.data;
 }
+
+/**
+ * 보안 격리 세션의 마지막 활동 시각을 갱신(Ping)하여 만료 시간을 연장합니다.
+ * 
+ * @param {string} sessionId 세션 UUID
+ * @returns {Promise<object>} API 응답 객체
+ */
+export async function keepAliveDefenseSession(sessionId) {
+  const formData = new FormData();
+  formData.append("session_id", sessionId);
+  const response = await apiClient.post("/defense-arena/keep-alive", formData, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+  return response.data;
+}
+
+/**
+ * 영어 학술 텍스트를 한국어로 번역합니다.
+ * 
+ * @param {string} text 번역할 영어 학술 텍스트
+ * @returns {Promise<object>} 번역 결과 응답 객체 (translated_text 포함)
+ */
+export async function translateText(text) {
+  const formData = new FormData();
+  formData.append("text", text);
+  const response = await apiClient.post("/defense-arena/translate", formData, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+  return response.data;
+}
+
+/**
+ * 사용자의 저장된 디펜스 아레나 히스토리 목록을 조회합니다.
+ * 
+ * @returns {Promise<object>} API 응답 객체 (SavedSessionDTO 배열 포함)
+ */
+export async function getDefenseHistoryList() {
+  const response = await apiClient.get("/defense-arena/history");
+  return response.data;
+}
+
+/**
+ * 특정 보관 세션의 상세 정보를 복원합니다.
+ * 
+ * @param {string} sessionId 세션 UUID
+ * @returns {Promise<object>} API 응답 객체 (SavedSessionDetailResponse DTO)
+ */
+export async function getDefenseSessionDetail(sessionId) {
+  const response = await apiClient.get(`/defense-arena/history/${sessionId}`);
+  return response.data;
+}
+
+/**
+ * 특정 보관 세션을 영구 삭제합니다.
+ * 
+ * @param {string} sessionId 세션 UUID
+ * @returns {Promise<object>} API 응답 객체
+ */
+export async function deleteDefenseSession(sessionId) {
+  const response = await apiClient.delete(`/defense-arena/history/${sessionId}`);
+  return response.data;
+}
+
+
+

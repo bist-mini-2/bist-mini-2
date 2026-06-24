@@ -18,7 +18,7 @@
 
 | 기능 코드 | 하위 구분 | 상세 기능명 | 상태 | 엔드포인트 / 기술 | Input 스펙 (파라미터) | Output 스펙 (결과 데이터) | 상세 설명 |
 | :---: | :--- | :--- | :---: | :--- | :--- | :--- | :--- |
-| **F-RAG-01** | 데이터/RAG | 생명공학(Biotechnology) RAG 파이프라인 | **완료** | PostgreSQL pgvector / `POST /similarity-search/bio` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • ArXiv `q-bio.GN` 및 `q-bio.BM/MN/TO/CB/SC/OT` 카테고리 논문 데이터 **총 21,383건**의 초록을 단일 임베딩 벡터로 적재하여 유사도 검색 및 결과 반환 |
+| **F-RAG-01** | 데이터/RAG | 생명공학(Biotechnology) RAG 파이프라인 | **완료** | PostgreSQL pgvector / `POST /similarity-search/bio` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • ArXiv `q-bio.GN` 및 `q-bio.BM/MN/TO/CB/SC/OT` 카테고리 논문 데이터 **총 54,066건**의 초록을 단일 임베딩 벡터로 적재하여 유사도 검색 및 결과 반환 |
 | **F-RAG-02** | 데이터/RAG | 컴퓨터 과학(Computer Science) RAG 파이프라인 | **완료** | PostgreSQL pgvector / `POST /similarity-search/cs` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • ArXiv 컴퓨터 과학 `cs.NE` (Neural and Evolutionary Computing) 카테고리 논문 **총 17,825건**의 초록을 단일 임베딩 벡터로 적재하여 유사도 검색 및 결과 반환 |
 | **F-RAG-03** | 데이터/RAG | 천문학(Astronomy) RAG 파이프라인 | **완료** | PostgreSQL pgvector / `POST /similarity-search/astronomy` | • `query` (str)<br>• `top_k` (int = 3) | • `results`: Array of<br>&nbsp;&nbsp;- `doc_id` (str)<br>&nbsp;&nbsp;- `title` (str)<br>&nbsp;&nbsp;- `text_chunk` (str)<br>&nbsp;&nbsp;- `score` (float) | • ArXiv 지구 및 행성 천체물리 `astro-ph.EP` 카테고리 논문 **총 35,083건**의 초록을 단일 임베딩 벡터로 적재하여 유사도 검색 및 결과 반환 |
 
@@ -56,11 +56,11 @@
 
 | 기능 코드 | 상세 기능명 | 상태 | 엔드포인트 / 기술 | Input 스펙 | Output 스펙 | 상세 설명 |
 | :---: | :--- | :---: | :--- | :--- | :--- | :--- |
-| **F-02-A-1** | PDF 격리 업로드 및 임베딩 | **완료** | `POST /validation/upload-isolated` | • `file` (UploadFile)<br>• `session_id` (str) | • `session_file_id` (str)<br>• `chunk_count` (int) | • 보안 샌드박스 세션 스코프 내에서만 조회되는 임시 임베딩 인덱스 적재 |
+| **F-02-A-1** | PDF 격리 업로드 및 임베딩 | **완료** | `POST /defense-arena/upload-isolated` | • `file` (UploadFile) | • `session_id` (str)<br>• `file_name` (str)<br>• `chunk_count` (int) | • 보안 샌드박스 세션 스코프 내에서만 조회되는 임시 임베딩 인덱스 적재 |
 | **F-02-A-2** | 샌드박스 세션 자동 소거 데몬 | **완료** | OS Path Guard / Shredding | N/A | N/A | • 30분 미활동 시 세션 PDF 파일 및 pgvector 임시 테이블 공간을 영구 완전 소거 (Wipe Out) |
-| **F-02-A-3** | 다중 에이전트 피어 리뷰 실행 | **완료** | `POST /academic-peer-review` | • `draft_text` (str)<br>• `target_journal` (str) | • `overall_score` (int)<br>• `review_report` (str) | • LangGraph 기반 3대 에이전트(방법론, 신규성, 학술문체)가 토론(Debate)을 거쳐 최종 종합 피드백 DTO 도출 |
-| **F-02-A-4** | 자기 일관성(Self-Consistency) 가설 검증 | **완료** | Majority Voting Logic | • `hypothesis` (str) | • `verdict` (SUPPORT/REFUTE) | • 임시 업로드 문서 및 RAG DB에서 관련 근거를 취합해 N회 독립 추론 후 다수결 합의 도출 |
-| **F-02-A-5** | 심사위원 에이전트 디펜스 아레나 | **완료** | `POST /sandbox/defense/chat` | • `session_id` (str)<br>• `user_response` (str) | • `refutation_question` (str)<br>• `score` (int), `feedback` (str) | • 피어 리뷰 보고서 기반으로 가상의 심사위원이 압박 질문을 던지고, 사용자의 방어 논리를 실시간 채점하는 시뮬레이터 |
+| **F-02-A-3** | 다중 에이전트 피어 리뷰 실행 | **완료** | `POST /defense-arena/peer-review` | • `session_id` (str)<br>• `target_journal` (str) | • `overall_score` (int)<br>• `review_report` (str) | • LangGraph 기반 3대 에이전트(방법론, 신규성, 학술문체)가 토론(Debate)을 거쳐 최종 종합 피드백 DTO 도출 |
+| **F-02-A-4** | 자기 일관성(Self-Consistency) 가설 검증 | **완료** | `POST /defense-arena/verify-hypothesis` | • `session_id` (str)<br>• `hypothesis` (str) | • `verdict` (SUPPORT/REFUTE)<br>• `rationale` (str) | • 임시 업로드 문서 및 RAG DB에서 관련 근거를 취합해 N회 독립 추론 후 다수결 합의 도출 |
+| **F-02-A-5** | 심사위원 에이전트 디펜스 아레나 | **완료** | `POST /defense-arena/defense/chat` | • `session_id` (str)<br>• `user_response` (str, optional) | • `refutation_question` (str)<br>• `score` (int), `feedback` (str)<br>• `is_finished` (bool) | • 피어 리뷰 보고서 기반으로 가상의 심사위원이 압박 질문을 던지고, 사용자의 방어 논리를 실시간 채점하는 시뮬레이터 |
 
 ---
 

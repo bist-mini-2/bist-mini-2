@@ -1,8 +1,9 @@
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Text, DateTime, Integer, func, ForeignKey
+from sqlalchemy import String, Text, DateTime, Integer, func, ForeignKey, JSON, Float, Boolean
 from pgvector.sqlalchemy import Vector
 from api.database.config.entity_base import Base
+
 
 
 class DefenseArenaSessionEntity(Base):
@@ -20,6 +21,13 @@ class DefenseArenaSessionEntity(Base):
     chunk_count: Mapped[int] = mapped_column("chunk_count", Integer, default=0)
     created_at: Mapped[datetime] = mapped_column("created_at", DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column("updated_at", DateTime, server_default=func.now(), onupdate=func.now())
+
+    is_saved: Mapped[bool] = mapped_column("is_saved", Boolean, default=True, server_default="true")
+    peer_review_result: Mapped[dict | None] = mapped_column("peer_review_result", JSON, nullable=True)
+    hypothesis_result: Mapped[dict | None] = mapped_column("hypothesis_result", JSON, nullable=True)
+    final_report: Mapped[str | None] = mapped_column("final_report", Text, nullable=True)
+    defense_score: Mapped[float | None] = mapped_column("defense_score", Float, nullable=True)
+
 
     # CASCADE ON DELETE
     defense_histories: Mapped[list["DefenseHistoryEntity"]] = relationship(

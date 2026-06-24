@@ -113,10 +113,10 @@ sequenceDiagram
     Note over User, DB: [1단계: 임시 샌드박스 개설 및 로컬 데이터 적재]
     User->>UI: 1. 보안 분석용 개인 논문 PDF 업로드
     activate UI
-    UI->>API: 2. POST /validation/upload-isolated (Multipart Form)
+    UI->>API: 2. POST /defense-arena/upload-isolated (Multipart Form)
     activate API
     
-    API->>DB: 3. 임시 sandbox_session 생성 (created_at, expires_at = +30분)
+    API->>DB: 3. 임시 defense_arena_session 생성
     activate DB
     DB-->>API: 4. session_id (UUID) 반환
     deactivate DB
@@ -125,7 +125,7 @@ sequenceDiagram
     API->>API: 6. PDF 텍스트 추출 및 500자/중첩 50자 청크 분할
     
     loop 청크 단위 순회
-        API->>DB: 7. 임시 sandbox_embeddings 테이블에 청크/벡터 적재
+        API->>DB: 7. 임시 defense_arena_chunk 테이블에 청크/벡터 적재
     end
     
     API-->>UI: 8. 업로드 및 샌드박스 가상 세션 활성화 완료 응답
@@ -138,12 +138,12 @@ sequenceDiagram
     loop 1분 주기로 정기 트리거 체크
         Scheduler->>API: 10. 만료 스케줄러 작동 트리거 실행
         activate API
-        API->>DB: 11. 만료 쿼리 실행 (DELETE FROM sandbox_session WHERE expires_at <= NOW())
+        API->>DB: 11. 만료 쿼리 실행 (DELETE FROM defense_arena_session WHERE created_at <= NOW() - INTERVAL '30 minutes')
         activate DB
-        DB->>DB: 12. 만료된 sandbox_session 삭제 연산 수행
+        DB->>DB: 12. 만료된 defense_arena_session 삭제 연산 수행
         
         Note over DB: ON DELETE CASCADE 트리거 작동
-        DB->>DB: 13. 연결된 sandbox_file 및 sandbox_embeddings 자동 연쇄 삭제 (파쇄)
+        DB->>DB: 13. 연결된 defense_arena_chunk 및 defense_history 자동 연쇄 삭제 (파쇄)
         
         DB-->>API: 14. 삭제된 파일 목록 (UUID, file_path) 반환
         deactivate DB
