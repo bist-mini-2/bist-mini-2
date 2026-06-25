@@ -614,16 +614,42 @@
   text-align: left;
   white-space: normal;
 }
+/* 칩↔카드 사이 8px 틈을 투명 영역으로 메워, 마우스를 옮겨도 호버가 안 풀리게 */
+.citationCard::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 10px;
+}
 .citationWrap:hover .citationCard {
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(0);
+  pointer-events: auto;   /* 호버 시에만 클릭 가능하게 (화살표 버튼 클릭용) */
+}
+.citationWrap:hover .citationCard {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.citationCardTitle,
+.citationCardTitle:hover,
+.citationCardTitle:link,
+.citationCardTitle:visited {
+  text-decoration: none !important;
 }
 .citationCardTitle {
   font-size: 12.5px;
   font-weight: 700;
   line-height: 1.35;
   color: var(--accent-color);
+  cursor: pointer;
+  display: block;
+}
+.citationCardTitle:hover {
+  opacity: 0.8;   /* 밑줄 대신 살짝 흐려지는 걸로 "클릭 가능" 표시 */
 }
 
 .citationCardSummary {
@@ -640,4 +666,45 @@
   font-weight: 600;
   color: var(--accent-color);
   margin-top: 2px;
+}
+
+
+/* 칩 안의 +N 배지 (여러 논문일 때) */
+.citationMore {
+  margin-left: 3px;
+  padding: 0 3px;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent-color) 30%, transparent);
+}
+
+/* 호버 카드 상단 페이지네이션 */
+.citationNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--card-border);
+}
+.citationNavBtn {
+  border: none;
+  background: transparent;
+  color: var(--accent-color);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.citationNavBtn:hover {
+  background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+}
+.citationNavCount {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--profile-role-color);
 }

@@ -301,6 +301,7 @@ export default function Feature1Page() {
                 message={msg}
                 isActive={panelIndex === idx}
                 onTogglePanel={() => togglePanel(idx)}
+                isStreaming={isSending && idx === messages.length - 1}
               />
             ))
           )}
@@ -353,7 +354,7 @@ function parseAnswer(content) {
  * 사용자/AI 메시지 말풍선.
  * AI 메시지는 설명(explanation) + "논문 N편" 패널 토글 버튼 + 검색 출처(sources)를 표시한다.
  */
-function MessageBubble({ message, index, isActive, onTogglePanel }) {
+function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming }) {
   const isUser = message.role === "user";
 
   // 아직 토큰이 안 온 빈 답변 말풍선은 렌더하지 않는다 (로딩은 LoadingBubble이 담당)
@@ -367,40 +368,33 @@ function MessageBubble({ message, index, isActive, onTogglePanel }) {
   // 참고 논문 = 실제 검색된 출처(sources). 패널/버튼이 이걸 사용한다.
   const refPapers = !isUser && Array.isArray(message.sources) ? message.sources : [];
 
-  // 본문 텍스트 속 [1] [2] 같은 인용 마커를 클릭 가능한 칩으로 바꾼다.
-  // 번호 N은 sources[N-1]에 대응. 범위를 벗어난 번호는 그냥 텍스트로 둔다(방어).
+  // 본문 텍스트 속 인용 마커를 칩으로 바꾼다.
+  // - 연속된 [1][2]는 하나의 칩으로 묶어, 호버 카드에서 넘겨본다(페이지네이션).
+  // - 스트리밍 중에는 마커를 숨긴다(끝난 뒤에만 칩으로 표시).
   const renderWithCitations = (text) => {
-    if (typeof text !== "string" || refPapers.length === 0) return text;
-    // "있습니다 [2]." → "있습니다.[2]" : 칩 앞 공백을 없애고, 뒤따르는 문장부호를 칩 앞으로 옮긴다.
-    const normalized = text.replace(/\s*(\[\d+\])\s*([.,!?。、])/g, "$2$1");
-    const parts = normalized.split(/(\[\d+\])/g); // [숫자]를 기준으로 쪼갠다
+    if (typeof text !== "string") return text;
+
+    // 스트리밍 중에는 [1], [1][2] 같은 마커를 화면에서 제거한다.
+    if (isStreaming) {
+      return text.replace(/\s*(?:\[\d+\])+\s*([.,!?。、])?/g, (mt, punc) => (punc ? punc : ""));
+    }
+
+    if (refPapers.length === 0) return text;
+
+    // "있습니다 [1][2]." → "있습니다.[1][2]" : 칩 앞 공백 제거 + 뒤 문장부호를 칩 앞으로.
+    const normalized = text.replace(/\s*((?:\[\d+\])+)\s*([.,!?。、])/g, "$2$1");
+    // 연속된 마커 묶음([1] 또는 [1][2][3])을 기준으로 쪼갠다.
+    const parts = normalized.split(/((?:\[\d+\])+)/g);
     return parts.map((part, i) => {
-      const m = part.match(/^\[(\d+)\]$/);
-      if (m) {
-        const n = parseInt(m[1], 10);
-        const src = refPapers[n - 1]; // [1] → sources[0]
-        if (src && src.arxiv_id) {
-          // A안: 칩에 arXiv ID를 직접 표시. 호버하면 제목+요약 카드.
-          return (
-            <span key={i} className={styles.citationWrap}>
-                <a
-                className={styles.citation}
-                href={`https://arxiv.org/abs/${src.arxiv_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {/* <i className="bi bi-file-earmark-text"></i> */}
-                arXiv:{src.arxiv_id}
-              </a>
-              <span className={styles.citationCard}>
-                <span className={styles.citationCardTitle}>{src.title || `논문 ${n}`}</span>
-                {src.summary && (
-                  <span className={styles.citationCardSummary}>{src.summary}</span>
-                )}
-                <span className={styles.citationCardLink}>arXiv:{src.arxiv_id} ↗</span>
-              </span>
-            </span>
-          );
+      const isMarker = /^(?:\[\d+\])+$/.test(part);
+      if (isMarker) {
+        // 묶음 안의 번호들을 모아 유효한 논문만 추린다.
+        const nums = (part.match(/\d+/g) || []).map((d) => parseInt(d, 10));
+        const papers = nums
+          .map((n) => refPapers[n - 1])
+          .filter((s) => s && s.arxiv_id);
+        if (papers.length > 0) {
+          return <CitationChip key={i} papers={papers} />;
         }
       }
       return part; // 일반 텍스트이거나 범위 밖 번호는 그대로
@@ -453,6 +447,54 @@ function MessageBubble({ message, index, isActive, onTogglePanel }) {
     </div>
   );
 }
+
+/**
+ * 인용 칩 — 여러 논문을 묶어 표시하고, 호버 카드에서 ‹ › 로 넘겨본다.
+ */
+function CitationChip({ papers }) {
+  const [page, setPage] = useState(0);
+  const total = papers.length;
+  const cur = papers[Math.min(page, total - 1)];
+
+  const go = (e, dir) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPage((p) => (p + dir + total) % total);
+  };
+
+  return (
+    <span className={styles.citationWrap}>
+      <a
+        className={styles.citation}
+        href={`https://arxiv.org/abs/${cur.arxiv_id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        arXiv:{cur.arxiv_id}
+        {total > 1 && <span className={styles.citationMore}>+{total - 1}</span>}
+      </a>
+      <span className={styles.citationCard}>
+        {total > 1 && (
+          <span className={styles.citationNav}>
+            <button className={styles.citationNavBtn} onClick={(e) => go(e, -1)} aria-label="이전">‹</button>
+            <span className={styles.citationNavCount}>{page + 1} / {total}</span>
+            <button className={styles.citationNavBtn} onClick={(e) => go(e, 1)} aria-label="다음">›</button>
+          </span>
+        )}
+        <a className={styles.citationCardTitle}
+          href={`https://arxiv.org/abs/${cur.arxiv_id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {cur.title || cur.arxiv_id}
+        </a>
+        {cur.summary && <span className={styles.citationCardSummary}>{cur.summary}</span>}
+        <span className={styles.citationCardLink}>arXiv:{cur.arxiv_id} ↗</span>
+      </span>
+    </span>
+  );
+}
+
 
 /**
  * 답변 생성 중 표시되는 로딩 말풍선. 클로버 펄스 인디케이터를 포함한다.
