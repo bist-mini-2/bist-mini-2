@@ -721,6 +721,232 @@
 .gem-msg-typing span:nth-child(2) { animation-delay: 0.2s; }
 .gem-msg-typing span:nth-child(3) { animation-delay: 0.4s; }
 
+/* ── 검색 단계 — 세로 스택 ── */
+.gem-search-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.gem-search-step-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  animation: gem-step-fadein 0.2s ease;
+}
+
+/* 진행 중 */
+.gem-step-active {
+  color: var(--accent-color);
+}
+
+/* 완료 */
+.gem-step-done {
+  color: var(--text-muted, #9ca3af);
+}
+
+.gem-search-step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+}
+
+/* 완료 체크 아이콘 */
+.gem-step-done .gem-search-step-indicator {
+  color: #22c55e;
+}
+
+/* 타입 아이콘 (journals / file / pencil) */
+.gem-search-step-type-icon {
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+/* 회전 스피너 */
+.gem-step-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: gem-spin 0.7s linear infinite;
+}
+
+@keyframes gem-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes gem-step-fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 출처 패널 — 섹션 구분 레이블 ── */
+.gem-source-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #9ca3af);
+  padding: 10px 4px 4px;
+}
+
+/* ── 파일 카드 구분 스타일 ── */
+.gem-file-card {
+  border-left: 3px solid var(--accent-color) !important;
+}
+
+.gem-file-icon {
+  color: var(--accent-color) !important;
+}
+
+.gem-file-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+  color: var(--accent-color);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ── 유사도 점수 배지 (논문) ── */
+.gem-paper-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.gem-source-score-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 10%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* ── 유사도 점수 바 (파일) ── */
+.gem-source-score-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.gem-source-score-label {
+  font-size: 0.68rem;
+  color: var(--text-muted, #9ca3af);
+  flex-shrink: 0;
+}
+
+.gem-source-score-bar-wrap {
+  flex: 1;
+  height: 5px;
+  background: var(--card-border, #e5e7eb);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.gem-source-score-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-color), color-mix(in srgb, var(--accent-color) 60%, #fff));
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+.gem-source-score-pct {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  flex-shrink: 0;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* ── 출처 버튼 파일 아이콘 색 ── */
+.gem-btn-file-icon {
+  color: var(--accent-color);
+}
+
+/* ── gem 마크다운 렌더링 — 채팅허브와 동일한 간격 ── */
+.gem-msg-markdown {
+  white-space: normal; /* gem-msg-bubble의 pre-wrap 상속 차단 */
+}
+.gem-msg-markdown p {
+  margin: 0 0 8px;
+}
+.gem-msg-markdown p:last-child {
+  margin-bottom: 0;
+}
+.gem-msg-markdown h1,
+.gem-msg-markdown h2,
+.gem-msg-markdown h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 14px 0 6px;
+  color: var(--foreground);
+}
+.gem-msg-markdown h1:first-child,
+.gem-msg-markdown h2:first-child,
+.gem-msg-markdown h3:first-child {
+  margin-top: 0;
+}
+.gem-msg-markdown ol,
+.gem-msg-markdown ul {
+  margin: 8px 0;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gem-msg-markdown li {
+  margin: 0;
+  padding-left: 4px;
+  line-height: 1.65;
+}
+.gem-msg-markdown li > p {
+  display: inline !important;
+  margin: 0 !important;
+}
+.gem-msg-markdown strong {
+  font-weight: 700;
+  color: var(--foreground);
+}
+.gem-msg-markdown code {
+  font-size: 0.82rem;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+.gem-msg-markdown pre {
+  background: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.gem-msg-markdown pre code {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+.gem-msg-markdown a {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
 @keyframes gem-bounce {
   0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
   40% { transform: scale(1); opacity: 1; }

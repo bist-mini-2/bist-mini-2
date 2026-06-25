@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react";
+import { getGemFiles } from "@/apis/gemsApi";
 
 const DB_SOURCE_OPTIONS = [
   { value: "bio", label: "Bio", sub: "q-bio.GN", icon: "bi-activity", color: "#16a34a" },
@@ -37,7 +38,8 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
   const [name, setName] = useState("");
   const [selectedSources, setSelectedSources] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState("");
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState([]);          // 새로 추가할 File 객체 목록
+  const [existingFiles, setExistingFiles] = useState([]); // 이미 업로드된 파일 메타데이터
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -46,11 +48,19 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
       setSelectedSources(editTarget.db_sources || []);
       setSystemPrompt(editTarget.system_prompt || "");
       setFiles([]);
+      setExistingFiles([]);
+      // 기존 업로드 파일 목록 불러오기
+      if (editTarget.has_files) {
+        getGemFiles(editTarget.gem_id)
+          .then((data) => setExistingFiles(data))
+          .catch(() => {});
+      }
     } else {
       setName("");
       setSelectedSources([]);
       setSystemPrompt("");
       setFiles([]);
+      setExistingFiles([]);
     }
   }, [editTarget]);
 
@@ -183,8 +193,29 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
               <i className="bi bi-info-circle gem-editor-info" title="Gem이 참조할 파일을 추가합니다."></i>
             </label>
 
-            {files.length > 0 && (
+            {/* 이미 업로드된 파일 목록 */}
+            {existingFiles.length > 0 && (
               <div className="gem-editor-file-list">
+                {existingFiles.map((f) => (
+                  <div key={f.file_id} className="gem-editor-file-row">
+                    <i className="bi bi-file-earmark-check gem-editor-file-icon" style={{ color: "#6366f1" }}></i>
+                    <div className="gem-editor-file-info">
+                      <span className="gem-editor-file-name">{f.filename}</span>
+                      <span className="gem-editor-file-size" style={{ color: "#6366f1" }}>
+                        청크 {f.chunk_count}개 · 업로드 완료
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "0.72rem", color: "#6366f1", fontWeight: 600, padding: "2px 6px", background: "#ede9fe", borderRadius: 4 }}>
+                      RAG
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 새로 추가할 파일 목록 */}
+            {files.length > 0 && (
+              <div className="gem-editor-file-list" style={{ marginTop: existingFiles.length > 0 ? "8px" : 0 }}>
                 {files.map((file) => (
                   <div key={file.name} className="gem-editor-file-row">
                     <i className="bi bi-file-earmark-text gem-editor-file-icon"></i>
@@ -267,10 +298,14 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
                   <span key={src} className={`gem-source-tag gem-source-${src}`}>{src}</span>
                 ))}
               </div>
-              {files.length > 0 && (
+              {(existingFiles.length > 0 || files.length > 0) && (
                 <div className="gem-editor-preview-files">
                   <i className="bi bi-paperclip"></i>
-                  <span>{files.length}개 파일 첨부됨</span>
+                  <span>
+                    {existingFiles.length > 0 && `업로드됨 ${existingFiles.length}개`}
+                    {existingFiles.length > 0 && files.length > 0 && " + "}
+                    {files.length > 0 && `새 파일 ${files.length}개`}
+                  </span>
                 </div>
               )}
             </div>
