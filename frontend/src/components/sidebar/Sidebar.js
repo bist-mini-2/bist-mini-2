@@ -1,9 +1,13 @@
 "use client"
 
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthContext } from "@/contexts/AuthContext";
+import Feature1Sidebar from "./Feature1Sidebar";
+import Feature2Sidebar from "./Feature2Sidebar";
+import Feature3Sidebar from "./Feature3Sidebar";
+import Feature4Sidebar from "./Feature4Sidebar";
 import styles from "./Sidebar.module.css";
 
 /**
@@ -41,10 +45,36 @@ export default function Sidebar({ isCollapsed, onToggle }) {
 
   // 네비게이션 메뉴 정의
   const menus = [
-    { name: "기능 1", path: "/feature1", icon: "bi-gear" },
-    { name: "기능 2", path: "/feature2", icon: "bi-tools" },
-    { name: "기능 3", path: "/feature3", icon: "bi-bar-chart" }
+    { name: "Chat Hub", path: "/feature1", icon: "bi-gear" },
+    { name: "Research Gap Analyzer", path: "/feature2", icon: "bi-tools" },
+    { name: "Gems", path: "/feature3", icon: "bi-bar-chart" },
+    { name: "Peer Review & Arena", path: "/feature4", icon: "bi-shield-check" }
   ];
+
+  // 활성 경로에 따른 동적 서브 사이드바 렌더링 함수
+  const renderSubSidebar = () => {
+    if (isCollapsed) return null;
+    let subComponent = null;
+
+    if (pathname.startsWith("/feature1")) {
+      subComponent = <Feature1Sidebar isCollapsed={isCollapsed} />;
+    } else if (pathname.startsWith("/feature2")) {
+      subComponent = <Feature2Sidebar isCollapsed={isCollapsed} />;
+    } else if (pathname.startsWith("/feature3")) {
+      subComponent = <Feature3Sidebar isCollapsed={isCollapsed} />;
+    } else if (pathname.startsWith("/feature4")) {
+      subComponent = <Feature4Sidebar isCollapsed={isCollapsed} />;
+    }
+
+    if (!subComponent) return null;
+
+    return (
+      <>
+        <div className={styles.divider}></div>
+        {subComponent}
+      </>
+    );
+  };
 
   return (
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ""}`}>
@@ -55,9 +85,9 @@ export default function Sidebar({ isCollapsed, onToggle }) {
             <div className={styles.logoCircle}>P</div>
             <span className={styles.logoText}>Paper Agent</span>
           </div>
-          <button 
-            className={styles.toggleButton} 
-            onClick={onToggle} 
+          <button
+            className={styles.toggleButton}
+            onClick={onToggle}
             title={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
             aria-label="Toggle Sidebar"
           >
@@ -69,7 +99,7 @@ export default function Sidebar({ isCollapsed, onToggle }) {
         <nav className={styles.menuSection}>
           <ul className={styles.menuList}>
             {menus.map((menu) => {
-              const isActive = pathname === menu.path;
+              const isActive = pathname.startsWith(menu.path);
               return (
                 <li key={menu.path}>
                   <Link
@@ -85,6 +115,11 @@ export default function Sidebar({ isCollapsed, onToggle }) {
           </ul>
         </nav>
       </div>
+
+      {/* 동적 서브 사이드바 영역 */}
+      <Suspense fallback={null}>
+        {renderSubSidebar()}
+      </Suspense>
 
       {/* 하단 사용자 정보 및 세션 영역 */}
       <div className={styles.bottomSection}>

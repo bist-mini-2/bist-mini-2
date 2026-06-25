@@ -1,36 +1,349 @@
 "use client"
 
-import { useContext } from "react";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useState, useEffect, useContext } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import styles from "./page.module.css";
+import { listUserTasks, bulkDeleteTasks } from "@/apis/researchGap";
+import { AuthContext } from "@/contexts/AuthContext";
+import StatusBadge from "@/components/status-badge/StatusBadge";
+import LoadingSpinner from "@/components/loading-spinner/LoadingSpinner";
+import TutorialTour from "@/components/feature2/tutorial/TutorialTour";
+import HistoryTable from "@/components/feature2/HistoryTable";
+import DeleteConfirmModal from "@/components/feature2/DeleteConfirmModal";
 
 /**
- * 기능 2(Feature 2) 전용 메인 페이지 컴포넌트입니다.
- * 
- * 물리적 하위 폴더 기반 라우팅(/feature2)으로 동작하며, 
- * 화면 중앙에 'page2 화면입니다' 문구와 로그인 사용자 정보를 표출합니다.
+ * 대규모 문헌 비교 분석기 작업 이력 페이지입니다.
  */
-export default function Feature2Page() {
-  const { user } = useContext(AuthContext);
+export default function ResearchGapHistoryPage() {
+  const { accessToken } = useContext(AuthContext);
+  const router = useRouter();
+
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isTutorialActive, setIsTutorialActive] = useState(false);
+
+  const displayTasks = isTutorialActive ? [
+    {
+      task_id: "dummy-task-1",
+      domain: "cs",
+      query: "Attention Mechanism in Neural Machine Translation",
+      status: "COMPLETED",
+      progress: 100,
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+    },
+    {
+      task_id: "dummy-task-2",
+      domain: "bio",
+      query: "CRISPR-Cas9 Gene Editing Accuracy and Off-target Effects",
+      status: "COMPLETED",
+      progress: 100,
+      created_at: new Date(Date.now() - 3600000 * 5).toISOString()
+    },
+    {
+      task_id: "dummy-task-3",
+      domain: "cs",
+      query: "Zero-Shot Learning in Large Language Models",
+      status: "RUNNING",
+      progress: 45,
+      created_at: new Date(Date.now() - 1800000).toISOString()
+    }
+  ] : tasks;
+
+  const tutorialSteps = [
+    {
+      target: ".tutorial-history-table",
+      title: "분석 보고서 이력 매트릭스",
+      content: "그동안 요청하신 대규모 문헌 비교 분석 및 AI Research Gap 보고서의 목록입니다. 완료된 항목을 클릭하면 상세 매트릭스와 합성 리포트로 즉시 이동합니다.",
+      position: "top"
+    },
+    {
+      target: ".tutorial-new-request-btn",
+      title: "새 분석 요청",
+      content: "새로운 학술 주제나 특정 키워드를 지정하여 인공지능 연구 공백 분석 작업을 신규 기동합니다.",
+      position: "bottom",
+      arrowAlign: "right"
+    },
+    {
+      target: ".tutorial-delete-mode-btn",
+      title: "이력 선택 삭제",
+      content: "불필요해진 과거 분석 이력들을 여러 개 선택하여 한 번에 영구 삭제할 수 있는 관리 도구입니다.",
+      position: "bottom",
+      arrowAlign: "right"
+    }
+  ];
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [deletingIds, setDeletingIds] = useState([]);
+  const [isExiting, setIsExiting] = useState(false);
+
+  // 튜토리얼 활성화 여부 리스너
+  useEffect(() => {
+    const handleStart = () => {
+      setIsTutorialActive(true);
+    };
+    const handleEnd = () => {
+      setIsTutorialActive(false);
+    };
+
+    window.addEventListener("trigger-page-tutorial", handleStart);
+    window.addEventListener("tutorial-ended", handleEnd);
+    return () => {
+      window.removeEventListener("trigger-page-tutorial", handleStart);
+      window.removeEventListener("tutorial-ended", handleEnd);
+    };
+  }, []);
+
+  // 마운트 여부 설정 (Portal용)
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // 이력 로드
+  useEffect(() => {
+    async function loadHistory() {
+      if (!accessToken) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const res = await listUserTasks();
+        if (res.status === "success") {
+          setTasks(res.data || []);
+        } else {
+          setError("작업 이력을 불러오지 못했습니다.");
+        }
+      } catch (err) {
+        console.error("Failed to load history:", err);
+        setError("서버와의 연결이 원활하지 않습니다.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadHistory();
+  }, [accessToken]);
+
+  // 실시간 작업 상태 폴링 (PENDING 또는 RUNNING 상태인 작업이 있을 경우 2초 간격 폴링)
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const hasActiveTask = tasks.some(
+      (task) => task.status === "PENDING" || task.status === "RUNNING"
+    );
+
+    if (!hasActiveTask) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await listUserTasks();
+        if (res.status === "success") {
+          setTasks(res.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to poll task history:", err);
+      }
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [tasks, accessToken]);
+
+  // 상태 뱃지 렌더링 헬퍼
+  const renderStatusBadge = (status, progress) => {
+    return <StatusBadge status={status} progress={progress} lang="ko" />;
+  };
+
+  // 날짜 포맷 헬퍼
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // 편집 모드 토글
+  const toggleEditMode = () => {
+    setIsEditMode((prev) => {
+      if (prev) {
+        setSelectedTaskIds([]);
+      }
+      return !prev;
+    });
+  };
+
+  // 개별 체크박스 토글
+  const handleCheckboxChange = (taskId) => {
+    setSelectedTaskIds((prev) => {
+      if (prev.includes(taskId)) {
+        return prev.filter((id) => id !== taskId);
+      } else {
+        return [...prev, taskId];
+      }
+    });
+  };
+
+  // 전체 선택 체크박스 토글
+  const handleSelectAllChange = (e) => {
+    if (e.target.checked) {
+      const allIds = displayTasks.map((t) => t.task_id);
+      setSelectedTaskIds(allIds);
+    } else {
+      setSelectedTaskIds([]);
+    }
+  };
+
+  // 행 클릭 핸들러 (편집 모드 시 체크박스 토글, 일반 모드 시 결과 페이지 이동)
+  const handleRowClick = (task, e) => {
+    if (e.target.type === "checkbox") {
+      return;
+    }
+    if (isEditMode) {
+      handleCheckboxChange(task.task_id);
+    } else {
+      setIsExiting(true);
+      setTimeout(() => {
+        router.push(`/feature2/analyze?taskId=${task.task_id}`);
+      }, 500);
+    }
+  };
+
+  // 선택 삭제 실행 핸들러
+  const handleBulkDelete = () => {
+    if (selectedTaskIds.length === 0) return;
+    setShowConfirmModal(true);
+  };
+
+  // 실제 선택 삭제 확인 핸들러
+  const handleBulkDeleteConfirm = async () => {
+    setShowConfirmModal(false);
+    try {
+      const res = await bulkDeleteTasks(selectedTaskIds);
+      if (res.status === "success") {
+        setDeletingIds(selectedTaskIds);
+        setTimeout(() => {
+          setTasks((prev) => prev.filter((t) => !selectedTaskIds.includes(t.task_id)));
+          setSelectedTaskIds([]);
+          setDeletingIds([]);
+          setIsEditMode(false);
+        }, 400);
+      } else {
+        setError("선택 이력 삭제에 실패했습니다.");
+      }
+    } catch (err) {
+      console.error("Failed to delete tasks:", err);
+      setError("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  if (loading) {
+    return <LoadingSpinner message="분석 이력 데이터를 불러오는 중..." />;
+  }
 
   return (
-    <div className={`d-flex align-items-center justify-content-center h-100 ${styles.container}`}>
-      <div className={`glass-card p-5 text-center ${styles.card}`}>
-        <div className="mono-badge mb-3">
-          <i className="bi bi-terminal-fill"></i> console.log("feature_2")
+    <div className={`${styles.container} ${isExiting ? styles.pageExiting : ""}`}>
+      {/* 튜토리얼 가이드 컴포넌트 마운트 */}
+      <TutorialTour steps={tutorialSteps} matchPath="/feature2" />
+
+      {/* Page Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <div>
+          <h3 className="fw-bold text-gradient mb-1 tutorial-dashboard-title">분석 보고서 이력</h3>
+          <p className="text-secondary small mb-0">지금까지 요청하신 대규모 문헌 비교 분석 및 AI Research Gap 보고서 목록입니다.</p>
         </div>
-        <h2 className="fw-bold mb-3 text-gradient">page2 화면입니다</h2>
-        <div className={`p-3 rounded bg-light border ${styles.details}`}>
-          <div className="d-flex justify-content-between mb-2">
-            <span className="text-muted">status:</span>
-            <span className="text-success fw-semibold">ACTIVE</span>
-          </div>
-          <div className="d-flex justify-content-between">
-            <span className="text-muted">current_user:</span>
-            <span className="fw-semibold text-dark">{user || "Guest"}</span>
-          </div>
+        <div className="d-flex align-items-center gap-2">
+          {displayTasks.length > 0 && (
+            <>
+              {isEditMode ? (
+                <>
+                  <button
+                    onClick={handleBulkDelete}
+                    className={`btn btn-sm btn-danger rounded-3 py-1.5 fw-bold ${styles.bulkDeleteBtn}`}
+                    disabled={selectedTaskIds.length === 0}
+                  >
+                    <span className={styles.btnLeftArea}>
+                      <i className="bi bi-trash-fill"></i> 선택 삭제
+                    </span>
+                    <span className={styles.btnRightArea}>
+                      ({selectedTaskIds.length})
+                    </span>
+                  </button>
+                  <button
+                    onClick={toggleEditMode}
+                    className={`btn btn-sm rounded-3 px-3 py-1.5 d-flex align-items-center gap-1 ${styles.outlineSecBtn}`}
+                  >
+                    취소
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={toggleEditMode}
+                  className={`btn btn-sm rounded-3 px-3 py-1.5 d-flex align-items-center gap-1 ${styles.outlineSecBtn} tutorial-delete-mode-btn`}
+                >
+                  <i className="bi bi-pencil-square"></i> 선택 삭제
+                </button>
+              )}
+            </>
+          )}
+          <Link href="/feature2/analyze" className={`btn btn-sm d-flex align-items-center gap-1 rounded-3 py-1.5 px-3 ${styles.outlineBtn} tutorial-new-request-btn`}>
+            <i className="bi bi-plus-circle"></i> 새 분석 요청
+          </Link>
         </div>
       </div>
+
+      {error && (
+        <div className="alert alert-danger border-0 shadow-sm d-flex align-items-center gap-2 rounded-3 mb-4" role="alert">
+          <i className="bi bi-exclamation-triangle-fill"></i>
+          <div>{error}</div>
+        </div>
+      )}
+
+      {/* Task List Grid/Table */}
+      {displayTasks.length > 0 ? (
+        <HistoryTable
+          displayTasks={displayTasks}
+          isEditMode={isEditMode}
+          selectedTaskIds={selectedTaskIds}
+          deletingIds={deletingIds}
+          handleSelectAllChange={handleSelectAllChange}
+          handleCheckboxChange={handleCheckboxChange}
+          handleRowClick={handleRowClick}
+          formatDate={formatDate}
+          renderStatusBadge={renderStatusBadge}
+        />
+      ) : (
+        <div className="card shadow-sm border border-light-subtle rounded-3 p-5 text-center text-muted">
+          <div className="py-5">
+            <i className="bi bi-clock-history fs-1 mb-3 d-block text-secondary"></i>
+            <h5 className="fw-bold mb-2">과거 분석 이력이 없습니다.</h5>
+            <p className="small text-secondary mb-4">학술적 공백과 미래 연구 로드맵을 도출하기 위해 첫 번째 대규모 문헌 비교 분석을 실행해 보세요.</p>
+            <Link href="/feature2/analyze" className={`btn rounded-3 px-4 py-2 ${styles.solidBtn}`}>
+              첫 분석 실행하기
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* 커스텀 삭제 확인 모달 (블러 및 중앙 정렬) */}
+      {showConfirmModal && mounted && (
+        <DeleteConfirmModal
+          selectedCount={selectedTaskIds.length}
+          onCancel={() => setShowConfirmModal(false)}
+          onConfirm={handleBulkDeleteConfirm}
+        />
+      )}
     </div>
   );
 }

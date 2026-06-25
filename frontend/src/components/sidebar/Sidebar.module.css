@@ -197,7 +197,6 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--profile-card-border);
   cursor: pointer;
-  transition: background-color 0.2s ease;
   user-select: none;
 }
 
@@ -331,3 +330,11 @@
 .hidden {
   display: none !important;
 }
+
+/* Sidebar Divider */
+.divider {
+  border-top: 1px solid var(--card-border);
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+

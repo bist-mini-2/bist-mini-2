@@ -1,0 +1,197 @@
+.controlPanel {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.devInput {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 9px 12px;
+  outline: none;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.devInput:focus {
+  border-color: var(--accent-color);
+  transition: border-color 0.15s ease;
+}
+
+.devBtn {
+  background-color: var(--accent-color);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  box-sizing: border-box;
+  width: 210px;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.15s ease,
+              opacity 0.15s ease,
+              border-color 0.15s ease;
+}
+
+.devBtnLoading {
+  width: 140px;
+  background-color: #a3b09c !important;
+}
+
+.devBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.devBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.monoBadge {
+  font-family: var(--mono-font), monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.progressBarWrapper {
+  background: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  height: 12px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  background: linear-gradient(90deg, var(--accent-color) 0%, var(--tertiary-color) 100%);
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.statusSpinner {
+  animation-duration: 1.5s;
+}
+
+.accentText {
+  color: var(--accent-color);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono-font), monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.running {
+  background-color: rgba(223, 163, 63, 0.08);
+  border-color: rgba(223, 163, 63, 0.3);
+  color: #c98a2e;
+}
+.running :global(.spinner-border) {
+  border-width: 1.5px;
+  width: 0.72rem;
+  height: 0.72rem;
+  color: #c98a2e;
+}
+
+.success {
+  background-color: rgba(74, 133, 105, 0.08);
+  border-color: rgba(74, 133, 105, 0.3);
+  color: #3e7058;
+}
+
+.failed {
+  background-color: rgba(214, 90, 90, 0.08);
+  border-color: rgba(214, 90, 90, 0.3);
+  color: #b54545;
+}
+
+.idle {
+  background-color: rgba(140, 135, 125, 0.08);
+  border-color: rgba(140, 135, 125, 0.25);
+  color: #7a756b;
+}
+
+.translateBtn {
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.translateBtn:hover:not(:disabled) {
+  background-color: var(--card-border);
+  color: var(--accent-color);
+}
+
+.translateBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.translateBtn :global(.spinner-border) {
+  border-width: 1.5px;
+  width: 0.72rem;
+  height: 0.72rem;
+}
+
+.hiddenLabel {
+  visibility: hidden;
+}
+
+.statusSection {
+  padding-top: 20px;
+  margin-top: 4px; /* Symmetrical padding-top & top margin to balance the 20px card padding */
+}
+
+

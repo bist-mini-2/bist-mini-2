@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useContext } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import memberApi from "@/apis/memberApi";
+import authApi from "@/apis/authApi";
+import { AuthContext } from "@/contexts/AuthContext";
 import styles from "./page.module.css";
 
 /**
@@ -13,6 +15,7 @@ import styles from "./page.module.css";
  * JSON 규격으로 백엔드 신규 등록 API(/member/join)를 호출한 후 로그인 화면으로 리다이렉트합니다.
  */
 export default function JoinPage() {
+  const { setUser, setAccessToken } = useContext(AuthContext);
   const [mid, setMid] = useState("");
   const [mname, setMname] = useState("");
   const [memail, setMemail] = useState("");
@@ -59,8 +62,16 @@ export default function JoinPage() {
 
       await memberApi.join(joinData);
 
-      alert("회원가입이 완료되었습니다. 로그인 해주세요!");
-      router.push("/login");
+      // 회원가입 완료 후 바로 로그인 실행
+      try {
+        const loginData = await authApi.login(mid, mpassword);
+        setUser(loginData.username);
+        setAccessToken(loginData.access_token);
+        router.push("/");
+      } catch (loginErr) {
+        console.error("Auto login failed after registration:", loginErr);
+        router.push("/login");
+      }
     } catch (error) {
       console.error("Join failed:", error);
       if (error.response && error.response.data && error.response.data.message) {

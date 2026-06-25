@@ -1,15 +1,22 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from typing import AsyncGenerator, Annotated
+from typing import AsyncGenerator, Annotated, Any
 from fastapi import Depends
 from api.common.config import settings
 
 # DB 커넥션 풀(비동기 데이터베이스 엔진) 생성
+# SQLite는 pool_size와 max_overflow 옵션을 지원하지 않으므로 분기 처리합니다.
+is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+engine_kwargs: dict[str, Any] = {
+    "pool_pre_ping": True,
+    "echo": False
+}
+if not is_sqlite:
+    engine_kwargs["pool_size"] = 20
+    engine_kwargs["max_overflow"] = 50
+
 engine = create_async_engine(
     settings.DATABASE_URL,
-    pool_size=5,
-    max_overflow=10,
-    pool_pre_ping=True,
-    echo=False
+    **engine_kwargs
 )
 
 # ORM 작업 세션 생성

@@ -1,0 +1,182 @@
+/* =============================================================================
+   기능 1 — 참고 논문 패널 (Sage Green / Sharp & Flat)
+   ============================================================================= */
+
+/* ---- 패널 컨테이너 (열고 닫힘) ---- */
+.paperPanel {
+  flex-shrink: 0;
+  width: 0;
+  overflow: hidden;
+  background: var(--sidebar-bg);
+  border-left: 1px solid transparent;
+  /* 사이드바와 동일한 전환 — width / cubic-bezier / will-change */
+  will-change: width;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.paperPanelOpen {
+  width: 340px;
+  border-left-color: var(--card-border);
+}
+
+/* 내부 고정폭 → 애니메이션 중 내용 찌그러짐 방지 */
+.paperPanelInner {
+  width: 340px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- 헤더 ---- */
+.paperPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+
+.paperPanelTitle {
+  font-family: var(--mono-font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.paperPanelCount {
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  background: var(--accent-glow);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+}
+
+.paperPanelClose {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--profile-role-color);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.paperPanelClose:hover {
+  background: var(--menu-item-hover-bg);
+  color: var(--foreground);
+}
+
+/* ---- 목록 ---- */
+.paperPanelList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---- 빈 상태 ---- */
+.paperPanelEmpty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: var(--profile-role-color);
+}
+
+.paperPanelEmpty i {
+  font-size: 1.6rem;
+  opacity: 0.5;
+}
+
+.paperPanelEmpty p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+/* ---- 논문 카드 ---- */
+.paperCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  text-decoration: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.paperCard:hover {
+  border-color: var(--accent-color);
+  background: var(--accent-glow);
+}
+
+.paperCardHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.paperCardIcon {
+  font-size: 0.82rem;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.paperCardTitle {
+  flex: 1;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.paperCardLink {
+  font-size: 0.72rem;
+  color: var(--profile-role-color);
+  flex-shrink: 0;
+}
+
+.paperCardArxiv {
+  font-family: var(--mono-font);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  letter-spacing: 0.02em;
+}
+
+.paperCardSummary {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--profile-role-color);
+}
+
+/* ---- 반응형 ---- */
+@media (max-width: 1024px) {
+  .paperPanelOpen { width: 280px; }
+  .paperPanelInner { width: 280px; }
+}

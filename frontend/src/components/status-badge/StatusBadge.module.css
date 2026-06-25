@@ -1,0 +1,75 @@
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px 5px 10px; /* Balanced padding for sans-serif text visual weight */
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+  vertical-align: middle;
+  white-space: nowrap;
+  gap: 8px; /* Spacing between icon and text (1 space equivalent) */
+}
+
+.statusBadge i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  position: relative;
+  top: 0.5px; /* Visual micro-adjustment for icon centering */
+}
+
+.statusBadge span {
+  position: relative;
+  top: 0.5px; /* Visual micro-adjustment for text centering */
+}
+
+.statusBadge i::before {
+  vertical-align: 0 !important; /* Counteract default bootstrap icon offset */
+}
+
+.running {
+  background-color: rgba(223, 163, 63, 0.08);
+  border-color: rgba(223, 163, 63, 0.3);
+  color: #c98a2e;
+}
+
+.running .statusSpinner {
+  border-width: 1.5px;
+  width: 0.72rem;
+  height: 0.72rem;
+  color: #c98a2e;
+  animation-duration: 1.5s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success {
+  background-color: rgba(74, 133, 105, 0.08);
+  border-color: rgba(74, 133, 105, 0.3);
+  color: #3e7058;
+}
+
+.failed {
+  background-color: rgba(214, 90, 90, 0.08);
+  border-color: rgba(214, 90, 90, 0.3);
+  color: #b54545;
+}
+
+.pending {
+  background-color: rgba(140, 135, 125, 0.08);
+  border-color: rgba(140, 135, 125, 0.25);
+  color: #7a756b;
+}
+
+.idle {
+  background-color: rgba(140, 135, 125, 0.08);
+  border-color: rgba(140, 135, 125, 0.25);
+  color: #7a756b;
+}

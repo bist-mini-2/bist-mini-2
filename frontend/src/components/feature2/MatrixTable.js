@@ -1,0 +1,130 @@
+"use client"
+
+import styles from "./MatrixTable.module.css";
+
+/**
+ * 대규모 문헌 비교 분석기의 스펙 매트릭스 테이블 컴포넌트입니다.
+ * 
+ * - 분석 결과가 존재할 경우 논문별 방법론, 해결 문제, 한계점을 표 형태로 시각화합니다.
+ * - 결과가 존재하지 않을 때 사용자가 해야 할 작업을 알려주는 카드형 빈 상태(Empty State)를 표출합니다.
+ */
+export default function MatrixTable({ result }) {
+  return (
+    <div className="card shadow-sm p-4 border border-light-subtle h-100 d-flex flex-column">
+      <div className="d-flex align-items-center justify-content-between mb-3">
+        <h5 className="fw-bold text-gradient mb-0">문헌 비교 스펙 매트릭스</h5>
+        <span className={styles.monoBadge}>F-01-B-3 구조화 데이터</span>
+      </div>
+
+      {result && result.papers && result.papers.length > 0 ? (
+        <div key={result.papers?.[0]?.title || 'matrix'} className={`${styles.matrixContainer} ${styles.fadeIn}`}>
+          <table className={styles.matrixTable}>
+            <thead>
+              <tr>
+                <th className={`${styles.matrixTh} ${styles.colPaper}`}>논문 정보</th>
+                <th className={`${styles.matrixTh} ${styles.colProblems}`}>해결된 문제 & 제안 방법론</th>
+                <th className={`${styles.matrixTh} ${styles.colLimitations}`}>식별된 한계점 & 공백</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.papers.map((paper, idx) => (
+                <tr key={idx}>
+                  <td className={`${styles.matrixTd} ${styles.colPaperCell}`}>
+                    <div className={styles.paperCellWrapper}>
+                      <div className={styles.paperTitle}>{paper.title}</div>
+                      <div className="d-flex align-items-center gap-2 mt-1.5 flex-wrap">
+                        <a
+                          href={`https://arxiv.org/abs/${paper.arxiv_id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles.arxivLink}
+                        >
+                          <span>원문 ArXiv</span>
+                          <i className="bi bi-box-arrow-up-right ms-1"></i>
+                        </a>
+                        {paper.similarity !== undefined && paper.similarity !== null && (
+                          <span className={styles.similarityBadge}>
+                            <i className="bi bi-graph-up me-1"></i>
+                            유사도 {Math.round(paper.similarity * 100)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className={styles.matrixTd}>
+                    <ul className={styles.listUnstyled}>
+                      {paper.problems_solved.map((item, i) => {
+                        const isObject = typeof item === "object" && item !== null;
+                        const summary = isObject ? item.summary : item;
+                        const quote = isObject ? item.source_quote : null;
+                        
+                        return (
+                          <li key={i} className={`mb-2.5 d-flex align-items-start text-secondary small ${quote ? styles.tooltipTrigger : ""}`}>
+                            <i className={`bi bi-check-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconSuccess}`}></i>
+                            <span className={quote ? styles.dashedUnderline : ""}>
+                              {summary}
+                            </span>
+                            {quote && (
+                              <div className={styles.customTooltip}>
+                                <div className={styles.tooltipHeader}>
+                                  <i className="bi bi-file-earmark-text-fill me-2 text-info"></i>
+                                  <span>원본 논문 인용구 (Verbatim Source)</span>
+                                </div>
+                                <div className={styles.tooltipBody}>
+                                  &ldquo;{quote}&rdquo;
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </td>
+                  <td className={styles.matrixTd}>
+                    <ul className={styles.listUnstyled}>
+                      {paper.limitations.map((item, i) => {
+                        const isObject = typeof item === "object" && item !== null;
+                        const summary = isObject ? item.summary : item;
+                        const quote = isObject ? item.source_quote : null;
+                        
+                        return (
+                          <li key={i} className={`mb-2.5 d-flex align-items-start text-secondary small ${quote ? styles.tooltipTrigger : ""}`}>
+                            <i className={`bi bi-dash-circle-fill me-2 flex-shrink-0 ${styles.listIcon} ${styles.iconDanger}`}></i>
+                            <span className={quote ? styles.dashedUnderline : ""}>
+                              {summary}
+                            </span>
+                            {quote && (
+                              <div className={`${styles.customTooltip} ${styles.tooltipRightAligned}`}>
+                                <div className={styles.tooltipHeader}>
+                                  <i className="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                                  <span>원본 논문 인용구 (Verbatim Source)</span>
+                                </div>
+                                <div className={styles.tooltipBody}>
+                                  &ldquo;{quote}&rdquo;
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="d-flex flex-column flex-grow-1 justify-content-center align-items-center text-center text-muted py-5">
+          <i className="bi bi-grid-3x3-gap-fill fs-2 mb-3 text-secondary"></i>
+          <p className="mb-2 fw-bold text-dark fs-5">분석 결과가 아직 없습니다.</p>
+          <div className="d-flex align-items-center justify-content-center px-3">
+            <p className="small mb-0 text-secondary" style={{ maxWidth: "560px", lineHeight: "1.5" }}>
+              상단의 분석 제어판에서 비교 대상 조건 입력 후 &apos;비동기 배치 분석 실행&apos;을 클릭하세요.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

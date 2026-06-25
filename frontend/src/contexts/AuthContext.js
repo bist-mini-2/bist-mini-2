@@ -23,19 +23,43 @@ export function AuthContextProvider({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // 최초 렌더링 시 로컬 스토리지에서 인증 정보 로드
+  // 최초 렌더링 시 로컬 스토리지에서 인증 정보 로드 및 검증
   useEffect(() => {
-    startTransition(() => {
-      const storedUser = localStorage.getItem("user") || "";
-      const storedToken = localStorage.getItem("accessToken") || "";
-      setUser(storedUser);
-      setAccessToken(storedToken);
-      setIsLoading(false);
-    });
+    const storedUser = localStorage.getItem("user") || "";
+    const storedToken = localStorage.getItem("accessToken") || "";
+
+    if (storedToken) {
+      // API 클라이언트가 인터셉터를 통해 로컬스토리지의 토큰을 자동으로 헤더에 실어 보냅니다.
+      apiClient.get("/auth/me")
+        .then(() => {
+          startTransition(() => {
+            setUser(storedUser);
+            setAccessToken(storedToken);
+            setIsLoading(false);
+          });
+        })
+        .catch((error) => {
+          // 토큰 검증 실패 시 로컬 스토리지 정보를 초기화하고 비인증 상태로 전환
+          console.warn("Stored accessToken is invalid or expired. Clearing auth context.", error);
+          localStorage.removeItem("user");
+          localStorage.removeItem("accessToken");
+          startTransition(() => {
+            setUser("");
+            setAccessToken("");
+            setIsLoading(false);
+          });
+        });
+    } else {
+      startTransition(() => {
+        setIsLoading(false);
+      });
+    }
   }, []);
 
   // 인증 상태 변화 시 로컬 스토리지 동기화
   useEffect(() => {
+    if (isLoading) return; // 최초 로드/인증 검증 중에는 동기화하지 않음
+    
     if (user !== "") {
       localStorage.setItem("user", user);
       localStorage.setItem("accessToken", accessToken);
@@ -43,7 +67,7 @@ export function AuthContextProvider({ children }) {
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
     }
-  }, [user, accessToken]);
+  }, [user, accessToken, isLoading]);
 
   // Response Interceptor: 401 Unauthorized 에러 발생 시 세션 만료 및 강제 로그아웃
   useEffect(() => {

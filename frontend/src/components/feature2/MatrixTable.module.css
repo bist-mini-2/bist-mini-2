@@ -1,0 +1,229 @@
+.monoBadge {
+  font-family: var(--mono-font), monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  box-sizing: border-box;
+}
+
+.matrixContainer {
+  overflow: visible; /* Prevent tooltip clipping on desktop */
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background-color: var(--card-bg);
+  margin-top: 16px;
+}
+
+@media (max-width: 991px) {
+  .matrixContainer {
+    overflow-x: auto; /* Fallback for horizontal scroll on mobile/tablet */
+  }
+}
+
+.matrixTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.matrixTh, .matrixTd {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--card-border);
+  vertical-align: top;
+}
+
+.matrixTh {
+  background-color: var(--sidebar-bg);
+  font-weight: 600;
+  color: var(--foreground);
+  border-bottom: 2px solid var(--card-border);
+  white-space: nowrap;
+}
+
+.matrixTable tr:last-child .matrixTd {
+  border-bottom: none;
+}
+
+.colPaper {
+  width: 25%;
+}
+
+.colProblems {
+  width: 38%;
+}
+
+.colLimitations {
+  width: 37%;
+}
+
+.paperTitle {
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.arxivLink {
+  color: var(--menu-item-color);
+  font-family: var(--mono-font);
+  font-weight: 500;
+  font-size: 0.76rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  align-self: flex-start;
+  transition: color 0.15s ease;
+}
+
+.arxivLink:hover {
+  color: var(--accent-color) !important;
+  text-decoration: underline !important;
+}
+
+.arxivLink i {
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
+.colPaperCell {
+  height: 1px;
+}
+
+.paperCellWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.listUnstyled {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.listIcon {
+  font-size: inherit; /* Ensure it matches the text font-size exactly */
+  align-self: flex-start;
+  margin-top: 0.15em; /* Adjusted to align icon center with text's visual center */
+}
+
+.iconSuccess {
+  color: #3e7058; /* Muted success green matching status badge */
+}
+
+.iconDanger {
+  color: #b54545; /* Muted danger red matching status badge */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.similarityBadge {
+  font-size: 0.68rem;
+  background-color: var(--accent-glow);
+  border: 1px solid var(--accent-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-color);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* RAG Grounding Tooltip CSS Styles */
+.tooltipTrigger {
+  position: relative;
+  cursor: help;
+}
+
+.dashedUnderline {
+  border-bottom: 1px dashed rgba(100, 116, 139, 0.6);
+  padding-bottom: 1px;
+  transition: all 0.2s ease;
+}
+
+.tooltipTrigger:hover .dashedUnderline {
+  border-bottom-color: var(--accent-color);
+  color: var(--foreground) !important;
+}
+
+.customTooltip {
+  position: absolute;
+  bottom: 110%;
+  left: 0;
+  width: 320px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 12px 14px;
+  z-index: 1050;
+  display: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .customTooltip {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+.tooltipTrigger:hover .customTooltip {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tooltipHeader {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--foreground);
+  opacity: 0.85;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 4px;
+}
+
+.tooltipBody {
+  font-size: 0.78rem;
+  color: var(--foreground);
+  opacity: 0.95;
+  font-style: italic;
+  line-height: 1.45;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  word-break: break-word;
+}
+
+.tooltipRightAligned {
+  left: auto;
+  right: 0;
+}
+

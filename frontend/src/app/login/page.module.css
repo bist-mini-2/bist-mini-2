@@ -57,6 +57,18 @@
 .formInput:focus {
   border-color: var(--accent-color);
   box-shadow: 0 0 0 2px rgba(142, 157, 135, 0.3) !important;
+  background-color: var(--card-bg) !important;
+  color: var(--foreground) !important;
+}
+
+/* Chrome/Safari Auto-fill background & text overrides */
+.formInput:-webkit-autofill,
+.formInput:-webkit-autofill:hover, 
+.formInput:-webkit-autofill:focus, 
+.formInput:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--card-bg) inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .submitBtn {
