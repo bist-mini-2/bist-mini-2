@@ -7,6 +7,7 @@ from langchain_postgres import PGVector
 from langchain.tools import tool, ToolRuntime
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
+from langchain_community.tools.tavily_search import TavilySearchResults
 from api.common.config import settings
 
 logger = logging.getLogger(__name__)
