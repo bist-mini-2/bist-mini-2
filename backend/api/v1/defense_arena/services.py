@@ -72,6 +72,15 @@ class DefenseArenaService:
         sampled = []
         
         def sample_subset(subset, target_count):
+            """주어진 청크 서브셋에서 목표 개수만큼 균등한 간격으로 샘플링합니다.
+
+            Args:
+                subset (list): 샘플링할 청크 객체 목록.
+                target_count (int): 추출할 목표 청크 개수.
+
+            Returns:
+                list: 샘플링된 청크 목록.
+            """
             if not subset:
                 return []
             sub_len = len(subset)
@@ -249,7 +258,7 @@ class DefenseArenaService:
         ])
         chain = prompt | llm
         result = await chain.ainvoke({"text": text})
-        return result.content
+        return result.content if isinstance(result.content, str) else str(result.content)
 
     async def run_peer_review(self, session_id: str, target_journal: str, mid: str) -> PeerReviewReport:
         """격리 샌드박스의 문서를 바탕으로 LangGraph/Multi-Agent 기반 3대 에이전트 피어리뷰를 시뮬레이션합니다."""

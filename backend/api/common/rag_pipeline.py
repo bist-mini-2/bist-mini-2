@@ -83,6 +83,15 @@ class CommonRagPipeline:
 
         results = await vectorstore.asimilarity_search_with_score(query, k=k)
 
+        import math
+
+        def safe_str(val: Any) -> str:
+            if val is None:
+                return ""
+            if isinstance(val, float) and math.isnan(val):
+                return ""
+            return str(val)
+
         formatted_results = []
         for doc, score in results:
             meta = doc.metadata or {}
@@ -93,9 +102,9 @@ class CommonRagPipeline:
             similarity = round(1.0 - score, 4)
 
             formatted_results.append({
-                "doc_id": arxiv_id,
-                "title": title,
-                "text_chunk": doc.page_content,
+                "doc_id": safe_str(arxiv_id),
+                "title": safe_str(title),
+                "text_chunk": safe_str(doc.page_content),
                 "score": similarity
             })
 
@@ -143,7 +152,10 @@ async def search_bio_papers(
         output_lines.append(f"arXiv ID: {arxiv_id}")
         output_lines.append(f"\n내용:\n{r['text_chunk']}\n")
         output_lines.append("-" * 80)
-        snippet = " ".join((r["text_chunk"] or "").split())
+        text_chunk = r.get("text_chunk")
+        if not isinstance(text_chunk, str):
+            text_chunk = ""
+        snippet = " ".join(text_chunk.split())
         if len(snippet) > 160:
             snippet = snippet[:160].rstrip() + "…"
         sources.append({"arxiv_id": arxiv_id, "title": title, "summary": snippet})
@@ -194,7 +206,10 @@ async def search_cs_papers(
         output_lines.append(f"\n내용:\n{r['text_chunk']}\n")
         output_lines.append("-" * 80)
 
-        snippet = " ".join((r["text_chunk"] or "").split())
+        text_chunk = r.get("text_chunk")
+        if not isinstance(text_chunk, str):
+            text_chunk = ""
+        snippet = " ".join(text_chunk.split())
         if len(snippet) > 160:
             snippet = snippet[:160].rstrip() + "…"
         sources.append({"arxiv_id": arxiv_id, "title": title, "summary": snippet})
@@ -245,7 +260,10 @@ async def search_astronomy_papers(
         output_lines.append(f"\n내용:\n{r['text_chunk']}\n")
         output_lines.append("-" * 80)
 
-        snippet = " ".join((r["text_chunk"] or "").split())
+        text_chunk = r.get("text_chunk")
+        if not isinstance(text_chunk, str):
+            text_chunk = ""
+        snippet = " ".join(text_chunk.split())
         if len(snippet) > 160:
             snippet = snippet[:160].rstrip() + "…"
         sources.append({"arxiv_id": arxiv_id, "title": title, "summary": snippet})
