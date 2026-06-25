@@ -29,7 +29,7 @@ def _to_gem_response(gem_entity) -> GemResponse:
         name=gem_entity.name,
         db_sources=gem_entity.db_sources.split(","),
         system_prompt=gem_entity.system_prompt,
-        has_files=gem_entity.has_files,
+        has_files=bool(gem_entity.has_files),
         created_at=gem_entity.created_at,
     )
 
