@@ -64,6 +64,11 @@ export default function GemCard({ gem, onSelect, onEdit, onDelete }) {
               {SOURCE_LABEL[src] || src}
             </span>
           ))}
+          {gem.has_files && (
+            <span className="gem-source-tag" style={{ color: "#6366f1", background: "#ede9fe" }}>
+              <i className="bi bi-paperclip me-1"></i>파일
+            </span>
+          )}
         </div>
       </div>
     </div>
