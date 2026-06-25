@@ -48,7 +48,7 @@ class CommonRagPipeline:
         self,
         domain: str,
         query: str,
-        k: int = 3
+        k: int = 10
     ) -> List[Dict[str, Any]]:
         """지정된 도메인 컬렉션에서 질의어와 유사도가 높은 문서를 검색합니다.
 
@@ -92,6 +92,8 @@ class CommonRagPipeline:
                 return ""
             return str(val)
 
+        SIMILARITY_THRESHOLD = 0.4  # 이 값 미만(약한 매칭)은 관련 없음으로 보고 제외
+
         formatted_results = []
         for doc, score in results:
             meta = doc.metadata or {}
@@ -101,6 +103,10 @@ class CommonRagPipeline:
             # 코사인 유사도 계산 (1.0 - 거리 점수)
             similarity = round(1.0 - score, 4)
 
+            # 임계값 미만은 제외
+            if similarity < SIMILARITY_THRESHOLD:
+                continue
+
             formatted_results.append({
                 "doc_id": safe_str(arxiv_id),
                 "title": safe_str(title),
@@ -108,6 +114,7 @@ class CommonRagPipeline:
                 "score": similarity
             })
 
+        self.logger.info(f"임계값({SIMILARITY_THRESHOLD}) 통과: {len(formatted_results)}/{len(results)}건")
         return formatted_results
 
 
@@ -119,7 +126,7 @@ common_rag_pipeline = CommonRagPipeline()
 async def search_bio_papers(
     query: str,
     runtime: ToolRuntime,
-    k: int = 3
+    k: int = 10
 ) -> Command:
     """생명공학·유전체학(q-bio.GN) 논문 데이터베이스에서 관련 내용을 검색합니다.
 
@@ -171,7 +178,7 @@ async def search_bio_papers(
 async def search_cs_papers(
     query: str,
     runtime: ToolRuntime,
-    k: int = 3
+    k: int = 10
 ) -> Command:
     """컴퓨터 과학(cs.NE) 관련 학술 논문 데이터베이스에서 관련 내용을 검색합니다.
 
@@ -225,7 +232,7 @@ async def search_cs_papers(
 async def search_astronomy_papers(
     query: str,
     runtime: ToolRuntime,
-    k: int = 3
+    k: int = 10
 ) -> Command:
     """지구 및 행성 천체물리학(astro-ph.EP) 논문 데이터베이스에서 관련 내용을 검색합니다.
 
