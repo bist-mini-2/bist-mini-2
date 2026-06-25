@@ -65,7 +65,7 @@ def _make_file_search_tool(gem_id: str):
         """
         results = await gem_file_rag.search(gem_id, query, k=k)
 
-        if not results:
+        if results is None or not results:
             msg = f"업로드된 파일에서 '{query}'와 관련된 내용을 찾지 못했습니다."
             return Command(update={
                 "messages": [ToolMessage(content=msg, tool_call_id=runtime.tool_call_id)],
