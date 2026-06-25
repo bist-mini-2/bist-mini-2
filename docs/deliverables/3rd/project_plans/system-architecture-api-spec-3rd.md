@@ -343,3 +343,77 @@ graph TD
       }
     }
     ```
+
+---
+
+### [보안 피어 리뷰 및 디펜스 아레나 API]
+
+#### 12. F-02-A-1: PDF 격리 업로드 및 임베딩 API
+*   **설명**: 기밀 보안 구역에 논문 PDF를 업로드하고 벡터 임베딩을 수행합니다.
+*   **HTTP Method & Path**: `POST /defense-arena/upload-isolated`
+*   **Request Body (Multipart Form-Data)**:
+    - `file`: UploadFile (PDF 파일)
+*   **Response Body (201 Created)**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "session_id": "session-uuid-2234",
+        "file_name": "draft_paper.pdf",
+        "chunk_count": 28
+      }
+    }
+    ```
+
+#### 13. F-02-A-3: 종합 학술 피어리뷰 보고서 생성 API
+*   **설명**: 방법론, 신규성, 학술문체의 3대 심사위원 에이전트 토론을 통해 종합 리뷰 보고서를 도출합니다.
+*   **HTTP Method & Path**: `POST /defense-arena/peer-review`
+*   **Request Body (Form-Data)**:
+    - `session_id`: "session-uuid-2234" (str)
+    - `target_journal`: "IEEE Transactions" (str)
+*   **Response Body (200 OK)**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "overall_score": 85,
+        "review_report": "본 논문은 신규성 측면에서 우수하나 방법론 기술이 부족합니다..."
+      }
+    }
+    ```
+
+#### 14. F-02-A-4: 학술 가설 자가일관성 검증 API
+*   **설명**: 사용자가 제시한 연구 가설을 임시 문서 및 RAG DB 근거 기반 다수결 투표로 참/거짓 판정합니다.
+*   **HTTP Method & Path**: `POST /defense-arena/verify-hypothesis`
+*   **Request Body (Form-Data)**:
+    - `session_id`: "session-uuid-2234" (str)
+    - `hypothesis`: "제안하는 알고리즘은 기존 기법 대비 연산속도가 20% 향상된다." (str)
+*   **Response Body (200 OK)**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "verdict": "SUPPORT",
+        "rationale": "임베딩 검색 결과 다수결 투표에서 지원하는 근거가 75%로 도출되었습니다..."
+      }
+    }
+    ```
+
+#### 15. F-02-A-5: 심사위원 에이전트 모의 디펜스 API
+*   **설명**: 가상의 비판적 저널 심사위원 질문에 답변하며 실시간 대화 및 채점을 진행합니다.
+*   **HTTP Method & Path**: `POST /defense-arena/defense/chat`
+*   **Request Body (Form-Data)**:
+    - `session_id`: "session-uuid-2234" (str)
+    - `user_response`: "제시하신 수식의 복잡도가 O(N^2)인 이유는..." (str, optional)
+*   **Response Body (200 OK)**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "refutation_question": "제시하신 수식의 복잡도가 O(N^2)인 이유가 무엇인가요?",
+        "score": 80,
+        "feedback": "이전 답변 대비 구체적인 논증이 보완되었습니다.",
+        "is_finished": false
+      }
+    }
+    ```

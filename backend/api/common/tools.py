@@ -61,7 +61,9 @@ async def search_web(
             continue
         url = r.get("url", "")
         title = r.get("title", "") or url
-        content = r.get("content", "") or ""
+        content = r.get("content")
+        if not isinstance(content, str):
+            content = ""
 
         output_lines.append(f"\n[{idx}] {title}")
         output_lines.append(f"URL: {url}")

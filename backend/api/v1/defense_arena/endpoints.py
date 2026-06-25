@@ -9,7 +9,9 @@ from api.v1.defense_arena.models import (
     HypothesisRequest,
     HypothesisVerificationResult,
     DefenseChatRequest,
-    DefenseChatResponse
+    DefenseChatResponse,
+    SavedSessionDTO,
+    SavedSessionDetailResponse
 )
 from api.v1.defense_arena.services import DefenseArenaService, DefenseArenaServiceDep
 
@@ -106,3 +108,78 @@ async def defense_chat_arena(
     """
     response = await service.process_defense_chat(session_id, user_response, mid=user["sub"])
     return SuccessResponse(data=response)
+
+
+@router.post("/keep-alive", summary="보안 세션 만료 시간 연장 (Ping) API")
+async def keep_alive_session(
+    user: LoginCheckDep,
+    service: DefenseArenaServiceDep,
+    session_id: str = Form(...)
+) -> SuccessResponse:
+    """보안 격리 세션의 마지막 활동 시각을 현재 시각으로 갱신하여 30분 만료를 연장합니다.
+
+    Args:
+        user (LoginCheckDep): 인증이 완료된 현재 로그인 사용자의 JWT 페이로드 정보.
+        session_id (str): 세션 ID.
+        service (DefenseArenaServiceDep): 서비스 의존성.
+
+    Returns:
+        SuccessResponse: 연장 성공 상태.
+    """
+    await service.extend_session_activity(session_id, mid=user["sub"])
+    return SuccessResponse(data={"status": "extended"})
+
+
+@router.post("/translate", summary="영어 학술 텍스트 한국어 번역 API")
+async def translate_text(
+    user: LoginCheckDep,
+    service: DefenseArenaServiceDep,
+    text: str = Form(...)
+) -> SuccessResponse:
+    """영문으로 구성된 학술 심사평 또는 대화 텍스트를 고품질 한국어로 번역합니다.
+
+    Args:
+        user (LoginCheckDep): 인증이 완료된 현재 로그인 사용자의 JWT 페이로드 정보.
+        text (str): 번역할 영문 텍스트.
+        service (DefenseArenaServiceDep): 서비스 의존성.
+
+    Returns:
+        SuccessResponse: 번역된 텍스트.
+    """
+    translated = await service.translate_text(text)
+    return SuccessResponse(data={"translated_text": translated})
+
+
+@router.get("/history", summary="보안 세션 보관함 리스트 조회 API")
+async def list_history_sessions(
+    user: LoginCheckDep,
+    service: DefenseArenaServiceDep
+) -> SuccessResponse:
+    """로그인한 사용자의 아카이빙된 디펜스 아레나 세션 기록 목록을 반환합니다."""
+    history = await service.list_saved_sessions(mid=user["sub"])
+    return SuccessResponse(data=history)
+
+
+@router.get("/history/{session_id}", summary="보관 세션 상세 복원 조회 API")
+async def get_history_session_detail(
+    user: LoginCheckDep,
+    service: DefenseArenaServiceDep,
+    session_id: str
+) -> SuccessResponse:
+    """지정한 보관 세션의 상세 분석 리포트 및 과거 대화 전체 로그를 불러옵니다."""
+    detail = await service.get_session_detail(session_id, mid=user["sub"])
+    return SuccessResponse(data=detail)
+
+
+@router.delete("/history/{session_id}", summary="보관 세션 삭제 API")
+async def delete_history_session(
+    user: LoginCheckDep,
+    service: DefenseArenaServiceDep,
+    session_id: str
+) -> SuccessResponse:
+    """보관함에서 특정 세션 분석 기록을 완전히 영구 삭제합니다."""
+    await service.defense_arena_dao.delete_session(session_id)
+    return SuccessResponse(data={"status": "deleted"})
+
+
+

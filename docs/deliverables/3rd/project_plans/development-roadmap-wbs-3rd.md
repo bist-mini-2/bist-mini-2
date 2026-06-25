@@ -7,7 +7,7 @@
 ## 👥 1. 단계별 역할 및 책임 명세 (R&R) 및 완료 상태
 
 ### 🧩 1.1 [1단계] 공통 RAG 파이프라인 구축 (6/16 ~ 6/17, 2일) - **[완료]**
-*   **승현**: 생명공학 RAG 파이프라인 (`q-bio.GN` 및 `q-bio.BM/MN/TO/CB/SC/OT` 총 21,383건 추출 가공, `bio_embeddings` 컬렉션 적재, RAG 유사도 검색 API)
+*   **승현**: 생명공학 RAG 파이프라인 (`q-bio.GN` 및 `q-bio.BM/MN/TO/CB/SC/OT` 총 54,066건 추출 가공, `bio_embeddings` 컬렉션 적재, RAG 유사도 검색 API)
 *   **지환**: 컴퓨터 과학 RAG 파이프라인 (`cs.NE` 17,825건 추출 가공, `cs_embeddings` 컬렉션 적재, RAG 유사도 검색 API)
 *   **동원**: 천문학 RAG 파이프라인 (`astro-ph.EP` 35,083건 추출 가공, `astronomy_embeddings` 컬렉션 적재, RAG 유사도 검색 API)
 
@@ -30,7 +30,7 @@
 | | | **지환** | - 컴퓨터 과학(`cs.NE`) 원천 데이터 추출 및 로컬 가공 | **완료** |
 | | | **동원** | - 천문학(`astro-ph.EP`) 원천 데이터 추출 및 로컬 가공 | **완료** |
 | **6/17 (수)** | DB 적재 및 API 구현 | **공통** | - 데이터베이스 DDL 반영 및 `langchain_postgres` pgvector HNSW 인덱스 설정 | **완료** |
-| | | **승현** | - `bio_embeddings` 컬렉션 21,383건 적재 및 RAG 검색 모듈 완성 | **완료** |
+| | | **승현** | - `bio_embeddings` 컬렉션 54,066건 적재 및 RAG 검색 모듈 완성 | **완료** |
 | | | **지환** | - `cs_embeddings` 컬렉션 17,825건 적재 및 RAG 검색 모듈 완성 | **완료** |
 | | | **동원** | - `astronomy_embeddings` 컬렉션 35,083건 적재 및 RAG 검색 모듈 완성 | **완료** |
 

@@ -24,7 +24,8 @@ from api.v1.defense_arena.entity import DefenseArenaSessionEntity, DefenseArenaC
 from api.v1.defense_arena.models import (
     PeerReviewReport, AgentOpinion,
     HypothesisVerificationResult, HypothesisVoteItem,
-    DefenseChatResponse, ScoreDTO
+    DefenseChatResponse, ScoreDTO,
+    SavedSessionDTO, SavedSessionDetailResponse, SavedChatHistoryDTO
 )
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,66 @@ class DefenseArenaService:
         """
         self.logger = logging.getLogger(f"{__name__}.DefenseArenaService")
         self.defense_arena_dao = defense_arena_dao
+
+    def _sample_representative_chunks(self, chunks: List[DefenseArenaChunkEntity], max_chunks: int = 15) -> str:
+        """논문 전체의 구조를 고르게 대변할 수 있도록 청크 목록에서 스마트 샘플링하여 단일 컨텍스트로 결합합니다.
+        
+        도입부(앞 20%), 방법론/본문(중간 60%), 결론(뒤 20%)의 영역별 비율을 고려하여 대표 청크들을 균등하게 추출합니다.
+        """
+        total = len(chunks)
+        if total <= max_chunks:
+            return "\n\n".join([c.text_chunk for c in chunks])
+            
+        # 1. 청크 인덱스 기준으로 정렬
+        sorted_chunks = sorted(chunks, key=lambda c: c.chunk_index)
+        
+        # 2. 개별 구간 분할 계산 (도입 20%, 본문 60%, 결론 20%)
+        intro_boundary = int(total * 0.2)
+        conclusion_boundary = int(total * 0.8)
+        
+        intro_chunks = sorted_chunks[:intro_boundary]
+        body_chunks = sorted_chunks[intro_boundary:conclusion_boundary]
+        conclusion_chunks = sorted_chunks[conclusion_boundary:]
+        
+        # 3. 최대 개수(max_chunks)만큼 영역별 비중 할당 (비율: 3, 9, 3 분할)
+        intro_target = max(1, int(max_chunks * 0.2))
+        conclusion_target = max(1, int(max_chunks * 0.2))
+        body_target = max_chunks - intro_target - conclusion_target
+        
+        sampled = []
+        
+        def sample_subset(subset, target_count):
+            """주어진 청크 서브셋에서 목표 개수만큼 균등한 간격으로 샘플링합니다.
+
+            Args:
+                subset (list): 샘플링할 청크 객체 목록.
+                target_count (int): 추출할 목표 청크 개수.
+
+            Returns:
+                list: 샘플링된 청크 목록.
+            """
+            if not subset:
+                return []
+            sub_len = len(subset)
+            if sub_len <= target_count:
+                return subset
+            if target_count == 1:
+                return [subset[sub_len // 2]]
+            # 균등 간격으로 샘플링 인덱스 추출
+            indices = [int(i * (sub_len - 1) / (target_count - 1)) for i in range(target_count)]
+            # 중복 제거 및 정렬
+            indices = sorted(list(set(indices)))
+            return [subset[idx] for idx in indices]
+            
+        sampled.extend(sample_subset(intro_chunks, intro_target))
+        sampled.extend(sample_subset(body_chunks, body_target))
+        sampled.extend(sample_subset(conclusion_chunks, conclusion_target))
+        
+        # 중복 방지 및 chunk_index 순으로 최종 정렬
+        sampled = sorted(list(set(sampled)), key=lambda c: c.chunk_index)
+        
+        self.logger.info(f"Sampled {len(sampled)} chunks out of {total} total chunks (intro: {intro_target}, body: {body_target}, conclusion: {conclusion_target})")
+        return "\n\n".join([f"[Section Chunk {c.chunk_index + 1}]: {c.text_chunk}" for c in sampled])
 
     async def process_pdf_upload(self, file: UploadFile, mid: str) -> dict:
         """업로드된 PDF 문서를 읽고 격리 텍스트 파싱, 청킹 및 pgvector 임시 임베딩을 수행합니다."""
@@ -73,34 +134,56 @@ class DefenseArenaService:
                 shutil.copyfileobj(file.file, buffer)
         await asyncio.to_thread(save_file_sync)
 
-        # 2. PDF 파싱 및 텍스트 추출 (pypdf)
-        def parse_pdf_sync() -> str:
-            """물리 저장된 PDF 파일에서 텍스트 내용을 동기 방식으로 추출합니다.
+        # 2. 파일 형식에 따른 파싱 및 텍스트 추출 (PDF 또는 Markdown/Text)
+        lower_filename = filename.lower()
+        raw_text = ""
+        
+        if lower_filename.endswith(".pdf"):
+            def parse_pdf_sync() -> str:
+                """물리 저장된 PDF 파일에서 텍스트 내용을 동기 방식으로 추출합니다."""
+                reader = PdfReader(file_path)
+                pdf_text = ""
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text:
+                        pdf_text += text + "\n"
+                return pdf_text
 
-            Returns:
-                str: 추출된 전체 텍스트 내용.
-            """
-            reader = PdfReader(file_path)
-            raw_text = ""
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    raw_text += text + "\n"
-            return raw_text
+            try:
+                raw_text = await asyncio.to_thread(parse_pdf_sync)
+            except Exception as e:
+                self.logger.error(f"Failed to parse PDF file: {e}")
+                await asyncio.to_thread(shutil.rmtree, session_dir, ignore_errors=True)
+                from api.common.exceptions import BusinessException
+                raise BusinessException(message=f"PDF 파일 파싱에 실패했습니다: {str(e)}", error_code="PDF_PARSING_FAILED")
+                
+            if not raw_text.strip():
+                await asyncio.to_thread(shutil.rmtree, session_dir, ignore_errors=True)
+                from api.common.exceptions import BusinessException
+                raise BusinessException(message="PDF 문서에서 텍스트를 추출할 수 없습니다. 스캔된 이미지 PDF이거나 비어있습니다.", error_code="EMPTY_PDF_CONTENT")
+                
+        elif lower_filename.endswith((".md", ".txt", ".markdown")):
+            def parse_text_sync() -> str:
+                """물리 저장된 마크다운 또는 텍스트 파일 내용을 읽습니다."""
+                with open(file_path, "r", encoding="utf-8") as f:
+                    return f.read()
 
-        try:
-            raw_text = await asyncio.to_thread(parse_pdf_sync)
-        except Exception as e:
-            self.logger.error(f"Failed to parse PDF file: {e}")
-            # 업로드한 임시 폴더 삭제
+            try:
+                raw_text = await asyncio.to_thread(parse_text_sync)
+            except Exception as e:
+                self.logger.error(f"Failed to read text/markdown file: {e}")
+                await asyncio.to_thread(shutil.rmtree, session_dir, ignore_errors=True)
+                from api.common.exceptions import BusinessException
+                raise BusinessException(message=f"마크다운/텍스트 파일 읽기에 실패했습니다: {str(e)}", error_code="TEXT_READ_FAILED")
+                
+            if not raw_text.strip():
+                await asyncio.to_thread(shutil.rmtree, session_dir, ignore_errors=True)
+                from api.common.exceptions import BusinessException
+                raise BusinessException(message="텍스트 파일이 비어 있어 내용을 읽을 수 없습니다.", error_code="EMPTY_TEXT_CONTENT")
+        else:
             await asyncio.to_thread(shutil.rmtree, session_dir, ignore_errors=True)
             from api.common.exceptions import BusinessException
-            raise BusinessException(message=f"PDF 파일 파싱에 실패했습니다: {str(e)}", error_code="PDF_PARSING_FAILED")
-
-        if not raw_text.strip():
-            await asyncio.to_thread(shutil.rmtree, session_dir, ignore_errors=True)
-            from api.common.exceptions import BusinessException
-            raise BusinessException(message="PDF 문서에서 텍스트를 추출할 수 없습니다. 스캔된 이미지 PDF이거나 비어있습니다.", error_code="EMPTY_PDF_CONTENT")
+            raise BusinessException(message="지원하지 않는 파일 형식입니다. PDF 또는 마크다운/텍스트(.md, .txt) 파일만 업로드할 수 있습니다.", error_code="UNSUPPORTED_FILE_TYPE")
 
         # 3. 텍스트 청킹 (RecursiveCharacterTextSplitter)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -138,6 +221,45 @@ class DefenseArenaService:
             "chunk_count": len(chunks)
         }
 
+    async def extend_session_activity(self, session_id: str, mid: str) -> None:
+        """세션의 마지막 활동 시각을 현재 시각으로 업데이트하여 만료 시간을 연장합니다."""
+        session = await self.defense_arena_dao.get_session(session_id)
+        if not session or session.member_id != mid:
+            from api.common.exceptions import BusinessException
+            raise BusinessException(message="격리 세션을 찾을 수 없거나 접근 권한이 없습니다.", error_code="SESSION_NOT_FOUND")
+        await self.defense_arena_dao.update_session_activity(session_id)
+
+    async def translate_text(self, text: str) -> str:
+        """영문 학술 분석 결과 또는 대화 텍스트를 고품질 한국어로 번역합니다.
+
+        Args:
+            text (str): 번역할 영어 텍스트.
+
+        Returns:
+            str: 한국어로 번역된 결과 텍스트.
+        """
+        self.logger.info("Translating academic text to Korean via LLM...")
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            openai_api_key=settings.OPENAI_API_KEY,
+            temperature=0
+        )
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", (
+                "You are an expert academic translator specializing in computer science, artificial intelligence, biotechnology, and astronomy.\n"
+                "Translate the provided English academic feedback, review report, or peer-defense chat response into natural, highly professional, and precise academic Korean.\n"
+                "Follow these strict translation guidelines:\n"
+                "1. Keep common technical terms in their widely accepted English acronyms or standard academic Korean forms (e.g., 'SOTA' as '최신 기술 수준' or 'SOTA', 'Methodology' as '방법론', 'Novelty' as '독창성' or '신규성').\n"
+                "2. Maintain all formatting, including LaTeX equations (e.g., $E=mc^2$), bold styling, bullet points, and newlines exactly.\n"
+                "3. Ensure the sentence structures are polite and professional (e.g., '~합니다', '~추천합니다' rather than colloquial terms).\n"
+                "Do not include any introductory text, metadata, or side remarks. Output ONLY the clean Korean translation."
+            )),
+            ("user", "{text}")
+        ])
+        chain = prompt | llm
+        result = await chain.ainvoke({"text": text})
+        return result.content if isinstance(result.content, str) else str(result.content)
+
     async def run_peer_review(self, session_id: str, target_journal: str, mid: str) -> PeerReviewReport:
         """격리 샌드박스의 문서를 바탕으로 LangGraph/Multi-Agent 기반 3대 에이전트 피어리뷰를 시뮬레이션합니다."""
         # 세션 정보 및 활동 갱신
@@ -147,33 +269,33 @@ class DefenseArenaService:
             raise BusinessException(message="격리 세션을 찾을 수 없거나 접근 권한이 없습니다.", error_code="SESSION_NOT_FOUND")
         await self.defense_arena_dao.update_session_activity(session_id)
 
-        # RAG용 청크 추출 (여기서는 문서 전체 요약을 위해 상위 청크 일부를 가져와 피어리뷰에 보냄)
-        # 긴 문서의 컨텍스트 초과 방지를 위해 대표 청크 10개를 고정적으로 조회
+        # RAG용 청크 추출: 전체 논문 구조를 대표할 수 있도록 최대 100개 청크를 가져온 뒤 스마트 샘플링 기법 적용
         from sqlalchemy import select
         # 데이터베이스 세션을 통해 직접 청크 로드
         result = await self.defense_arena_dao.orm_session.execute(
             select(DefenseArenaChunkEntity)
             .where(DefenseArenaChunkEntity.session_id == session_id)
             .order_by(DefenseArenaChunkEntity.chunk_index.asc())
-            .limit(10)
+            .limit(100)
         )
         chunk_list = list(result.scalars().all())
-        document_context = "\n\n".join([c.text_chunk for c in chunk_list])
+        document_context = self._sample_representative_chunks(chunk_list, max_chunks=15)
 
         llm = ChatOpenAI(model="gpt-4o-mini", openai_api_key=settings.OPENAI_API_KEY, temperature=0.2)
         structured_llm = llm.with_structured_output(PeerReviewReport)
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", (
-                "You are an elite academic peer review board composed of three expert agents:\n"
-                "1. Methodology Agent: Reviews mathematical proofs, algorithmic correctness, and experimental setups.\n"
-                "2. Novelty Agent: Reviews state-of-the-art literature contrast, novelty of approach, and scientific contribution.\n"
-                "3. Academic Style Agent: Reviews clarity, organization, academic vocabulary, and tone.\n\n"
-                "Simulate a constructive debate among these three agents regarding the provided paper draft and target journal: '{target_journal}'.\n"
-                "Synthesize their individual feedback into the required schema format, scoring each category out of 100.\n"
-                "The response must be in English. Structure the output strictly."
+                "You are an elite, highly critical academic peer review committee grading a draft submission to the target journal: '{target_journal}'.\n"
+                "Your committee consists of three specialized reviewer agents:\n"
+                "1. Methodology Agent: Evaluates the scientific rigor, mathematical proofs, experimental design, baseline comparisons, and validity of assumptions. Be extremely thorough; point out any lack of details or statistical significance.\n"
+                "2. Novelty Agent: Critiques the state-of-the-art (SOTA) literature comparison, the uniqueness of the proposed solution, and its theoretical or practical contributions. Determine if the paper is a mere incremental change or a substantial breakthrough.\n"
+                "3. Academic Style Agent: Audits structural clarity, logical flow, formatting consistency, clarity of figures/tables descriptions, and use of precise academic English. Identify awkward sentences or passive structures.\n\n"
+                "Conduct a rigorous, critical review simulation. Provide highly detailed, professional, and actionable feedback in English.\n"
+                "Assign realistic, rigorous scores (out of 100) for each agent's category, and synthesize the overall report summary.\n"
+                "Ensure your criticism is academic, specific to the text, and helps the authors successfully revise for the target journal."
             )),
-            ("user", "Paper Draft Content Snippets:\n{context}")
+            ("user", "Paper Draft Content:\n{context}")
         ])
 
         chain = prompt | structured_llm
@@ -185,7 +307,12 @@ class DefenseArenaService:
         if not isinstance(report, PeerReviewReport):
             raise TypeError(f"Expected PeerReviewReport, got {type(report)}")
 
+        # Save to DB session for history preservation
+        session.peer_review_result = report.model_dump()
+        await self.defense_arena_dao.update_session(session)
+
         return report
+
 
     async def verify_hypothesis(self, session_id: str, hypothesis: str, mid: str) -> HypothesisVerificationResult:
         """자기 일관성(Self-Consistency) 기법을 기반으로 RAG와 투표를 거쳐 가설을 다수결 검증합니다."""
@@ -258,7 +385,7 @@ class DefenseArenaService:
         verdict = max(votes_map, key=lambda k: votes_map[k])
         consensus_ratio = votes_map[verdict] / 3.0
 
-        return HypothesisVerificationResult(
+        result = HypothesisVerificationResult(
             verdict=verdict,
             support_count=support_count,
             refute_count=refute_count,
@@ -267,6 +394,13 @@ class DefenseArenaService:
             detailed_votes=detailed_votes,
             citations=citations
         )
+
+        # Save to DB session for history preservation
+        session.hypothesis_result = result.model_dump()
+        await self.defense_arena_dao.update_session(session)
+
+        return result
+
 
     async def process_defense_chat(self, session_id: str, user_response: Optional[str], mid: str) -> DefenseChatResponse:
         """심사위원 에이전트 모의 디펜스 세션을 턴제(Turn-based)로 실행하고 실시간 채점합니다."""
@@ -286,30 +420,39 @@ class DefenseArenaService:
         # 2. 첫 턴 시작 (사용자 답변이 없는 상태)
         if not user_response or current_turn == 1:
             # 피어리뷰가 선행되었다고 보고, 세션 정보(문서 요약 등)를 바탕으로 압박 질문을 냅니다.
-            # RAG를 통해 문서의 핵심 청크 2개 로드
-            from sqlalchemy import select
-            result = await self.defense_arena_dao.orm_session.execute(
-                select(DefenseArenaChunkEntity)
-                .where(DefenseArenaChunkEntity.session_id == session_id)
-                .order_by(DefenseArenaChunkEntity.chunk_index.asc())
-                .limit(2)
-            )
-            chunk_list = list(result.scalars().all())
-            document_context = "\n\n".join([c.text_chunk for c in chunk_list])
+            weakest_reviewer_info = ""
+            if session.peer_review_result and "opinions" in session.peer_review_result:
+                opinions = session.peer_review_result["opinions"]
+                if opinions:
+                    # 점수가 낮은 것부터 정렬
+                    sorted_ops = sorted(opinions, key=lambda x: x.get("score", 100))
+                    weakest = sorted_ops[0]
+                    weakest_reviewer_info = f"Reviewer Category: {weakest.get('agent_type', 'general')}\nReviewer score: {weakest.get('score')}/100\nReviewer Critique: {weakest.get('feedback')}"
+
+            # RAG를 통해 논문의 한계/방법론 관련 핵심 청크 4개 로드
+            query_vector = embedding_helper.encode("methodology flaw evaluation limit gap novelty contrast baseline comparison")
+            search_results = await self.defense_arena_dao.similarity_search_in_session(session_id, query_vector, k=4)
+            document_context = "\n\n".join([f"[Paragraph Chunk {r[0].chunk_index + 1}]: {r[0].text_chunk}" for r in search_results])
 
             prompt = ChatPromptTemplate.from_messages([
                 ("system", (
-                    "You are a strict, aggressive journal reviewer examining the author's paper draft.\n"
+                    "You are a strict, aggressive journal reviewer examining the author's paper draft in an oral defense.\n"
                     "Generate a highly critical, defense-provoking question pointing out a potential methodology flaw, "
-                    "novelty gap, or experimental limitation in the provided draft content.\n"
-                    "Keep the question academic, sharp, and concise (under 250 characters).\n"
+                    "novelty gap, or experimental limitation in the provided draft content.\n\n"
+                    "If the peer review committee provided a critique below, focus your attack on that specific point:\n"
+                    "--- Peer Review Critique ---\n{weakest_critique}\n-----------------------------\n\n"
+                    "Utilize the paper draft paragraph snippets to make your question highly specific and academic. Avoid generic phrases.\n"
+                    "Keep the question academic, sharp, and concise (under 300 characters).\n"
                     "Response must be in English."
                 )),
                 ("user", "Paper Draft Content:\n{context}")
             ])
 
             chain = prompt | llm
-            question_obj = await chain.ainvoke({"context": document_context})
+            question_obj = await chain.ainvoke({
+                "weakest_critique": weakest_reviewer_info if weakest_reviewer_info else "No peer review critique available. Examine methodology directly.",
+                "context": document_context
+            })
             question_text = question_obj.content if isinstance(question_obj.content, str) else str(question_obj.content)
 
             # DB에 첫 질문 레코드 저장
@@ -344,11 +487,14 @@ class DefenseArenaService:
         score_llm = llm.with_structured_output(ScoreDTO)
         score_prompt = ChatPromptTemplate.from_messages([
             ("system", (
-                "You are an academic committee member grading the author's defense response.\n"
-                "Analyze the question and the author's response. Evaluate how logically they defended their claim, "
-                "acknowledged limitations constructively, or provided valid evidence.\n"
-                "Score it out of 100 and provide a sharp, actionable critique in English.\n"
-                "Response must be structured."
+                "You are an expert academic reviewer on an oral defense panel grading the author's response to your question.\n"
+                "Analyze the question and the author's response. Grade the response strictly out of 100 based on the following rubric:\n"
+                "1. Scientific Soundness & Logic (40%): Does the author address the core weakness logically without deflecting?\n"
+                "2. Empirical Support & Evidence (30%): Does the author cite specific findings, experiments, or equations from their paper or known SOTA methods?\n"
+                "3. Receptiveness to Criticism (20%): Does the author constructively acknowledge true limitations and outline realistic future mitigations?\n"
+                "4. Professionalism (10%): Is the tone academic, respectful, and objective?\n\n"
+                "Be highly critical. Do not give scores above 90 unless the response is flawless and mathematically or empirically backed.\n"
+                "Provide a sharp, specific, and actionable critique detailing what was strong and what is still lacking in English."
             )),
             ("user", "Committee's Question: {question}\nAuthor's Defense Response: {answer}")
         ])
@@ -387,6 +533,8 @@ class DefenseArenaService:
                     "You are the head of the journal selection board summarizing the author's defense session.\n"
                     "Provide a final, comprehensive defense evaluation report. Critique their strengths, "
                     "re-state remaining gaps, and give a final verdict (e.g., Minor Revision / Major Revision / Reject).\n"
+                    "You MUST structure the report using clear markdown headings (e.g., '# Final Defense Evaluation Report', "
+                    "'## Summary of Defense', '## Strengths', '## Remaining Gaps', '## Final Verdict & Recommendations').\n"
                     "The response must be in English and academic."
                 )),
                 ("user", "Defense Session Transcripts:\n{summary}")
@@ -395,6 +543,13 @@ class DefenseArenaService:
             report_chain = report_prompt | llm
             final_report_obj = await report_chain.ainvoke({"summary": history_summary})
             final_report_text = final_report_obj.content if isinstance(final_report_obj.content, str) else str(final_report_obj.content)
+
+            # Save final report and calculate average score to preserve session
+            session.final_report = final_report_text
+            scores = [h.score for h in all_histories if h.score is not None]
+            if scores:
+                session.defense_score = sum(scores) / len(scores)
+            await self.defense_arena_dao.update_session(session)
 
             return DefenseChatResponse(
                 session_id=session_id,
@@ -406,13 +561,15 @@ class DefenseArenaService:
                 final_report=final_report_text
             )
 
+
         # 3) 다음 턴 압박 질문 생성
         next_question_prompt = ChatPromptTemplate.from_messages([
             ("system", (
-                "You are a strict academic reviewer in a live oral defense.\n"
-                "Follow up on the author's previous answer. Pick on any remaining weak logic, "
-                "lack of empirical data, or questionable assumption. Ask the next sharp question.\n"
-                "Keep the question academic, critical, and concise (under 250 characters).\n"
+                "You are a strict, highly analytical academic reviewer in an oral defense panel.\n"
+                "Follow up on the author's previous response to your previous question.\n"
+                "Identify any lingering gaps, logical flaws, half-truths, or unaddressed aspects in the author's defense.\n"
+                "Do not let them slip away with superficial claims; demand logical or empirical clarification.\n"
+                "Formulate the next follow-up question. Keep the question academic, critical, and concise (under 300 characters).\n"
                 "Response must be in English."
             )),
             ("user", "Previous Question: {prev_question}\nAuthor's Answer: {prev_answer}\nCommittee's Critique: {critique}")
@@ -448,7 +605,9 @@ class DefenseArenaService:
         )
 
     async def wipe_out_expired_sessions(self, expire_minutes: int = 30) -> int:
-        """30분 동안 미활동 시 세션 PDF 파일 및 pgvector 임시 데이터를 영구 소거(Wipe Out)합니다."""
+        """30분 동안 미활동 시 세션 PDF 파일 및 pgvector 임시 데이터를 영구 소거(Wipe Out)합니다.
+        단, 보관함에 저장하도록 설정된(is_saved=True) 세션의 경우 파일과 청크만 소거하고 세션 결과 및 히스토리는 유지합니다.
+        """
         # 1. 만료 세션 목록 로드
         expired = await self.defense_arena_dao.list_expired_sessions(expire_minutes)
         if not expired:
@@ -472,13 +631,77 @@ class DefenseArenaService:
                 except Exception as ex:
                     self.logger.error(f"Failed to delete session directory {target_dir}: {ex}")
 
-            # 3. DB 세션 레코드 삭제 (CASCADE에 의해 defense_arena_chunk, defense_history 자동 일괄 삭제 처리됨)
-            success = await self.defense_arena_dao.delete_session(session_id)
-            if success:
+            # 3. 이중 소거 정책 적용 (is_saved 분기)
+            if session.is_saved:
+                # 3.1 파일 및 pgvector 청크만 영구 완전 소거
+                await self.defense_arena_dao.delete_chunks(session_id)
+                # 3.2 만료되었음을 나타내는 필드 설정
+                session.file_path = ""
+                session.chunk_count = 0
+                await self.defense_arena_dao.update_session(session)
                 count += 1
+            else:
+                # 3.3 저장되지 않은 세션은 CASCADE 완전 소거
+                success = await self.defense_arena_dao.delete_session(session_id)
+                if success:
+                    count += 1
 
-        self.logger.info(f"Wipe out completed. Total {count} sessions deleted.")
+        self.logger.info(f"Wipe out completed. Total {count} sessions cleaned/deleted.")
         return count
+
+    async def list_saved_sessions(self, mid: str) -> list[SavedSessionDTO]:
+        """사용자의 아카이빙된 세션 히스토리 목록을 조회합니다."""
+        sessions = await self.defense_arena_dao.list_user_sessions(mid)
+        dto_list = []
+        for s in sessions:
+            # 턴 수가 몇 개 기록되어 있고 대화가 있었는지 감지
+            histories = await self.defense_arena_dao.get_defense_history(s.session_id)
+            has_defense = len(histories) > 0
+            
+            dto_list.append(SavedSessionDTO(
+                session_id=s.session_id,
+                file_name=s.file_name,
+                created_at=s.created_at,
+                has_peer_review=s.peer_review_result is not None,
+                has_hypothesis=s.hypothesis_result is not None,
+                has_defense=has_defense,
+                defense_score=s.defense_score,
+                is_expired=(s.chunk_count == 0 or s.file_path == "")
+            ))
+        return dto_list
+
+    async def get_session_detail(self, session_id: str, mid: str) -> SavedSessionDetailResponse:
+        """특정 보관 세션의 상세 내역(피어리뷰, 가설검증, 디펜스 보고서 및 채팅 로그)을 복원합니다."""
+        session = await self.defense_arena_dao.get_session(session_id)
+        if not session or session.member_id != mid:
+            from api.common.exceptions import BusinessException
+            raise BusinessException(message="격리 세션을 찾을 수 없거나 접근 권한이 없습니다.", error_code="SESSION_NOT_FOUND")
+
+        histories = await self.defense_arena_dao.get_defense_history(session_id)
+        
+        chat_log = []
+        for h in histories:
+            chat_log.append(SavedChatHistoryDTO(
+                turn=h.turn,
+                question=h.question,
+                answer=h.answer,
+                score=h.score,
+                feedback=h.feedback
+            ))
+
+        return SavedSessionDetailResponse(
+            session_id=session.session_id,
+            file_name=session.file_name,
+            created_at=session.created_at,
+            peer_review_result=session.peer_review_result,
+            hypothesis_result=session.hypothesis_result,
+            final_report=session.final_report,
+            defense_score=session.defense_score,
+            is_expired=(session.chunk_count == 0 or session.file_path == ""),
+            chat_history=chat_log
+        )
+
 
 
 DefenseArenaServiceDep = Annotated[DefenseArenaService, Depends(DefenseArenaService)]
+

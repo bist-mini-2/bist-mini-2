@@ -24,7 +24,7 @@
 *   **3차 시스템 아키텍처 및 API 명세서**: [system-architecture-api-spec-3rd.md](file:///Users/pileuszu/Repos/bist-mini-2/docs/deliverables/3rd/project_plans/system-architecture-api-spec-3rd.md)
     *   *내용*: 3티어 아키텍처 구성도 및 최종 구현된 REST API 입출력 규격 명세
 *   **3차 데이터셋 EDA 및 DB 스키마 설계**: [dataset-eda-db-schema-3rd.md](file:///Users/pileuszu/Repos/bist-mini-2/docs/deliverables/3rd/project_plans/dataset-eda-db-schema-3rd.md)
-    *   *내용*: 최종 적재 결과(총 74,291건) 및 실제 운용 테이블(ERD) DDL 정의
+    *   *내용*: 최종 적재 결과(총 106,974건) 및 실제 운용 테이블(ERD) DDL 정의
 
 ---
 
@@ -50,6 +50,9 @@
 *   **맞춤형 연구 비서 Gem 팩토리**:
     *   [endpoints.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/api/v1/gems/endpoints.py) & [gem_agent.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/api/v1/gems/gem_agent.py)
     *   *내용*: 도메인 RAG 소스 및 시스템 프롬프트 바인딩 젬 생성, 1:1 대화 연동.
+*   **보안 피어 리뷰 및 가설 디펜스 아레나**:
+    *   [endpoints.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/api/v1/defense_arena/endpoints.py) & [services.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/api/v1/defense_arena/services.py)
+    *   *내용*: 격리 보안 구역 PDF 업로드, 3대 심사위원 에이전트 피어 리뷰, 자가일관성 가설 검증 및 심사위원 압박 디펜스 아레나 연동.
 
 ### 🧪 2.3 단위 테스트 & CI 검증 레이어 (Unit Testing & CI Verification Layer)
 
@@ -67,6 +70,8 @@
     *   *내용*: 비동기 연구 격차 분석 작업 생성, 비동기 상태 조회, 그리고 백라운드 태스크 연동 흐름 검증.
 *   **실시간 알림 API 테스트**: [test_notification.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_notification.py)
     *   *내용*: 사용자 알림 조회, 읽음 처리, 일괄 삭제 및 SSE(Server-Sent Events) 스트리밍 채널 연동 확인.
+*   **보안 피어 리뷰 및 가설 디펜스 아레나 API 테스트**: [test_defense_arena.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_defense_arena.py)
+    *   *내용*: 격리 PDF 업로드, 피어 리뷰 리포트 생성, 가설 검증 및 심사위원 모의 디펜스 API 동작 정합성 검증.
 *   **RAG 코사인 유사도 검색 테스트**: [test_similarity_search.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_similarity_search.py)
     *   *내용*: 3대 도메인(CS, Bio, Astronomy) 코사인 유사도 기반 문서 검색 API 입출력 및 가용성 검증.
 *   **서버 헬스체크 테스트**: [test_health.py](file:///Users/pileuszu/Repos/bist-mini-2/backend/tests/test_health.py)

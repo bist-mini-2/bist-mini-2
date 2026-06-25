@@ -93,6 +93,14 @@ class GemFileRag:
         return self._embeddings
 
     def _get_vectorstore(self, gem_id: str) -> PGVector:
+        """지정된 Gem ID에 대칭되는 pgvector 스토어 객체를 초기화 및 반환합니다.
+
+        Args:
+            gem_id: 대상 Gem의 고유 식별자 UUID.
+
+        Returns:
+            PGVector: 비동기 모드로 구성된 pgvector 벡터 스토어 연결 인스턴스.
+        """
         return PGVector(
             embeddings=self.get_embeddings(),
             collection_name=_collection_name(gem_id),
