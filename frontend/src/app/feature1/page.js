@@ -17,7 +17,12 @@ import styles from "./page.module.css";
 export default function Feature1Page() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const sessionId = searchParams.get("session");
+  const urlSessionId = searchParams.get("session");
+  const [localSessionId, setLocalSessionId] = useState(null);
+  // URL의 세션이 우선. 새 방을 막 만든 직후엔 아직 URL이 안 바뀌었을 수 있어
+  // localSessionId로 화면을 유지한다(스트리밍 중 리마운트로 연결이 끊기는 것 방지).
+  const sessionId = urlSessionId || localSessionId;
+  
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -41,10 +46,12 @@ export default function Feature1Page() {
   // 선택된 채팅방이 바뀌면 해당 방의 대화 내역을 불러온다.
   useEffect(() => {
     setPanelIndex(null); // 방이 바뀌면 논문 패널은 닫는다.
-    if (!sessionId) {
-      setMessages([]);
+    if (!urlSessionId) {
+      // 새로 만든 로컬 세션이 스트리밍 중이면 메시지를 보존한다.
+      if (!localSessionId) setMessages([]);
       return;
     }
+    setLocalSessionId(null); // URL에 세션이 동기화됐으니 로컬 표시는 해제
     if (isCreatingSessionRef.current) {
       isCreatingSessionRef.current = false;
       return;
@@ -53,7 +60,7 @@ export default function Feature1Page() {
     const loadHistory = async () => {
       setIsLoadingHistory(true);
       try {
-        const res = await getMessages(sessionId);
+        const res = await getMessages(urlSessionId);
         if (!cancelled) {
           const history = (res.data || []).map((item) => ({
             role: item.role,
@@ -73,7 +80,7 @@ export default function Feature1Page() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [urlSessionId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -106,8 +113,10 @@ export default function Feature1Page() {
         const res = await createSession(title);
         activeSessionId = res.data.session_id;
         isNewSession = true;   // ← 새 방 생성됨
-        isCreatingSessionRef.current = true;   // ← 세션 생성 직후 라우트 이동 시 loadHistory 방지
-        router.replace(`/feature1?session=${activeSessionId}`);
+        isCreatingSessionRef.current = true;   // ← URL 동기화 시 loadHistory 방지
+        // URL을 지금 바꾸지 않고 로컬 상태로만 화면을 전환한다.
+        // (스트리밍 도중 URL이 바뀌면 화면이 리마운트되며 연결이 끊겨 503이 발생)
+        setLocalSessionId(activeSessionId);
       } catch (err) {
         console.error("방 생성 실패:", err);
         sendingRef.current = false;
@@ -165,8 +174,30 @@ export default function Feature1Page() {
         }
       }
       window.dispatchEvent(new Event("bio-chat:refresh"));
+
+      // 스트리밍·후처리가 모두 끝난 뒤에야 URL을 동기화한다(중간 리마운트 방지).
+      if (isNewSession) {
+        router.replace(`/feature1?session=${activeSessionId}`);
+      }
     } catch (err) {
-      // ... 기존 에러 처리
+      console.error("스트리밍 실패:", err);
+      // 빈 답변 말풍선을 에러 메시지로 교체한다(아무것도 안 보이는 현상 방지).
+      setMessages((prev) => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (last && last.role === "assistant" && (last.content ?? "") === "") {
+          next[next.length - 1] = {
+            ...last,
+            content: "답변을 받지 못했어요. 잠시 후 다시 시도해 주세요.",
+            isError: true,
+          };
+        }
+        return next;
+      });
+      // 새 방이라도 URL은 맞춰둔다(다음 메시지를 위해).
+      if (isNewSession) {
+        router.replace(`/feature1?session=${activeSessionId}`);
+      }
     } finally {
       sendingRef.current = false;
       setIsSending(false);
@@ -294,6 +325,11 @@ export default function Feature1Page() {
  * structured output(JSON 문자열)이면 {explanation, papers}로,
  * 옛날 일반 텍스트면 그대로 explanation에 담아 반환한다(하위 호환).
  */
+/**
+ * AI 답변의 content를 파싱한다.
+ * structured output(JSON 문자열)이면 {explanation, papers}로,
+ * 옛날 일반 텍스트면 그대로 explanation에 담아 반환한다(하위 호환).
+ */
 function parseAnswer(content) {
   if (typeof content !== "string") {
     return { explanation: "", papers: [] };
@@ -316,7 +352,6 @@ function parseAnswer(content) {
 /**
  * 사용자/AI 메시지 말풍선.
  * AI 메시지는 설명(explanation) + "논문 N편" 패널 토글 버튼 + 검색 출처(sources)를 표시한다.
- * 참고 논문 카드 자체는 오른쪽 PaperPanel에서 렌더링한다.
  */
 function MessageBubble({ message, index, isActive, onTogglePanel }) {
   const isUser = message.role === "user";
@@ -332,6 +367,58 @@ function MessageBubble({ message, index, isActive, onTogglePanel }) {
   // 참고 논문 = 실제 검색된 출처(sources). 패널/버튼이 이걸 사용한다.
   const refPapers = !isUser && Array.isArray(message.sources) ? message.sources : [];
 
+  // 본문 텍스트 속 [1] [2] 같은 인용 마커를 클릭 가능한 칩으로 바꾼다.
+  // 번호 N은 sources[N-1]에 대응. 범위를 벗어난 번호는 그냥 텍스트로 둔다(방어).
+  const renderWithCitations = (text) => {
+    if (typeof text !== "string" || refPapers.length === 0) return text;
+    // "있습니다 [2]." → "있습니다.[2]" : 칩 앞 공백을 없애고, 뒤따르는 문장부호를 칩 앞으로 옮긴다.
+    const normalized = text.replace(/\s*(\[\d+\])\s*([.,!?。、])/g, "$2$1");
+    const parts = normalized.split(/(\[\d+\])/g); // [숫자]를 기준으로 쪼갠다
+    return parts.map((part, i) => {
+      const m = part.match(/^\[(\d+)\]$/);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        const src = refPapers[n - 1]; // [1] → sources[0]
+        if (src && src.arxiv_id) {
+          // A안: 칩에 arXiv ID를 직접 표시. 호버하면 제목+요약 카드.
+          return (
+            <span key={i} className={styles.citationWrap}>
+                <a
+                className={styles.citation}
+                href={`https://arxiv.org/abs/${src.arxiv_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {/* <i className="bi bi-file-earmark-text"></i> */}
+                arXiv:{src.arxiv_id}
+              </a>
+              <span className={styles.citationCard}>
+                <span className={styles.citationCardTitle}>{src.title || `논문 ${n}`}</span>
+                {src.summary && (
+                  <span className={styles.citationCardSummary}>{src.summary}</span>
+                )}
+                <span className={styles.citationCardLink}>arXiv:{src.arxiv_id} ↗</span>
+              </span>
+            </span>
+          );
+        }
+      }
+      return part; // 일반 텍스트이거나 범위 밖 번호는 그대로
+    });
+  };
+
+  // ReactMarkdown이 렌더하는 각 텍스트 조각에 인용 변환을 적용한다.
+  const markdownComponents = {
+    p: ({ children }) => <p>{mapChildren(children)}</p>,
+    li: ({ children }) => <li>{mapChildren(children)}</li>,
+  };
+  // children 배열의 문자열 조각만 골라 인용 변환을 적용하는 헬퍼
+  function mapChildren(children) {
+    return (Array.isArray(children) ? children : [children]).flatMap((child, i) =>
+      typeof child === "string" ? renderWithCitations(child) : child
+    );
+  }
+
   return (
     <div className={`${styles.messageRow} ${isUser ? styles.messageRowUser : ""}`}>
       {!isUser && (
@@ -345,7 +432,7 @@ function MessageBubble({ message, index, isActive, onTogglePanel }) {
             message.content
           ) : (
             <div className={styles.markdown}>
-              <ReactMarkdown>{explanation}</ReactMarkdown>
+              <ReactMarkdown components={markdownComponents}>{explanation}</ReactMarkdown>
             </div>
           )}
         </div>
