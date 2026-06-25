@@ -42,13 +42,17 @@ class GemResponse(BaseDTO):
         examples=[["bio"]]
     )
     system_prompt: str = Field(
-        ..., 
-        description="설정된 지침 프롬프트", 
+        ...,
+        description="설정된 지침 프롬프트",
         examples=["당신은 CRISPR-Cas9 기법 연구 논문만을 집중 분석하여 날카로운 질문을 제안하는 분자생물학 심사위원입니다."]
     )
+    has_files: bool = Field(
+        default=False,
+        description="사용자 업로드 파일이 RAG에 포함되어 있는지 여부",
+    )
     created_at: datetime = Field(
-        ..., 
-        description="생성 일시", 
+        ...,
+        description="생성 일시",
         examples=["2026-06-23T11:22:00"]
     )
 
@@ -134,6 +138,20 @@ class GemChatResponse(BaseDTO):
 class GemChatResponseWrapper(SuccessResponse):
     """Gem 대화 응답 래퍼."""
     data: GemChatResponse = Field(
-        ..., 
+        ...,
         description="Gem RAG 대화 응답 및 검색 출처 결과 본문"
     )
+
+
+class GemFileResponse(BaseDTO):
+    """Gem 업로드 파일 메타데이터 응답 스키마."""
+    file_id: str = Field(..., description="파일 고유 식별자 (UUID)")
+    gem_id: str = Field(..., description="연결된 Gem ID")
+    filename: str = Field(..., description="업로드된 파일명")
+    chunk_count: int = Field(..., description="임베딩된 청크 수")
+    uploaded_at: datetime = Field(..., description="업로드 일시")
+
+
+class GemFileListResponseWrapper(SuccessResponse):
+    """Gem 파일 목록 응답 래퍼."""
+    data: list[GemFileResponse] = Field(..., description="Gem에 업로드된 파일 목록")

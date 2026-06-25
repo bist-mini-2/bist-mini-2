@@ -75,6 +75,59 @@ backend/api/v1/defense_arena/
 
 ---
 
+## 📋 E2E 통합 테스트 시나리오 (E2E Test Scenarios)
+
+본 모듈의 전체적인 기능 연동 정합성을 수동 또는 자동화된 E2E 테스트로 검증하기 위한 5단계 표준 시나리오입니다.
+
+### 시나리오 1: PDF 격리 업로드 및 가상 샌드박스 개설
+1. **목적**: 기밀 보안 구역에 논문을 안전하게 적재하고 RAG를 위한 3072차원 임베딩 컬렉션이 생성되는지 검증합니다.
+2. **테스트 절차**:
+   - `POST /api/v1/defense-arena/upload-isolated` API에 테스트용 PDF 파일을 Multipart Form-Data로 전송합니다.
+   - **OS Path Guard 검증**: 경로에 디렉토리 트래버설 취약 문자열(예: `../`)을 삽입하여 400 Bad Request 에러 및 접근 거부 처리가 정상 작동하는지 확인합니다.
+3. **기대 결과**:
+   - HTTP 201 Created 응답 수신.
+   - 응답 DTO 내에 고유 `session_id`, 업로드된 `file_name`, 그리고 분할된 `chunk_count`가 반환되어야 합니다.
+   - DB 테이블 `defense_arena_session` 및 `defense_arena_chunk`에 해당 레코드가 적재되고, pgvector 인덱스(HNSW)를 통한 조회가 가능해야 합니다.
+
+### 시나리오 2: Multi-Agent 학술 피어 리뷰 생성
+1. **목적**: 3대 에이전트(방법론, 신규성, 학술문체)가 토론(Debate)을 거쳐 구조화된 심사평 보고서를 정상적으로 도출하는지 확인합니다.
+2. **테스트 절차**:
+   - `POST /api/v1/defense-arena/peer-review` API에 이전 단계에서 획득한 `session_id`와 `target_journal` (예: "IEEE Access")을 전달합니다.
+3. **기대 결과**:
+   - HTTP 200 OK 응답 수신.
+   - 응답 DTO에 `overall_score` (0~100점), 3대 분야별 상세 비평 내역, 그리고 최종 `review_report` 텍스트가 정상 구조화되어 반환되어야 합니다.
+
+### 시나리오 3: 자기 일관성(Self-Consistency) 기반 연구 가설 검증
+1. **목적**: 제시한 연구 가설에 대해 pgvector 유사도 검색 근거와 3회 독립 추론 다수결 합의가 설계대로 작동하는지 검증합니다.
+2. **테스트 절차**:
+   - `POST /api/v1/defense-arena/verify-hypothesis` API에 `session_id`와 연구 가설 텍스트(`hypothesis`, 예: "본 논문의 모델은 기존 기법 대비 연산 속도를 20% 단축한다.")를 전달합니다.
+3. **기대 결과**:
+   - HTTP 200 OK 응답 수신.
+   - 응답 DTO 내에 최종 다수결 판정 (`verdict`: SUPPORT / REFUTE / INSUFFICIENT_EVIDENCE) 및 구체적인 근거 분석 텍스트인 `rationale`이 포함되어 반환되어야 합니다.
+
+### 시나리오 4: 심사위원 에이전트 모의 디펜스 (턴제 질답 & 실시간 채점)
+1. **목적**: 3턴 동안 진행되는 턴제 심사위원 압박 면접 시뮬레이션 및 실시간 채점/피드백 기능의 상태 전환을 검증합니다.
+2. **테스트 절차**:
+   - **1턴 (디펜스 시작)**: `POST /api/v1/defense-arena/defense/chat` API에 `session_id`만 전달하고 `user_response`는 누락(Optional)하여 첫 번째 심사위원 질문을 유도합니다.
+   - **2~3턴 (반론 및 채점)**: 수신된 질문에 대해 사용자의 방어 논리 텍스트를 `user_response`에 담아 연속적으로 전송합니다.
+3. **기대 결과**:
+   - **1턴**: HTTP 200 OK 응답 수신. `refutation_question`에 첫 질문이 생성되고, `is_finished`는 `false`로 반환됩니다.
+   - **2~3턴**: 답변 제출 시마다 에이전트가 채점한 `score` (0~100점)와 `feedback`이 실시간으로 반환됩니다.
+   - **마지막 턴**: 3턴의 반론이 끝나면 `is_finished`가 `true`로 설정되고, 최종 승인 등급(Major Revision, Accept, Reject 등)이 포함된 최종 성적표가 반환되어야 합니다.
+   - 모든 대화 내역은 DB `defense_history` 테이블에 안전하게 기록되어야 합니다.
+
+### 시나리오 5: 30분 미활동 세션 자동 소거 (Shredding & Wipe Out)
+1. **목적**: 논문 유출 방지를 위한 격리 디렉토리 물리 파쇄와 데이터베이스 임시 레코드 자동 삭제 데몬의 동작을 검증합니다.
+2. **테스트 절차**:
+   - `defense_arena_session` 테이블의 `updated_at` (또는 `created_at`) 컬럼의 값을 강제로 30분 이전으로 업데이트합니다.
+   - 백그라운드 세션 소거 데몬 스케줄러가 트리거될 때까지 대기(또는 강제 트리거)합니다.
+3. **기대 결과**:
+   - 만료된 세션이 감지되어 데이터베이스의 `defense_arena_session` 테이블에서 해당 레코드가 성공적으로 제거되어야 합니다.
+   - `ON DELETE CASCADE`에 의해 `defense_arena_chunk` 및 `defense_history` 테이블의 관련 임시 임베딩 청크와 대화 기록이 자동으로 연쇄 소거되어야 합니다.
+   - 격리 업로드 디렉토리에 적재되었던 해당 PDF 파일이 물리적으로 디스크에서 영구 소거(`shutil.rmtree`)되어 복구가 불가능해야 합니다.
+
+---
+
 ## 🧪 유닛 테스트 실행 (Unit Test)
 
 본 모듈의 비즈니스 서비스 로직 및 엔드포인트 응답 무결성을 보장하기 위해 mock fixture를 사용한 유닛 테스트가 작성되어 있습니다. 백엔드 루트 폴더에서 아래의 명령어로 검증할 수 있습니다.
@@ -82,3 +135,4 @@ backend/api/v1/defense_arena/
 ```bash
 $ PYTHONPATH=. venv/bin/pytest tests/test_defense_arena.py
 ```
+

@@ -84,7 +84,14 @@ async def lifespan(app: FastAPI):
                 from sqlalchemy import text
                 await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
                 await conn.execute(text("ALTER TABLE research_gap_task ADD COLUMN IF NOT EXISTS translated_result JSON;"))
+                # Defense Arena Session Archive columns
+                await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS is_saved BOOLEAN DEFAULT TRUE;"))
+                await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS peer_review_result JSON;"))
+                await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS hypothesis_result JSON;"))
+                await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS final_report TEXT;"))
+                await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS defense_score DOUBLE PRECISION;"))
             await conn.run_sync(Base.metadata.create_all)
+
         logging.getLogger("uvicorn").info("Database tables initialized successfully.")
     except Exception as e:
         logging.getLogger("uvicorn").error(f"Database initialization deferred (server offline?): {e}")

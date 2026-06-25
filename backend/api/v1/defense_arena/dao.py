@@ -48,14 +48,44 @@ class DefenseArenaDao:
             return True
         return False
 
+    async def update_session(self, session: DefenseArenaSessionEntity) -> DefenseArenaSessionEntity:
+        """세션 상세 정보(예: 분석 피어 리뷰/가설 검증 리포트 캐싱)를 저장합니다."""
+        merged = await self.orm_session.merge(session)
+        await self.orm_session.flush()
+        await self.orm_session.refresh(merged)
+        return merged
+
+    async def delete_chunks(self, session_id: str) -> None:
+        """세션에 연관된 pgvector 청크만 지웁니다. (만료 세션 보관용 파일 파쇄 단계)"""
+        result = await self.orm_session.execute(
+            select(DefenseArenaChunkEntity).where(DefenseArenaChunkEntity.session_id == session_id)
+        )
+        chunks = result.scalars().all()
+        for chunk in chunks:
+            await self.orm_session.delete(chunk)
+        await self.orm_session.flush()
+
+    async def list_user_sessions(self, member_id: str) -> list[DefenseArenaSessionEntity]:
+        """사용자의 디펜스 아레나 세션 히스토리 목록을 최신순으로 조회합니다."""
+        result = await self.orm_session.execute(
+            select(DefenseArenaSessionEntity)
+            .where(DefenseArenaSessionEntity.member_id == member_id)
+            .order_by(DefenseArenaSessionEntity.created_at.desc())
+        )
+        return list(result.scalars().all())
+
     async def list_expired_sessions(self, expire_minutes: int = 30) -> list[DefenseArenaSessionEntity]:
-        """마지막 활동(updated_at) 이후 지정한 시간(분)이 지나 만료된 세션 목록을 조회합니다."""
+        """마지막 활동(updated_at) 이후 지정한 시간(분)이 지나고 아직 청크가 소거되지 않은 만료 세션 목록을 조회합니다."""
         threshold = datetime.now() - timedelta(minutes=expire_minutes)
         result = await self.orm_session.execute(
             select(DefenseArenaSessionEntity)
-            .where(DefenseArenaSessionEntity.updated_at <= threshold)
+            .where(and_(
+                DefenseArenaSessionEntity.updated_at <= threshold,
+                DefenseArenaSessionEntity.chunk_count > 0
+            ))
         )
         return list(result.scalars().all())
+
 
     async def insert_chunks(self, chunks: list[DefenseArenaChunkEntity]) -> None:
         """분할된 텍스트 및 임베딩 벡터 리스트를 일괄 추가합니다."""

@@ -1,6 +1,8 @@
 from typing import List, Optional, Any
 from pydantic import Field
+from datetime import datetime
 from api.database.config.dto_base import BaseDTO
+
 
 
 class UploadResponse(BaseDTO):
@@ -190,3 +192,39 @@ class ScoreDTO(BaseDTO):
         description="촌철살인 평가 피드백 및 논리 보충 조언", 
         examples=["K-fold 방어로직은 타당하지만 시계열 교차 오염 방지 대책이 누락되었습니다."]
     )
+
+
+class SavedSessionDTO(BaseDTO):
+    """보관함 세션 목록 항목 DTO."""
+    session_id: str
+    file_name: str
+    created_at: datetime
+    has_peer_review: bool
+    has_hypothesis: bool
+    has_defense: bool
+    defense_score: Optional[float] = None
+    is_expired: bool
+
+
+class SavedChatHistoryDTO(BaseDTO):
+    """보관된 개별 채팅 턴 이력 DTO."""
+    turn: int
+    question: str
+    answer: Optional[str] = None
+    score: Optional[int] = None
+    feedback: Optional[str] = None
+
+
+class SavedSessionDetailResponse(BaseDTO):
+    """보관 세션 상세 복원 응답 DTO."""
+    session_id: str
+    file_name: str
+    created_at: datetime
+    peer_review_result: Optional[dict] = None
+    hypothesis_result: Optional[dict] = None
+    final_report: Optional[str] = None
+    defense_score: Optional[float] = None
+    is_expired: bool
+    chat_history: List[SavedChatHistoryDTO] = []
+
+

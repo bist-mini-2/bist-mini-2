@@ -3,6 +3,11 @@ import { render, screen } from '@testing-library/react';
 import Feature3Page from '../src/app/feature3/page';
 import { getGems } from '../src/apis/gemsApi';
 
+// Mock react-markdown
+jest.mock('react-markdown', () => {
+  return ({ children }) => <>{children}</>;
+});
+
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter() {

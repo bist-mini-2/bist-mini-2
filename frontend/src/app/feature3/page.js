@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getGems, createGem, updateGem, deleteGem } from "@/apis/gemsApi";
+import { getGems, createGem, updateGem, deleteGem, uploadGemFiles } from "@/apis/gemsApi";
 import GemCard from "@/components/feature3/GemCard";
 import GemEditor from "@/components/feature3/GemEditor";
 import GemChatPanel from "@/components/feature3/GemChatPanel";
@@ -125,16 +125,29 @@ export default function Feature3Page() {
   };
 
   const handleSave = async (payload) => {
+    // files는 API로 보내지 않고 별도 업로드
+    const { files, ...gemPayload } = payload;
     setSaving(true);
     try {
       if (editorTarget) {
-        const updated = await updateGem(editorTarget.gem_id, payload);
-        setGems((prev) => prev.map((g) => (g.gem_id === updated.gem_id ? updated : g)));
-        gemsRef.current = gemsRef.current.map((g) => (g.gem_id === updated.gem_id ? updated : g));
+        const updated = await updateGem(editorTarget.gem_id, gemPayload);
+        // 파일이 있으면 업로드 후 목록 새로고침 (has_files 반영)
+        if (files && files.length > 0) {
+          await uploadGemFiles(editorTarget.gem_id, files);
+          await loadGems();
+        } else {
+          setGems((prev) => prev.map((g) => (g.gem_id === updated.gem_id ? updated : g)));
+          gemsRef.current = gemsRef.current.map((g) => (g.gem_id === updated.gem_id ? updated : g));
+        }
       } else {
-        const created = await createGem(payload);
-        setGems((prev) => [created, ...prev]);
-        gemsRef.current = [created, ...gemsRef.current];
+        const created = await createGem(gemPayload);
+        if (files && files.length > 0) {
+          await uploadGemFiles(created.gem_id, files);
+          await loadGems();
+        } else {
+          setGems((prev) => [created, ...prev]);
+          gemsRef.current = [created, ...gemsRef.current];
+        }
       }
       window.dispatchEvent(new CustomEvent("gems-updated"));
       backToStore();

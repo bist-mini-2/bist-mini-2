@@ -215,7 +215,7 @@ class ChatAgent:
                 "sources": [],
             }
 
-    async def run_stream(self, message: str, conversation_id: str) -> AsyncGenerator[str, None]:
+    async def run_stream(self, message: str, conversation_id: str) -> AsyncGenerator[dict[str, str], None]:
         """메시지를 처리하면서 답변 텍스트(explanation)를 토큰 단위로 흘려보낸다(스트리밍).
 
         run()과 달리 response_format(structured output)을 쓰지 않는다. structured output은

@@ -1,5 +1,6 @@
 import logging
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi.responses import StreamingResponse
 from api.common.auth import LoginCheckDep, verify_access_token
 from api.database.config.dto_base import SuccessResponse
 from api.v1.gems.models import (
@@ -11,6 +12,8 @@ from api.v1.gems.models import (
     GemChatRequest,
     GemChatResponse,
     GemChatResponseWrapper,
+    GemFileResponse,
+    GemFileListResponseWrapper,
 )
 from api.v1.gems.services import GemServiceDep
 
@@ -26,6 +29,7 @@ def _to_gem_response(gem_entity) -> GemResponse:
         name=gem_entity.name,
         db_sources=gem_entity.db_sources.split(","),
         system_prompt=gem_entity.system_prompt,
+        has_files=bool(gem_entity.has_files),
         created_at=gem_entity.created_at,
     )
 
@@ -121,6 +125,65 @@ async def delete_gem(
     return SuccessResponse(data={"message": f"Deleted Gem ID: {gem_id}"})
 
 
+@router.post("/{gem_id}/files", summary="Gem 파일 업로드 및 RAG 임베딩 API")
+async def upload_gem_files(
+    user: LoginCheckDep,
+    gem_id: str,
+    service: GemServiceDep,
+    files: list[UploadFile] = File(...),
+) -> SuccessResponse:
+    """지정한 Gem에 파일을 업로드하고 텍스트를 추출·임베딩하여 RAG 검색 대상에 추가합니다.
+
+    지원 형식: PDF, TXT, MD, CSV, DOCX, DOC
+
+    Args:
+        user (LoginCheckDep): 인증이 완료된 현재 로그인 사용자의 JWT 페이로드 정보.
+        gem_id (str): 파일을 연결할 커스텀 Gem의 고유 식별자 ID.
+        service (GemServiceDep): 파일 처리 및 임베딩 저장 서비스 의존성.
+        files (list[UploadFile]): 업로드할 파일 목록 (multipart/form-data).
+
+    Returns:
+        SuccessResponse: 처리된 파일 수와 생성된 청크 수를 반환.
+    """
+    file_data = [(f.filename or "unknown", await f.read()) for f in files]
+    result = await service.upload_files(
+        member_id=user["sub"],
+        gem_id=gem_id,
+        files=file_data,
+    )
+    return SuccessResponse(data=result)
+
+
+@router.get("/{gem_id}/files", summary="Gem 업로드 파일 목록 조회 API")
+async def list_gem_files(
+    user: LoginCheckDep,
+    gem_id: str,
+    service: GemServiceDep,
+) -> GemFileListResponseWrapper:
+    """지정한 Gem에 업로드된 파일 메타데이터 목록을 반환합니다.
+
+    Args:
+        user (LoginCheckDep): 인증이 완료된 현재 로그인 사용자의 JWT 페이로드 정보.
+        gem_id (str): 파일 목록을 조회할 Gem의 고유 식별자 ID.
+        service (GemServiceDep): 파일 목록 조회 서비스 의존성.
+
+    Returns:
+        GemFileListResponseWrapper: 업로드된 파일 메타데이터 목록.
+    """
+    file_entities = await service.list_files(member_id=user["sub"], gem_id=gem_id)
+    data = [
+        GemFileResponse(
+            file_id=f.file_id,
+            gem_id=f.gem_id,
+            filename=f.filename,
+            chunk_count=f.chunk_count,
+            uploaded_at=f.uploaded_at,
+        )
+        for f in file_entities
+    ]
+    return GemFileListResponseWrapper(data=data)
+
+
 @router.post("/{gem_id}/chat", summary="커스텀 에이전트(Gem)와의 RAG 대화 수행 API")
 async def chat_with_gem(
     user: LoginCheckDep,
@@ -151,6 +214,30 @@ async def chat_with_gem(
             papers=result.get("papers", []),
             sources=result.get("sources", []),
         )
+    )
+
+
+@router.post("/{gem_id}/chat/stream", summary="커스텀 에이전트(Gem) 실시간 스트리밍 대화 API")
+async def chat_with_gem_stream(
+    user: LoginCheckDep,
+    gem_id: str,
+    request: GemChatRequest,
+    service: GemServiceDep,
+):
+    """지정한 Gem과 대화하며 AI 답변을 토큰 단위로 실시간 스트리밍합니다.
+
+    Args:
+        user (LoginCheckDep): 인증이 완료된 현재 로그인 사용자의 JWT 페이로드 정보.
+        gem_id (str): 대화할 타겟 커스텀 Gem의 고유 식별자 ID.
+        request (GemChatRequest): 질문 내용 및 대화 스레드 ID가 담긴 요청 DTO.
+        service (GemServiceDep): 스트리밍 RAG 대화 로직을 구동하는 서비스 의존성.
+
+    Returns:
+        StreamingResponse: 토큰·상태 이벤트를 JSON 줄(newline-delimited) 형태로 스트리밍.
+    """
+    return StreamingResponse(
+        service.send_message_stream(user["sub"], gem_id, request.thread_id, request.message),
+        media_type="text/plain; charset=utf-8",
     )
 
 

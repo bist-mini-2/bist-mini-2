@@ -1,6 +1,11 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import Feature4Page from '../src/app/feature4/page';
+import Feature4Page from '../src/app/feature4/arena/page';
+
+// Mock react-markdown
+jest.mock('react-markdown', () => {
+  return ({ children }) => <>{children}</>;
+});
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -9,6 +14,11 @@ jest.mock('next/navigation', () => ({
       prefetch: () => null,
       replace: jest.fn(),
       push: jest.fn(),
+    };
+  },
+  useSearchParams() {
+    return {
+      get: jest.fn().mockReturnValue(null),
     };
   },
 }));
@@ -32,6 +42,6 @@ describe('Feature4 (Defense Arena Page)', () => {
   it('renders upload sandbox when sessionId is null', () => {
     render(<Feature4Page />);
 
-    expect(screen.getByText('분석할 PDF 드래그 또는 클릭 업로드')).toBeInTheDocument();
+    expect(screen.getByText(/분석할 PDF.*클릭 업로드/)).toBeInTheDocument();
   });
 });

@@ -45,6 +45,28 @@ def test_upload_isolated_endpoint(mock_upload):
     mock_upload.assert_called_once()
 
 
+@patch("api.v1.defense_arena.services.DefenseArenaService.process_pdf_upload")
+def test_upload_isolated_markdown_endpoint(mock_upload):
+    """Markdown 격리 업로드 API가 세션을 생성하고 올바른 DTO 형태로 응답하는지 검증합니다."""
+    mock_upload.return_value = {
+        "session_id": "test-session-uuid-md",
+        "file_name": "draft.md",
+        "chunk_count": 5
+    }
+
+    # 모의 마크다운 파일 생성하여 전송
+    files = {"file": ("draft.md", b"# Markdown mock content\nThis is a draft.", "text/markdown")}
+    response = client.post("/api/v1/defense-arena/upload-isolated", files=files)
+
+    assert response.status_code == 201
+    json_data = response.json()
+    assert json_data["status"] == "success"
+    assert json_data["data"]["session_id"] == "test-session-uuid-md"
+    assert json_data["data"]["chunk_count"] == 5
+    mock_upload.assert_called_once()
+
+
+
 @patch("api.v1.defense_arena.services.DefenseArenaService.run_peer_review")
 def test_academic_peer_review_endpoint(mock_review):
     """다중 에이전트 피어 리뷰 실행 API가 에이전트 평점과 심사평 보고서를 올바르게 반환하는지 검증합니다."""
@@ -147,3 +169,39 @@ def test_defense_chat_arena_endpoint(mock_chat):
         "We handle that via dynamic thresholding.",
         mid="test-user"
     )
+
+
+@patch("api.v1.defense_arena.services.DefenseArenaService.extend_session_activity")
+def test_keep_alive_session_endpoint(mock_extend):
+    """보안 세션 만료 연장 API가 성공 응답을 정상 반환하는지 테스트합니다."""
+    mock_extend.return_value = None
+
+    payload = {
+        "session_id": "test-session-uuid"
+    }
+    response = client.post("/api/v1/defense-arena/keep-alive", data=payload)
+
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["status"] == "success"
+    assert json_data["data"]["status"] == "extended"
+    mock_extend.assert_called_once_with("test-session-uuid", mid="test-user")
+
+
+@patch("api.v1.defense_arena.services.DefenseArenaService.translate_text")
+def test_translate_text_endpoint(mock_translate):
+    """영어 학술 텍스트 번역 API가 성공 응답과 번역 결과를 정상 반환하는지 테스트합니다."""
+    mock_translate.return_value = "이것은 번역된 한국어 텍스트입니다."
+
+    payload = {
+        "text": "This is translated Korean text."
+    }
+    response = client.post("/api/v1/defense-arena/translate", data=payload)
+
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["status"] == "success"
+    assert json_data["data"]["translated_text"] == "이것은 번역된 한국어 텍스트입니다."
+    mock_translate.assert_called_once_with("This is translated Korean text.")
+
+
