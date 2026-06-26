@@ -76,6 +76,7 @@ async def lifespan(app: FastAPI):
     from api.v1.gems.entity import GemEntity
     from api.v1.notification.entity import NotificationEntity
     from api.v1.defense_arena.entity import DefenseArenaSessionEntity, DefenseArenaChunkEntity, DefenseHistoryEntity
+    from api.common.entities import PaperFullTextCacheEntity
     
     try:
         async with engine.begin() as conn:
@@ -90,6 +91,7 @@ async def lifespan(app: FastAPI):
                 await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS hypothesis_result JSON;"))
                 await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS final_report TEXT;"))
                 await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS defense_score DOUBLE PRECISION;"))
+                await conn.execute(text("ALTER TABLE paper_full_text_cache ADD COLUMN IF NOT EXISTS is_vectorized BOOLEAN DEFAULT FALSE;"))
             await conn.run_sync(Base.metadata.create_all)
 
         logging.getLogger("uvicorn").info("Database tables initialized successfully.")
