@@ -36,6 +36,8 @@ export default function Feature1Page() {
   const sendingRef = useRef(false);
   const isCreatingSessionRef = useRef(false);
 
+
+
   // 대화 영역을 항상 최신 메시지로 스크롤한다.
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -254,6 +256,8 @@ export default function Feature1Page() {
       </span>
     </div>
   );
+
+
 
   // 방이 선택되지 않은 빈 상태 — 가운데 환영 문구 + 하단 입력창(Claude 스타일)
   if (!sessionId) {

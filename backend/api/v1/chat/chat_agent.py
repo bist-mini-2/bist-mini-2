@@ -252,37 +252,41 @@ class ChatAgent:
         }
         announced_tools = set()   # 같은 도구 상태를 두 번 보내지 않도록
 
-        async for stream_mode, chunk in self._stream_agent.astream(
-            {"messages": [{"role": "user", "content": message}],
-                "sources": [], "web_sources": []},
-            {"configurable": {"thread_id": conversation_id}},
-            stream_mode=cast(Any, ["messages"]),
-        ):
-            token, metadata = chunk
+        try:
+            async for stream_mode, chunk in self._stream_agent.astream(
+                {"messages": [{"role": "user", "content": message}],
+                    "sources": [], "web_sources": []},
+                {"configurable": {"thread_id": conversation_id}},
+                stream_mode=cast(Any, ["messages"]),
+            ):
+                token, metadata = chunk
 
-            # 도구 호출 시작 감지 → 상태 이벤트 (도구 이름이 처음 등장할 때 1회)
-            names = []
-            for tc in (getattr(token, "tool_call_chunks", None) or []):
-                if tc.get("name"):
-                    names.append(tc["name"])
-            for tc in (getattr(token, "tool_calls", None) or []):
-                if tc.get("name"):
-                    names.append(tc["name"])
-            for name in names:
-                if name not in announced_tools:
-                    announced_tools.add(name)
-                    yield {"type": "status", "data": TOOL_STATUS.get(name, "tool")}
+                # 도구 호출 시작 감지 → 상태 이벤트 (도구 이름이 처음 등장할 때 1회)
+                names = []
+                for tc in (getattr(token, "tool_call_chunks", None) or []):
+                    if tc.get("name"):
+                        names.append(tc["name"])
+                for tc in (getattr(token, "tool_calls", None) or []):
+                    if tc.get("name"):
+                        names.append(tc["name"])
+                for name in names:
+                    if name not in announced_tools:
+                        announced_tools.add(name)
+                        yield {"type": "status", "data": TOOL_STATUS.get(name, "tool")}
 
-            # 도구 노드 토큰(검색 결과)은 답변이 아니므로 건너뛴다.
-            if isinstance(metadata, dict) and metadata.get("langgraph_node") == "tools":
-                continue
-            # 도구 호출만 담은 AI 토큰도 답변 텍스트가 아니므로 건너뛴다.
-            if getattr(token, "tool_calls", None):
-                continue
-            content = getattr(token, "content", "")
-            if not content:
-                continue
-            yield {"type": "token", "data": content}
+                # 도구 노드 토큰(검색 결과)은 답변이 아니므로 건너뛴다.
+                if isinstance(metadata, dict) and metadata.get("langgraph_node") == "tools":
+                    continue
+                # 도구 호출만 담은 AI 토큰도 답변 텍스트가 아니므로 건너뛴다.
+                if getattr(token, "tool_calls", None):
+                    continue
+                content = getattr(token, "content", "")
+                if not content:
+                    continue
+                yield {"type": "token", "data": content}
+        except Exception as e:
+            self.logger.error(f"스트리밍 처리 중 오류 발생 (conversation_id={conversation_id}): {e}")
+            yield {"type": "token", "data": "\n\n[오류 발생] OpenAI API 호출 중 오류가 발생했습니다. API 키의 할당량(Quota)이나 상태를 확인해 주세요."}
 
     async def get_latest_sources(self, conversation_id: str) -> list[dict]:
         """스트리밍 종료 후 state(checkpointer)에 누적된 검색 출처를 중복 제거하여 반환한다.
