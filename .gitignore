@@ -64,4 +64,4 @@ models/
 # =============================================================================
 # Temporary Sandbox Storage (Feature 4 Uploads)
 # =============================================================================
-/backend/uploads/
+/backend/uploads//frontend/dist-electron/
