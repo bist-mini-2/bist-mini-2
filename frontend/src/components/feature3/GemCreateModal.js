@@ -86,7 +86,7 @@ export default function GemCreateModal({ show, onClose, onSubmit, loading, editT
             {/* Data source selector */}
             <div className="gem-form-group">
               <label className="gem-form-label">
-                데이터 소스
+                논문 데이터 소스
                 <span className="gem-form-hint">참조할 논문 DB를 선택하세요</span>
               </label>
               <div className="gem-source-grid">
