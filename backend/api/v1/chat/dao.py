@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import select, text
 from api.database.config.dbsession import OrmSessionDep
-from api.v1.chat.entity import ChatSessionEntity, ChatSourceEntity
+from api.v1.chat.entity import ChatSessionEntity, ChatSourceEntity, ChatSuggestionEntity
 
 
 class ChatSessionDao:
@@ -117,6 +117,38 @@ class ChatSessionDao:
             select(ChatSourceEntity)
             .where(ChatSourceEntity.session_id == session_id)
             .order_by(ChatSourceEntity.message_index)
+        )
+        return list(result.scalars().all())
+
+    async def insert_suggestions(self, session_id: str, message_index: int, questions: list[str]) -> None:
+        """특정 메시지의 추천 후속 질문 목록을 저장합니다.
+
+        Args:
+            session_id (str): 대상 채팅 세션 ID.
+            message_index (int): 대화 내역 상에서의 어시스턴트 메시지 인덱스.
+            questions (list[str]): 저장할 추천 질문 문자열 리스트.
+        """
+        for q in questions:
+            self.orm_session.add(ChatSuggestionEntity(
+                session_id=session_id,
+                message_index=message_index,
+                question=q,
+            ))
+        await self.orm_session.flush()
+
+    async def select_suggestions_by_session(self, session_id: str) -> list[ChatSuggestionEntity]:
+        """특정 방의 모든 추천 질문을 조회합니다 (메시지 index 순).
+
+        Args:
+            session_id (str): 대상 채팅 세션 ID.
+
+        Returns:
+            list[ChatSuggestionEntity]: 조회된 추천 질문 엔티티 목록.
+        """
+        result = await self.orm_session.execute(
+            select(ChatSuggestionEntity)
+            .where(ChatSuggestionEntity.session_id == session_id)
+            .order_by(ChatSuggestionEntity.message_index)
         )
         return list(result.scalars().all())
 

@@ -22,7 +22,7 @@ export default function Feature1Page() {
   // URL의 세션이 우선. 새 방을 막 만든 직후엔 아직 URL이 안 바뀌었을 수 있어
   // localSessionId로 화면을 유지한다(스트리밍 중 리마운트로 연결이 끊기는 것 방지).
   const sessionId = urlSessionId || localSessionId;
-  
+
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -67,7 +67,8 @@ export default function Feature1Page() {
           const history = (res.data || []).map((item) => ({
             role: item.role,
             content: item.content,
-            sources: item.sources || []
+            sources: item.sources || [],
+            suggestions: item.suggestions || []
           }));
           setMessages(history);
         }
@@ -99,12 +100,14 @@ export default function Feature1Page() {
   };
 
   // 메시지를 전송한다. 방이 없으면 먼저 새 방을 만들고(질문 내용을 제목으로) 전송한다.
-  const handleSend = async () => {
-    const text = input.trim();
+  // 메시지를 전송한다. 방이 없으면 먼저 새 방을 만들고(질문 내용을 제목으로) 전송한다.
+  // overrideText가 주어지면(추천 질문 클릭 등) 입력창 대신 그 텍스트를 보낸다.
+  const handleSend = async (overrideText) => {
+    const text = (typeof overrideText === "string" ? overrideText : input).trim();
     if (!text || sendingRef.current) return;
     sendingRef.current = true;
     setIsSending(true);
-    setStreamStatus(null); 
+    setStreamStatus(null);
 
     let activeSessionId = sessionId;
     let isNewSession = false;   // ← 새 방인지 표시
@@ -145,20 +148,24 @@ export default function Feature1Page() {
           return next;
         });
       },
-      (status) => setStreamStatus(status),
-    );
+        (status) => setStreamStatus(status),
+      );
 
       // 스트리밍이 끝나면 검색된 출처(sources)를 다시 불러와 마지막 답변에 붙인다.
       try {
         const res = await getMessages(activeSessionId);
         const history = res.data || [];
         const lastItem = history[history.length - 1];
-        if (lastItem && lastItem.role === "assistant" && lastItem.sources?.length) {
+        if (lastItem && lastItem.role === "assistant") {
           setMessages((prev) => {
             const next = [...prev];
             const last = next[next.length - 1];
             if (last && last.role === "assistant") {
-              next[next.length - 1] = { ...last, sources: lastItem.sources };
+              next[next.length - 1] = {
+                ...last,
+                sources: lastItem.sources || [],
+                suggestions: lastItem.suggestions || [],
+              };
             }
             return next;
           });
@@ -203,8 +210,17 @@ export default function Feature1Page() {
     } finally {
       sendingRef.current = false;
       setIsSending(false);
-      setStreamStatus(null); 
+      setStreamStatus(null);
     }
+  };
+
+  // Enter 전송, Shift+Enter 줄바꿈
+  // 추천 질문 칩을 누르면 그 질문을 입력창에 넣고 바로 전송한다.
+  // 추천 질문 칩을 누르면 그 질문을 입력창에 채운다(사용자가 Enter로 전송).
+  // 추천 질문 칩을 누르면 그 질문을 바로 전송한다.
+  const handleSelectSuggestion = (question) => {
+    if (sendingRef.current) return;   // 전송 중이면 무시
+    handleSend(question);
   };
 
   // Enter 전송, Shift+Enter 줄바꿈
@@ -306,11 +322,13 @@ export default function Feature1Page() {
                 isActive={panelIndex === idx}
                 onTogglePanel={() => togglePanel(idx)}
                 isStreaming={isSending && idx === messages.length - 1}
+                isLast={idx === messages.length - 1}
+                onSelectSuggestion={handleSelectSuggestion}
               />
             ))
           )}
 
-          {isWaitingFirstToken && <LoadingBubble status={streamStatus}/>}
+          {isWaitingFirstToken && <LoadingBubble status={streamStatus} />}
         </div>
 
         {inputArea}
@@ -358,7 +376,7 @@ function parseAnswer(content) {
  * 사용자/AI 메시지 말풍선.
  * AI 메시지는 설명(explanation) + "논문 N편" 패널 토글 버튼 + 검색 출처(sources)를 표시한다.
  */
-function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming }) {
+function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, isLast, onSelectSuggestion }) {
   const isUser = message.role === "user";
 
   // 아직 토큰이 안 온 빈 답변 말풍선은 렌더하지 않는다 (로딩은 LoadingBubble이 담당)
@@ -436,6 +454,7 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming })
         </div>
 
         {/* 논문 N편 보기 버튼 — 누르면 오른쪽 패널이 열린다 */}
+        {/* 논문 N편 보기 버튼 — 누르면 오른쪽 패널이 열린다 */}
         {refPapers.length > 0 && (
           <button
             className={`${styles.paperTrigger} ${isActive ? styles.paperTriggerActive : ""}`}
@@ -446,6 +465,23 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming })
             논문 {refPapers.length}편
             <i className={`bi ${isActive ? "bi-chevron-right" : "bi-chevron-left"} ${styles.paperTriggerChevron}`}></i>
           </button>
+        )}
+
+        {/* 추천 후속 질문 — 모든 AI 답변에 표시(스트리밍 중인 답변은 끝난 뒤). DB에 영구 저장됨 */}
+        {!isUser && !isStreaming && Array.isArray(message.suggestions) && message.suggestions.length > 0 && (
+          <div className={styles.suggestions}>
+            <span className={styles.suggestionsLabel}>다음 질문 추천</span>
+            {message.suggestions.map((q, i) => (
+              <button
+                key={i}
+                className={styles.suggestionChip}
+                onClick={() => onSelectSuggestion && onSelectSuggestion(q)}
+              >
+                {q}
+                <i className="bi bi-arrow-right-short"></i>
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -506,9 +542,9 @@ function CitationChip({ papers }) {
 function LoadingBubble({ status }) {
   const text =
     status === "web_search" ? "웹 검색 중" :
-    status === "paper_search" ? "논문 검색 중" :
-    status === "datetime" ? "날짜 확인 중" :
-    "답변 생성 중";
+      status === "paper_search" ? "논문 검색 중" :
+        status === "datetime" ? "날짜 확인 중" :
+          "답변 생성 중";
   return (
     <div className={styles.messageRow}>
       <div className={styles.aiAvatar}>

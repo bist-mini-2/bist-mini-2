@@ -158,17 +158,29 @@ class ChatService:
             yield json.dumps(event, ensure_ascii=False) + "\n"
 
         # 스트리밍 종료 후 출처 저장 (실패해도 대화에는 영향 없음)
+        # 스트리밍 종료 후 출처 + 추천 질문 저장 (실패해도 대화에는 영향 없음)
         try:
+            history = await self.chat_agent.get_history(session_id)
+            assistant_index = len(history) - 1   # 마지막 메시지(방금 답변)의 index
+
+            # 1) 검색 출처 저장
             sources = await self.chat_agent.get_latest_sources(session_id)
             if sources:
-                history = await self.chat_agent.get_history(session_id)
-                assistant_index = len(history) - 1   # 마지막 메시지(방금 답변)의 index
                 await self.chat_session_dao.insert_sources(
                     session_id, assistant_index, sources
                 )
-                await self.chat_session_dao.commit()
+
+            # 2) 추천 후속 질문 생성·저장 (방금 질문 + 방금 답변 기반)
+            answer = history[-1]["content"] if history else ""
+            suggestions = await self.chat_agent.generate_suggestions(message, answer)
+            if suggestions:
+                await self.chat_session_dao.insert_suggestions(
+                    session_id, assistant_index, suggestions
+                )
+
+            await self.chat_session_dao.commit()
         except Exception as e:
-            self.logger.error(f"스트리밍 출처 저장 실패 (session_id={session_id}): {e}")
+            self.logger.error(f"스트리밍 출처·추천 저장 실패 (session_id={session_id}): {e}")
 
     async def get_messages(self, member_id: str, session_id: str) -> list[dict]:
         """채팅방의 대화 내역을 출처와 함께 순서대로 반환한다. 소유자만 가능.
@@ -191,8 +203,15 @@ class ChatService:
                 {"arxiv_id": s.arxiv_id, "title": s.title, "summary": s.summary or ""}
             )
 
+        # 저장된 추천 질문도 message_index 기준으로 묶는다.
+        suggestions = await self.chat_session_dao.select_suggestions_by_session(session_id)
+        suggestions_by_index = {}
+        for s in suggestions:
+            suggestions_by_index.setdefault(s.message_index, []).append(s.question)
+
         for idx, msg in enumerate(history):
             msg["sources"] = sources_by_index.get(idx, [])
+            msg["suggestions"] = suggestions_by_index.get(idx, [])
 
         return history
 

@@ -388,6 +388,53 @@ class ChatAgent:
             # 실패 시 질문 앞부분으로 폴백
             return question[:30]
 
+    async def generate_suggestions(self, question: str, answer: str) -> list[str]:
+        """직전 질문·답변 맥락을 바탕으로 이어서 물어볼 만한 추천 후속 질문 3개를 생성한다.
+
+        제목 생성과 동일한 경량 모델(gpt-4o-mini)을 재사용한다. 도구 호출이나 대화
+        기록이 필요 없는 단순 변환이므로 에이전트가 아니라 모델을 직접 호출하고,
+        결과를 JSON 배열로만 받아 파싱한다. 실패 시 빈 리스트를 반환한다(대화엔 영향 없음).
+
+        Args:
+            question (str): 사용자의 직전 질문.
+            answer (str): AI의 직전 답변 본문.
+
+        Returns:
+            list[str]: 추천 후속 질문 문자열 리스트(최대 3개). 실패 시 빈 리스트.
+        """
+        import json
+
+        if not hasattr(self, "_title_model") or self._title_model is None:
+            self._title_model = init_chat_model(self.model)
+
+        assert self._title_model is not None
+        # 답변이 너무 길면 앞부분만 사용(토큰 절약)
+        answer_excerpt = (answer or "")[:1200]
+        prompt = (
+            "당신은 생명공학·천문학·컴퓨터과학 논문 연구 조력자입니다.\n"
+            "아래 [질문]과 [답변]을 읽고, 사용자가 자연스럽게 이어서 물어볼 만한 "
+            "후속 질문 3개를 만들어 주세요.\n"
+            "- 답변 내용에서 더 깊이 파고들거나, 관련된 다음 주제로 확장하는 질문이 좋습니다.\n"
+            "- 각 질문은 한국어로 간결하게(10~40자), 물음표로 끝나게 작성하세요.\n"
+            "- 반드시 JSON 배열 형식으로만 출력하세요. 예: [\"질문1?\", \"질문2?\", \"질문3?\"]\n"
+            "- 코드블록(```)이나 다른 설명은 절대 붙이지 마세요.\n\n"
+            f"[질문]\n{question}\n\n[답변]\n{answer_excerpt}"
+        )
+        try:
+            response = await self._title_model.ainvoke(prompt)
+            content = response.content if isinstance(response.content, str) else ""
+            # 혹시 코드블록으로 감싸여 오면 벗겨낸다.
+            cleaned = content.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, list):
+                # 문자열만, 최대 3개, 공백 제거
+                result = [str(q).strip() for q in parsed if str(q).strip()][:3]
+                return result
+            return []
+        except Exception as e:
+            self.logger.error(f"추천 질문 생성 실패: {e}")
+            return []
+
 
 # 싱글톤으로 관리 — _initialized 플래그와 풀 생명주기를 요청 간에 유지하기 위함.
 _chat_agent = ChatAgent()
