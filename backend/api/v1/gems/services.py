@@ -7,10 +7,8 @@ from typing import Annotated, AsyncGenerator
 from fastapi import Depends
 from api.common.exceptions import BusinessException
 from api.v1.gems.dao import GemDaoDep
-from api.v1.gems.entity import GemEntity
-from api.v1.gems.file_rag import gem_file_rag
-from api.v1.gems.gem_file_dao import GemFileDaoDep
-from api.v1.gems.gem_file_entity import GemFileEntity
+from api.v1.gems.entity import GemEntity, GemFileEntity
+from api.common.rag_pipeline import gem_file_rag
 from api.v1.gems.gem_agent import GemAgentDep
 
 VALID_SOURCES = {"bio", "cs", "astronomy"}
@@ -19,18 +17,16 @@ VALID_SOURCES = {"bio", "cs", "astronomy"}
 class GemService:
     """Gem 생성/조회/삭제 및 Gem 대화 처리 비즈니스 로직을 담당합니다."""
 
-    def __init__(self, gem_dao: GemDaoDep, gem_agent: GemAgentDep, gem_file_dao: GemFileDaoDep) -> None:
-        """GemService의 인스턴스를 초기화하고 Gem DAO, Agent, FileDao 의존성을 주입합니다.
+    def __init__(self, gem_dao: GemDaoDep, gem_agent: GemAgentDep) -> None:
+        """GemService의 인스턴스를 초기화하고 Gem DAO 및 Agent 의존성을 주입합니다.
 
         Args:
             gem_dao (GemDaoDep): Gem 데이터 액세스 객체.
             gem_agent (GemAgentDep): 멀티 도메인 RAG 및 프롬프트를 처리하는 에이전트 인스턴스.
-            gem_file_dao (GemFileDaoDep): 업로드 파일 메타데이터 데이터 액세스 객체.
         """
         self.logger = logging.getLogger(f"{__name__}.GemService")
         self.gem_dao = gem_dao
         self.gem_agent = gem_agent
-        self.gem_file_dao = gem_file_dao
 
     async def create_gem(self, member_id: str, name: str, db_sources: list[str], system_prompt: str) -> GemEntity:
         """새 Gem을 생성하고 DB에 저장한다.
@@ -169,13 +165,13 @@ class GemService:
         if processed_files and not gem.has_files:
             gem.has_files = True
             await self.gem_dao.update(gem)
-            await self.gem_file_dao.session.flush()
+            await self.gem_dao.orm_session.flush()
 
         # ② gem_file 행 삽입 — savepoint로 감싸 실패해도 주 트랜잭션에 영향 없음
         for filename, chunk_count in processed_files:
             try:
-                async with self.gem_file_dao.session.begin_nested():
-                    await self.gem_file_dao.insert(gem_id=gem_id, filename=filename, chunk_count=chunk_count)
+                async with self.gem_dao.orm_session.begin_nested():
+                    await self.gem_dao.insert_file(gem_id=gem_id, filename=filename, chunk_count=chunk_count)
             except Exception as exc:
                 self.logger.warning(f"gem_file 메타데이터 저장 실패 ({filename}): {exc}")
 
@@ -192,7 +188,7 @@ class GemService:
             list[GemFileEntity]: 업로드된 파일 메타데이터 엔티티 목록.
         """
         await self._get_owned_gem(member_id, gem_id)
-        return await self.gem_file_dao.select_by_gem_id(gem_id)
+        return await self.gem_dao.select_files_by_gem_id(gem_id)
 
     async def send_message(self, member_id: str, gem_id: str, thread_id: str, message: str) -> dict:
         """Gem에 메시지를 보내 RAG 기반 답변을 받는다. 소유자만 가능.

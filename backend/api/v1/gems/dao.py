@@ -1,15 +1,16 @@
 """사용자 정의 Gem 에이전트 정보의 데이터베이스 CRUD 작업을 전담하는 DAO 모듈입니다."""
 
 import logging
+import uuid
 from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import select
 from api.database.config.dbsession import OrmSessionDep
-from api.v1.gems.entity import GemEntity
+from api.v1.gems.entity import GemEntity, GemFileEntity
 
 
 class GemDao:
-    """gem 테이블에 대한 ORM 작업을 수행하는 데이터 액세스 객체(DAO)입니다."""
+    """gem 및 gem_file 테이블에 대한 ORM 작업을 수행하는 데이터 액세스 객체(DAO)입니다."""
 
     def __init__(self, orm_session: OrmSessionDep):
         """GemDao의 인스턴스를 초기화하고 ORM 세션을 주입합니다.
@@ -87,5 +88,45 @@ class GemDao:
         if gem:
             await self.orm_session.delete(gem)
 
+    async def insert_file(self, gem_id: str, filename: str, chunk_count: int) -> GemFileEntity:
+        """파일 메타데이터를 gem_file 테이블에 삽입합니다.
+
+        Args:
+            gem_id (str): 파일을 등록할 Gem의 ID.
+            filename (str): 업로드된 원본 파일명.
+            chunk_count (int): 추출 및 분할된 텍스트 청크 수.
+
+        Returns:
+            GemFileEntity: 저장된 파일 메타데이터 엔티티.
+        """
+        self.logger.info(f"insert_file 실행: gem_id={gem_id}, filename={filename}")
+        entity = GemFileEntity(
+            file_id=str(uuid.uuid4()),
+            gem_id=gem_id,
+            filename=filename,
+            chunk_count=chunk_count,
+        )
+        self.orm_session.add(entity)
+        await self.orm_session.flush()
+        return entity
+
+    async def select_files_by_gem_id(self, gem_id: str) -> list[GemFileEntity]:
+        """특정 Gem에 업로드된 파일 목록을 업로드 시간 순으로 반환합니다.
+
+        Args:
+            gem_id (str): 조회 대상 Gem의 ID.
+
+        Returns:
+            list[GemFileEntity]: 업로드된 파일 목록.
+        """
+        self.logger.info(f"select_files_by_gem_id 실행: gem_id={gem_id}")
+        result = await self.orm_session.execute(
+            select(GemFileEntity)
+            .where(GemFileEntity.gem_id == gem_id)
+            .order_by(GemFileEntity.uploaded_at.asc())
+        )
+        return list(result.scalars().all())
+
 
 GemDaoDep = Annotated[GemDao, Depends(GemDao)]
+
