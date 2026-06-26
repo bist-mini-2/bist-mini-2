@@ -90,13 +90,15 @@ export function AuthContextProvider({ children }) {
   // 비로그인 사용자 및 로그인 사용자의 경로 접근 제한 (라우트 가드 및 리다이렉션)
   useEffect(() => {
     if (!isLoading) {
-      const isAuthPage = pathname === "/login" || pathname === "/join";
+      // trailingSlash 환경(Electron 정적 빌드)에서도 매칭되도록 끝 슬래시를 제거하고 비교한다.
+      const path = pathname.replace(/\/$/, "") || "/";
+      const isAuthPage = path === "/login" || path === "/join";
       if (!user && !isAuthPage) {
         // 인증되지 않은 사용자가 서비스 화면에 접속하려고 할 때 로그인으로 이동
         router.replace("/login");
       } else if (user && isAuthPage) {
         // 이미 로그인된 사용자가 로그인/가입 화면에 오면 홈(Chat Hub)으로 이동
-        router.replace("/");
+        router.replace("/feature1");
       }
     }
   }, [user, pathname, isLoading, router]);
