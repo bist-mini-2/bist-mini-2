@@ -21,7 +21,6 @@ export default function Feature1Sidebar({ isCollapsed }) {
 
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
 
   const [menuState, setMenuState] = useState(null); // { id, top, left, openUp } | null
   const [editingId, setEditingId] = useState(null);
@@ -70,20 +69,8 @@ export default function Feature1Sidebar({ isCollapsed }) {
     }
   }, [editingId]);
 
-  const handleCreate = async () => {
-    if (isCreating) return;
-    setIsCreating(true);
-    try {
-      const title = `새 대화 ${new Date().toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}`;
-      const res = await createSession(title);
-      const newSession = res.data;
-      setSessions((prev) => [newSession, ...prev]);
-      router.push(`${pathname}?session=${newSession.session_id}`);
-    } catch (err) {
-      console.error("채팅방 생성 실패:", err);
-    } finally {
-      setIsCreating(false);
-    }
+  const handleCreate = () => {
+    router.push(pathname);
   };
 
   const handleSelect = (sessionId) => {
@@ -170,7 +157,6 @@ export default function Feature1Sidebar({ isCollapsed }) {
       <button
         className={styles.newChatBtn}
         onClick={handleCreate}
-        disabled={isCreating}
       >
         <i className="bi bi-plus-lg"></i>
         <span>새 채팅</span>
