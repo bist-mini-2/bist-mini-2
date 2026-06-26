@@ -2,7 +2,11 @@
 
 import io
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from api.common.entities import PaperFullTextCacheEntity
+from api.common.paper_cache_service import paper_cache_service
 import zipfile
 import xml.etree.ElementTree as ET
 import pypdfium2 as pdfium
@@ -124,6 +128,153 @@ class CommonRagPipeline:
             })
 
         self.logger.info(f"임계값({SIMILARITY_THRESHOLD}) 통과: {len(formatted_results)}/{len(results)}건")
+        return formatted_results
+
+    def _chunk_text_custom(
+        self,
+        text: str,
+        chunk_size: int = 500,
+        overlap: int = 100
+    ) -> List[str]:
+        """텍스트를 지정된 크기와 오버랩 크기로 청킹합니다.
+
+        Args:
+            text (str): 분할할 전체 본문 텍스트.
+            chunk_size (int): 청크당 최대 글자 수.
+            overlap (int): 오버랩 글자 수.
+
+        Returns:
+            List[str]: 분할된 청크 목록.
+        """
+        if not text.strip():
+            return []
+
+        chunks: List[str] = []
+        start = 0
+        while start < len(text):
+            end = min(start + chunk_size, len(text))
+            chunk = text[start:end].strip()
+            if chunk:
+                chunks.append(chunk)
+            if end >= len(text):
+                break
+            start = end - overlap
+
+        return chunks
+
+    async def get_full_text_context(
+        self,
+        db: AsyncSession,
+        paper_ids: List[str],
+        query: str,
+        domain: str,
+        k: int = 5
+    ) -> List[Dict[str, Any]]:
+        """지정된 논문들의 본문(Full-text)을 온디맨드로 벡터화하여 RAG 유사도 검색을 수행합니다.
+
+        기존에 벡터화되지 않은 논문은 먼저 본문을 청킹하여 pgvector에 적재하고,
+        is_vectorized 플래그를 True로 갱신한 뒤 논문 필터를 적용하여 질문과 관련된 청크만 추출합니다.
+
+        Args:
+            db (AsyncSession): 비동기 데이터베이스 세션.
+            paper_ids (List[str]): 검색 대상 논문 ID 목록 (arXiv ID 등).
+            query (str): 사용자 질의 텍스트.
+            domain (str): 학술 분야 도메인 구분 ('bio', 'cs', 'astronomy').
+            k (int): 최종 반환할 상위 유사 본문 청크의 개수.
+
+        Returns:
+            List[Dict[str, Any]]: 포맷팅된 유사 본문 청크 정보 목록.
+        """
+        self.logger.info(f"Stage-2 Full-Text RAG: paper_ids={paper_ids}, query='{query}', domain='{domain}', k={k}")
+        
+        # 1. 미임베딩 논문 확인 및 온디맨드 벡터화
+        for pid in paper_ids:
+            clean_id = pid.strip()
+            if not clean_id:
+                continue
+
+            # paper_cache_service를 통해 본문 텍스트 확보 (캐시 미스 시 크롤링 및 DB 저장이 자동 수행됨)
+            try:
+                full_text = await paper_cache_service.get_paper_full_text(db, clean_id, domain)
+            except Exception as e:
+                self.logger.error(f"논문 {clean_id} 본문 로드 실패: {e}")
+                continue
+
+            # DB 엔티티를 직접 조회하여 is_vectorized 체크
+            query_db = select(PaperFullTextCacheEntity).where(PaperFullTextCacheEntity.paper_id == clean_id)
+            db_res = await db.execute(query_db)
+            paper_entity = db_res.scalar_one_or_none()
+
+            if paper_entity and not paper_entity.is_vectorized:
+                self.logger.info(f"논문 {clean_id} 본문 벡터화 진행 중...")
+                
+                # 본문 청킹 (500자, 오버랩 100자)
+                chunks = self._chunk_text_custom(full_text, chunk_size=500, overlap=100)
+                
+                if chunks:
+                    vectorstore = PGVector(
+                        embeddings=self.get_embeddings(),
+                        collection_name="paper_full_text_embeddings",
+                        connection=CONNECTION,
+                        async_mode=True,
+                    )
+                    # metadata에 filter로 검색할 paper_id 추가
+                    metadatas = [
+                        {
+                            "paper_id": clean_id,
+                            "title": paper_entity.title or f"arXiv Paper {clean_id}",
+                            "chunk_index": i
+                        }
+                        for i in range(len(chunks))
+                    ]
+                    await vectorstore.aadd_texts(chunks, metadatas=metadatas)
+
+                # is_vectorized 플래그를 True로 갱신하여 중복 작업 방지
+                paper_entity.is_vectorized = True
+                db.add(paper_entity)
+                await db.commit()
+                self.logger.info(f"논문 {clean_id} 온디맨드 벡터화 완료 및 DB 플래그 반영.")
+
+        # 2. pgvector에서 각 논문 ID 필터를 걸어 유사도 검색 수행
+        all_chunks = []
+        vectorstore = PGVector(
+            embeddings=self.get_embeddings(),
+            collection_name="paper_full_text_embeddings",
+            connection=CONNECTION,
+            async_mode=True,
+        )
+
+        for pid in paper_ids:
+            clean_id = pid.strip()
+            if not clean_id:
+                continue
+
+            # 각 논문별로 유사 본문 청크 검색 (안정적인 metadata 필터 적용)
+            try:
+                results = await vectorstore.asimilarity_search_with_score(
+                    query, k=k, filter={"paper_id": clean_id}
+                )
+                for doc, score in results:
+                    all_chunks.append((doc, score))
+            except Exception as e:
+                self.logger.error(f"논문 {clean_id} 본문 RAG 검색 중 에러: {e}")
+
+        # 3. 코사인 유사도(1.0 - distance) 기준으로 전체 결합 결과 정렬하여 상위 k개 선정
+        # pgvector score가 distance이므로 1.0 - distance가 유사도 점수임
+        all_chunks.sort(key=lambda x: round(1.0 - x[1], 4), reverse=True)
+        top_chunks = all_chunks[:k]
+
+        formatted_results = []
+        for doc, score in top_chunks:
+            meta = doc.metadata or {}
+            formatted_results.append({
+                "paper_id": meta.get("paper_id", ""),
+                "title": meta.get("title", ""),
+                "text_chunk": doc.page_content,
+                "score": round(1.0 - score, 4)
+            })
+
+        self.logger.info(f"본문 RAG 검색 완료. 반환 청크 개수: {len(formatted_results)}")
         return formatted_results
 
 
