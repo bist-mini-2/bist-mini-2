@@ -7,7 +7,7 @@ from typing import Annotated, Any, cast, AsyncGenerator
 from fastapi import Depends
 from langchain.agents import create_agent, AgentState
 from langchain.tools import tool, ToolRuntime
-from langchain_core.messages import ToolMessage
+from langchain_core.messages import ToolMessage, SystemMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 from pydantic import BaseModel, Field
@@ -20,13 +20,26 @@ from api.common.rag_pipeline import (
 from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
 
 
+def reduce_sources(left: list[dict] | None, right: list[dict] | None) -> list[dict]:
+    """멀티턴 간 출처(sources) 누적을 제어하고 중복을 방지하는 리듀서입니다."""
+    if not right:
+        return left or []
+
+    # 만약 right에 action: "clear"가 있다면 이전 left 히스토리를 비우고 right의 나머지 데이터만 사용합니다.
+    for item in right:
+        if isinstance(item, dict) and item.get("action") == "clear":
+            return [x for x in right if x.get("action") != "clear"]
+
+    return (left or []) + right
+
+
 class GemAgentState(AgentState):
     """Gem 에이전트의 대화 상태 및 검색된 출처 목록을 저장하는 상태 정의 딕셔너리입니다.
 
     AgentState를 상속하여 messages / jump_to / structured_response 필드를 포함하며,
-    sources 필드는 operator.add reducer로 여러 툴 호출 결과를 누적합니다.
+    sources 필드는 custom reduce_sources reducer를 사용합니다.
     """
-    sources: Annotated[list[dict], operator.add]   # 검색된 논문 출처 누적
+    sources: Annotated[list[dict], reduce_sources]   # 검색된 논문 출처 누적
 
 
 logger = logging.getLogger(__name__)
@@ -38,19 +51,10 @@ _TOOL_MAP = {
     "astronomy": search_astronomy_papers,
 }
 
-# db_sources 값 → 시스템 프롬프트 내 툴 호출 안내 문구
-_TOOL_CALL_DESC = {
-    "bio": "생명공학·유전체학(유전자, DNA, 시퀀싱, 단백질 등) 관련 질문 → search_bio_papers",
-    "cs": "컴퓨터과학(신경망, 딥러닝, 진화 알고리즘, 머신러닝 등) 관련 질문 → search_cs_papers",
-    "astronomy": "천문학(외계행성, 행성, 천체물리, 우주 등) 관련 질문 → search_astronomy_papers",
-}
-
-_FILE_TOOL_DESC = "사용자가 업로드한 파일 내용 검색 → search_gem_files (업로드 파일에서 답을 찾을 수 있을 때 반드시 호출)"
-
 
 def _make_file_search_tool(gem_id: str):
     """gem_id를 캡처한 동적 파일 검색 툴을 생성합니다."""
-    from api.v1.gems.file_rag import gem_file_rag  # 순환 임포트 방지를 위해 지연 임포트
+    from api.common.rag_pipeline import gem_file_rag  # 순환 임포트 방지를 위해 지연 임포트
 
     @tool
     async def search_gem_files(query: str, runtime: ToolRuntime, k: int = 10) -> Command:
@@ -171,20 +175,36 @@ class GemAgent:
         self, db_sources: list[str], persona_prompt: str, has_files: bool = False, streaming: bool = False
     ) -> str:
         """선택된 db_sources + 파일 유무에 맞는 툴 호출 지침 + 페르소나를 합쳐 시스템 프롬프트를 생성한다."""
-        tool_lines = "\n".join(
-            f"  · {_TOOL_CALL_DESC[src]}"
-            for src in db_sources
-            if src in _TOOL_CALL_DESC
-        )
+        # 툴 이름 결정
+        paper_tool_name = "search_bio_papers"
+        if "cs" in db_sources:
+            paper_tool_name = "search_cs_papers"
+        elif "astronomy" in db_sources:
+            paper_tool_name = "search_astronomy_papers"
+
+        # 사용 가능한 툴 목록을 단순 나열
+        available_tools = f"  1. 논문 검색 도구 (`{paper_tool_name}`)"
         if has_files:
-            tool_lines += f"\n  · {_FILE_TOOL_DESC}"
+            available_tools += "\n  2. 파일 검색 도구 (`search_gem_files`)"
+
+        if has_files:
+            tool_constraint = f"""- 사용자의 모든 질문에 대해, 최종 답변을 작성하기 전에 반드시 아래 두 도구를 동시에 병렬로 호출해야 합니다:
+{available_tools}
+- 경고: 어떠한 경우에도 두 도구 중 하나를 건너뛰어서는 안 됩니다. 질문이 천문학/CS/생물학 또는 업로드된 파일과 완전히 무관해 보이더라도, 반드시 두 도구를 모두 호출(사용자 질문에서 키워드를 추출하여)하여 검색하고 검증해야 합니다.
+- 기존 지식만으로 직접 답변하는 것은 엄격히 금지됩니다. 반드시 두 도구로부터 최신 맥락을 먼저 확보해야 합니다.
+- 도구를 하나만 호출하는 것은 치명적인 오류입니다. 매 턴마다 두 검색 도구를 병렬로 실행해야 합니다."""
+        else:
+            tool_constraint = f"""- 사용자의 모든 질문에 대해, 최종 답변을 작성하기 전에 반드시 아래 도구를 호출해야 합니다:
+{available_tools}
+- 경고: 어떠한 경우에도 이 도구를 건너뛰어서는 안 됩니다. 질문이 천문학/CS/생물학 유관 분야와 완전히 무관해 보이더라도, 반드시 이 도구를 호출(사용자 질문에서 키워드를 추출하여)하여 검색하고 검증해야 합니다.
+- 기존 지식만으로 직접 답변하는 것은 엄격히 금지됩니다. 반드시 이 도구로부터 최신 맥락을 먼저 확보해야 합니다."""
 
         if streaming:
             return f"""{persona_prompt}
 
-작업 방식:
-- 질문 주제를 파악해서 아래 검색 도구 중 알맞은 것을 반드시 호출합니다.
-{tool_lines}
+[필수 도구 사용 제약 조건]
+{tool_constraint}
+
 - 중요: 검색 도구에 전달하는 query는 반드시 영어로 작성하세요.
   사용자가 한국어로 질문했더라도 핵심 개념을 영어 학술 용어로 번역해 검색합니다.
 - 검색된 내용을 근거로 질문에 대한 답변을 마크다운으로 풍부하게 작성합니다.
@@ -196,9 +216,9 @@ class GemAgent:
 
         return f"""{persona_prompt}
 
-작업 방식:
-- 질문 주제를 파악해서 아래 검색 도구 중 알맞은 것을 반드시 호출합니다.
-{tool_lines}
+[필수 도구 사용 제약 조건]
+{tool_constraint}
+
 - 중요: 검색 도구에 전달하는 query는 반드시 영어로 작성하세요.
   사용자가 한국어로 질문했더라도 핵심 개념을 영어 학술 용어로 번역해 검색합니다.
   예) "소행성체 형성" → "planetesimal formation"
@@ -289,8 +309,20 @@ class GemAgent:
         config = {"configurable": {"thread_id": thread_id}}
         captured_sources: list[dict] = []
 
+        # 기존 체크포인트에 저장된 메시지 중 SystemMessage들을 전부 청소 (지시문 중복 누적 방지)
+        state = await agent.aget_state(config)
+        existing_messages = state.values.get("messages", []) if state.values else []
+        cleaned_messages = []
+        for msg in existing_messages:
+            msg_type = getattr(msg, "type", None) or getattr(msg, "role", None)
+            if msg_type == "system" or isinstance(msg, SystemMessage):
+                continue
+            cleaned_messages.append(msg)
+        if len(existing_messages) != len(cleaned_messages):
+            await agent.aupdate_state(config, {"messages": cleaned_messages})
+
         async for stream_mode, chunk in agent.astream(
-            {"messages": [{"role": "user", "content": message}], "sources": []},
+            {"messages": [{"role": "user", "content": message}], "sources": [{"action": "clear"}]},
             config,
             stream_mode=cast(Any, ["messages", "values"]),
         ):
@@ -328,17 +360,25 @@ class GemAgent:
             if content:
                 yield {"type": "token", "data": content}
 
-        # 스트리밍 완료 후 캡처한 sources를 papers 이벤트로 방출
-        if captured_sources:
-            seen: set[str] = set()
-            unique: list[dict] = []
-            for s in captured_sources:
-                key = s.get("arxiv_id") or s.get("title", "")
-                if key and key not in seen:
-                    seen.add(key)
-                    unique.append(s)
-            if unique:
-                yield {"type": "papers", "data": unique}
+        # 스트리밍 완료 후 캡처한 sources를 papers 이벤트로 방출 및 AIMessage additional_kwargs 갱신
+        seen = set()
+        unique = []
+        for s in captured_sources:
+            key = s.get("arxiv_id") or s.get("title", "")
+            if key and key not in seen:
+                seen.add(key)
+                unique.append(s)
+        if unique:
+            yield {"type": "papers", "data": unique}
+
+        # 최종 AI 메시지의 additional_kwargs에 sources 저장하여 DB 갱신
+        state = await agent.aget_state(config)
+        messages = state.values.get("messages", []) if state.values else []
+        if messages:
+            last_msg = messages[-1]
+            if getattr(last_msg, "type", None) == "ai":
+                last_msg.additional_kwargs["sources"] = unique
+                await agent.aupdate_state(config, {"messages": [last_msg]})
 
     async def run(
         self,
@@ -352,13 +392,27 @@ class GemAgent:
         """메시지를 처리하여 answer와 sources를 반환한다(대화 기록 자동 저장/복원)."""
         await self._initialize()
         agent = self._build_agent(db_sources, system_prompt, gem_id=gem_id, has_files=has_files)
+        config = {"configurable": {"thread_id": thread_id}}
+
+        # 기존 체크포인트에 저장된 메시지 중 SystemMessage들을 전부 청소 (지시문 중복 누적 방지)
+        state = await agent.aget_state(config)
+        existing_messages = state.values.get("messages", []) if state.values else []
+        cleaned_messages = []
+        for msg in existing_messages:
+            msg_type = getattr(msg, "type", None) or getattr(msg, "role", None)
+            if msg_type == "system" or isinstance(msg, SystemMessage):
+                continue
+            cleaned_messages.append(msg)
+        if len(existing_messages) != len(cleaned_messages):
+            await agent.aupdate_state(config, {"messages": cleaned_messages})
+
         try:
             result = await agent.ainvoke(
                 {
                     "messages": [{"role": "user", "content": message}],
-                    "sources": [],
+                    "sources": [{"action": "clear"}],
                 },
-                {"configurable": {"thread_id": thread_id}},
+                config,
             )
 
             # 구조화 출력 추출 (chat_agent와 동일한 방식)
@@ -385,6 +439,16 @@ class GemAgent:
                     seen.add(key)
                     unique_sources.append(s)
 
+            # 최종 AI 메시지의 additional_kwargs에 sources 저장하여 DB 갱신
+            if result.get("messages"):
+                last_msg = result["messages"][-1]
+                if getattr(last_msg, "type", None) == "ai":
+                    last_msg.additional_kwargs["sources"] = unique_sources
+                    await agent.aupdate_state(
+                        {"configurable": {"thread_id": thread_id}},
+                        {"messages": [last_msg]}
+                    )
+
             return {
                 "answer": answer,
                 "papers": papers,
@@ -406,7 +470,11 @@ class GemAgent:
         gem_id: str | None = None,
         has_files: bool = False,
     ) -> list[dict]:
-        """대화 스레드의 user/assistant 메시지 내역을 순서대로 반환한다."""
+        """대화 스레드의 user/assistant 메시지 내역을 순서대로 반환한다.
+
+        체크포인터로부터 복원된 AI 메시지의 additional_kwargs["sources"] 또는
+        content JSON 문자열 내의 papers를 추출하여 대화와 함께 출처 리스트를 반환합니다.
+        """
         await self._initialize()
         agent = self._build_agent(db_sources, system_prompt, gem_id=gem_id, has_files=has_files)
         state = await agent.aget_state(
@@ -422,13 +490,27 @@ class GemAgent:
                 history.append({"role": "user", "content": content})
             elif msg_type == "ai" and content:
                 # JSON 문자열로 저장된 경우 explanation만 추출
+                papers = []
                 try:
                     parsed = json.loads(content)
-                    if isinstance(parsed, dict) and "explanation" in parsed:
-                        content = parsed["explanation"]
+                    if isinstance(parsed, dict):
+                        if "explanation" in parsed:
+                            content = parsed["explanation"]
+                        if "papers" in parsed:
+                            papers = parsed["papers"]
                 except (json.JSONDecodeError, TypeError):
                     pass
-                history.append({"role": "assistant", "content": content})
+
+                # additional_kwargs에 저장된 sources가 있다면 복구
+                sources = msg.additional_kwargs.get("sources", [])
+                final_papers = sources if sources else papers
+
+                history.append({
+                    "role": "assistant",
+                    "content": content,
+                    "papers": final_papers,
+                    "statuses": ["paper_search"] if final_papers else []
+                })
         return history
 
     async def clear_history(self, thread_id: str) -> None:

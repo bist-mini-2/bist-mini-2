@@ -1681,3 +1681,35 @@
   line-height: 1.5;
   color: #6b7280;
 }
+
+/* =============================================================================
+   Gem Chat - Send Button Styling
+   ============================================================================= */
+.gem-chat-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--card-border, #e5e7eb);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.gem-chat-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--card-border, #e5e7eb);
+  color: var(--dots-icon-color, #9ca3af);
+}
+
+.gem-chat-send-btn:not(:disabled):hover {
+  transform: scale(1.08);
+}
+

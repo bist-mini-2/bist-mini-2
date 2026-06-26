@@ -53,7 +53,7 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
       if (editTarget.has_files) {
         getGemFiles(editTarget.gem_id)
           .then((data) => setExistingFiles(data))
-          .catch(() => {});
+          .catch(() => { });
       }
     } else {
       setName("");
@@ -154,7 +154,7 @@ export default function GemEditor({ editTarget, onSave, onBack, loading }) {
           {/* Data source */}
           <div className="gem-editor-field">
             <label className="gem-editor-label">
-              데이터 소스
+              논문 데이터 소스
               <i className="bi bi-info-circle gem-editor-info" title="Gem이 참조할 논문 데이터베이스를 선택합니다."></i>
             </label>
             <div className="gem-editor-source-list">

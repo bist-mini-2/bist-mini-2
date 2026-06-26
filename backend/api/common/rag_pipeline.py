@@ -1,7 +1,12 @@
 """3개 도메인의 공통 RAG 임베딩 검색 파이프라인 및 LangChain 도구(Tools)를 관리하는 모듈입니다."""
 
+import io
 import logging
 from typing import Any, Dict, List
+import zipfile
+import xml.etree.ElementTree as ET
+import pypdfium2 as pdfium
+from docx import Document as DocxDocument
 from langchain.embeddings import init_embeddings
 from langchain_postgres import PGVector
 from langchain.tools import tool, ToolRuntime
@@ -14,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 EMBED_MODEL = "openai:text-embedding-3-large"
 CONNECTION = settings.PGVECTOR_URL
+CHUNK_SIZE = 800
+CHUNK_OVERLAP = 150
+SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".md", ".csv", ".docx", ".doc"}
+
 
 DOMAIN_COLLECTIONS = {
     "bio": "bio_embeddings",
@@ -280,5 +289,200 @@ async def search_astronomy_papers(
         "messages": [ToolMessage(content=tool_text, tool_call_id=runtime.tool_call_id)],
         "sources": sources,
     })
+
+
+def _collection_name(gem_id: str) -> str:
+    """Gem별 pgvector 컬렉션 이름을 반환합니다.
+
+    Args:
+        gem_id (str): 대상 Gem의 고유 UUID.
+
+    Returns:
+        str: pgvector 컬렉션명.
+    """
+    return f"gem_{gem_id}_files"
+
+
+def _extract_text(filename: str, file_bytes: bytes) -> str:
+    """파일 형식에 따라 텍스트를 추출합니다.
+
+    Args:
+        filename (str): 원본 파일명 (확장자 판별에 사용).
+        file_bytes (bytes): 파일 바이너리 데이터.
+
+    Returns:
+        str: 추출된 텍스트 문자열.
+    """
+    fname = filename.lower()
+
+    if fname.endswith(".pdf"):
+        try:
+            pdf = pdfium.PdfDocument(io.BytesIO(file_bytes))
+            pages = []
+            for page in pdf:
+                textpage = page.get_textpage()
+                pages.append(textpage.get_text_range() or "")
+            return "\n".join(p for p in pages if p.strip())
+        except Exception as e:
+            logger.error(f"PDF 텍스트 추출 실패: {e}")
+            return ""
+
+    if fname.endswith(".docx") or fname.endswith(".doc"):
+        try:
+            # 1차 시도: 초고속 XML 추출 기법
+            with zipfile.ZipFile(io.BytesIO(file_bytes)) as docx:
+                xml_content = docx.read('word/document.xml')
+            root = ET.fromstring(xml_content)
+            namespaces = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+            texts = [node.text for node in root.findall('.//w:t', namespaces) if node.text]
+            return "\n".join(texts)
+        except Exception as e:
+            logger.warning(f"DOCX XML 고속 추출 실패, DocxDocument 폴백 진행: {e}")
+            try:
+                doc = DocxDocument(io.BytesIO(file_bytes))
+                return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+            except Exception as e2:
+                logger.error(f"DOCX 텍스트 추출 최종 실패: {e2}")
+                return ""
+
+    # TXT / MD / CSV 등 텍스트 계열
+    try:
+        return file_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        return file_bytes.decode("latin-1", errors="ignore")
+
+
+def _chunk_text(text: str) -> List[str]:
+    """텍스트를 고정 크기 청크로 분할합니다 (CHUNK_OVERLAP 만큼 겹침).
+
+    Args:
+        text (str): 원본 텍스트.
+
+    Returns:
+        List[str]: 청크 문자열 리스트.
+    """
+    if not text.strip():
+        return []
+
+    chunks: List[str] = []
+    start = 0
+    while start < len(text):
+        end = min(start + CHUNK_SIZE, len(text))
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        if end >= len(text):
+            break
+        start = end - CHUNK_OVERLAP
+
+    return chunks
+
+
+class GemFileRag:
+    """Gem별 업로드 파일의 RAG 파이프라인을 관리합니다.
+
+    pgvector 백엔드 상에 개별 컬렉션을 구축하고, 문서 업로드 시
+    텍스트 추출 및 청킹 후 벡터 데이터베이스에 적재하며 대화 시
+    유사 청크를 조회하여 에이전트 답변의 컨텍스트로 공급합니다.
+    """
+
+    def __init__(self) -> None:
+        """GemFileRag 인스턴스를 초기화합니다."""
+        self._embeddings = None
+
+    def get_embeddings(self):
+        """임베딩 모델 인스턴스를 지연 초기화로 반환합니다.
+
+        Returns:
+            Embeddings: 초기화된 임베딩 생성 모델 인스턴스.
+        """
+        if self._embeddings is None:
+            self._embeddings = init_embeddings(model=EMBED_MODEL)
+        return self._embeddings
+
+    def _get_vectorstore(self, gem_id: str) -> PGVector:
+        """지정된 Gem ID에 대칭되는 pgvector 스토어 객체를 초기화 및 반환합니다.
+
+        Args:
+            gem_id (str): 대상 Gem의 고유 식별자 UUID.
+
+        Returns:
+            PGVector: 비동기 모드로 구성된 pgvector 벡터 스토어 연결 인스턴스.
+        """
+        return PGVector(
+            embeddings=self.get_embeddings(),
+            collection_name=_collection_name(gem_id),
+            connection=CONNECTION,
+            async_mode=True,
+        )
+
+    async def process_and_store(
+        self, gem_id: str, filename: str, file_bytes: bytes
+    ) -> int:
+        """파일에서 텍스트를 추출하고 청킹 후 pgvector에 저장합니다.
+
+        Args:
+            gem_id (str): 대상 Gem의 고유 ID.
+            filename (str): 업로드된 파일명.
+            file_bytes (bytes): 파일 바이너리 데이터.
+
+        Returns:
+            int: 저장된 청크 수. 텍스트를 추출할 수 없으면 0.
+        """
+        text = _extract_text(filename, file_bytes)
+        chunks = _chunk_text(text)
+
+        if not chunks:
+            logger.warning(f"파일 '{filename}'에서 텍스트를 추출하지 못했습니다.")
+            return 0
+
+        vectorstore = self._get_vectorstore(gem_id)
+        metadatas = [{"filename": filename, "chunk_index": i} for i in range(len(chunks))]
+        await vectorstore.aadd_texts(chunks, metadatas=metadatas)
+
+        logger.info(f"Gem '{gem_id}' | 파일 '{filename}' → {len(chunks)}개 청크 저장 완료")
+        return len(chunks)
+
+    async def search(self, gem_id: str, query: str, k: int = 3) -> List[Dict[str, Any]]:
+        """Gem의 업로드 파일 컬렉션에서 유사 청크를 검색합니다.
+
+        Args:
+            gem_id (str): 검색할 Gem ID.
+            query (str): 검색 쿼리 텍스트.
+            k (int): 반환할 최대 청크 수.
+
+        Returns:
+            List[Dict[str, Any]]: 각 청크의 filename, chunk_index, text_chunk, score를 담은 딕셔너리 리스트.
+        """
+        vectorstore = self._get_vectorstore(gem_id)
+        results = await vectorstore.asimilarity_search_with_score(query, k=k)
+
+        return [
+            {
+                "filename": (doc.metadata or {}).get("filename", ""),
+                "chunk_index": (doc.metadata or {}).get("chunk_index", 0),
+                "text_chunk": doc.page_content,
+                "score": round(1.0 - score, 4),
+            }
+            for doc, score in results
+        ]
+
+    async def delete_collection(self, gem_id: str) -> None:
+        """Gem의 파일 임베딩 컬렉션 전체를 삭제합니다. Gem 삭제 시 호출합니다.
+
+        Args:
+            gem_id (str): 삭제할 Gem ID.
+        """
+        try:
+            vectorstore = self._get_vectorstore(gem_id)
+            await vectorstore.adelete_collection()
+            logger.info(f"Gem '{gem_id}' 파일 컬렉션 삭제 완료")
+        except Exception as exc:
+            logger.warning(f"Gem '{gem_id}' 파일 컬렉션 삭제 실패 (무시): {exc}")
+
+
+# 싱글톤 인스턴스
+gem_file_rag = GemFileRag()
+
 
 
