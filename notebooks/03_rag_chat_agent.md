@@ -1,0 +1,189 @@
+# 📖 [03] LangGraph 기반 RAG 대화 에이전트 실습
+
+이 노트북은 **Paper Agent**의 기본 채팅 기능이자 핵심 기술인 **LangGraph 기반 RAG 대화 에이전트**의 작동 아키텍처를 분석하고, 멀티-턴 세션 유지 및 비동기 스트리밍 처리를 직접 실행해 보는 독립 튜토리얼입니다.
+
+---
+
+## 💡 3분 배경지식: LangGraph & Postgres Checkpointer
+1. **LangGraph State & Node**:
+   - LangGraph는 에이전트 동작을 상태(State)와 흐름(Graph)으로 정의합니다. 메시지 히스토리(`messages`)와 수집된 논문 정보(`sources`) 등을 State에 선언하고, 노드(Node) 간의 상태 전이를 정의합니다.
+2. **AsyncPostgresSaver (Checkpointer)**:
+   - 대화 내역과 에이전트의 현재 실행 상태는 체크포인트(Checkpoint) 형태로 저장되어야 멀티-턴 대화가 끊기지 않습니다. `AsyncPostgresSaver`는 PostgreSQL DB에 `thread_id` 단위로 상태 스냅샷을 자동 적재하고 복원합니다.
+3. **에이전트의 Tool Routing**:
+   - LLM은 질문 내용에 따라 `search_bio_papers` 등의 도구를 호출할지(Tool Call), 아니면 바로 사용자에게 답변을 생성할지(Generate Answer) 스스로 판단합니다.
+
+---
+
+## 🔄 LangGraph 대화 에이전트 흐름도
+```mermaid
+sequenceDiagram
+    actor User as 사용자
+    participant Agent as ChatAgent (LangGraph)
+    participant Checkpointer as AsyncPostgresSaver (DB)
+    participant Tool as search_bio_papers (Mock)
+
+    User->>Agent: 질문 전송 (thread_id="test-thread-01")
+    Agent->>Checkpointer: 이전 대화 히스토리 스냅샷 복원
+    Agent->>Agent: 질문에 부합하는 도구 분석
+    Agent->>Tool: 도구 호출 및 Context 획득
+    Agent->>Agent: RAG 답변 합성 및 스트리밍 응답 (yield)
+    Agent->>Checkpointer: 신규 대화 상태 저장
+```
+
+### 1. 모듈 추가 및 환경 초기화
+
+```python
+import sys
+import os
+import asyncio
+
+sys.path.append(os.path.abspath("../backend"))
+
+from api.common.config import settings
+from api.database.config.psycopg_pool import psycopg_pool
+
+print(f"데이터베이스 주소: {settings.DATABASE_URL}")
+print(f"OpenAI API 키 설정 여부: {bool(settings.OPENAI_API_KEY)}")
+```
+
+### 2. 가상 RAG 검색 도구 Mocking (독립형 세팅)
+실제 데이터베이스에 논문이 없는 환경에서도 에이전트가 정상적으로 판단하고 작동하도록 검색 툴들을 임시 Mocking하여 설계합니다.
+
+```python
+from langchain.tools import tool
+
+@tool
+def search_bio_papers(query: str) -> str:
+    """Search biology and genome papers in the academic database."""
+    print(f"[Tool Execute] search_bio_papers Called with query: '{query}'")
+    return (
+        "[논문 1] Title: 'Metagenomic Attention Network for Gene Classification' (arxiv_id: 2502.9901)\n"
+        "Abstract: We introduce a metagenomic attention network to optimize classification accuracy for complex DNA sequences.\n\n"
+        "[논문 2] Title: 'Sequencing DNA sequences with Transformer-based models' (arxiv_id: 2502.9902)\n"
+        "Abstract: Transformer models are utilized to analyze sequencing genomic datasets."
+    )
+
+@tool
+def search_astronomy_papers(query: str) -> str:
+    """Search astronomy and astrophysics papers in the academic database."""
+    print(f"[Tool Execute] search_astronomy_papers Called with query: '{query}'")
+    return "[논문 1] Title: 'Exoplanet Detection via Deep Learning' (arxiv_id: 2503.1111) Abstract: Analyzing exoplanet atmospheres."
+
+print("Mocking 툴이 성공적으로 바인딩되었습니다.")
+```
+
+### 3. LangGraph 대화 에이전트 직접 빌드 및 Postgres Checkpointer 연동
+
+```python
+from typing import Annotated, TypedDict, cast, Any
+from langgraph.graph import add_messages
+from langchain.agents import create_agent
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from pydantic import BaseModel, Field
+
+# 1. State 스키마 설정
+class TestAgentState(TypedDict):
+    messages: Annotated[list, add_messages]
+    sources: list[dict]
+
+# 2. DTO 응답 포맷 정의
+class PaperRef(BaseModel):
+    arxiv_id: str
+    title: str
+    summary: str
+
+class RAGAnswer(BaseModel):
+    explanation: str
+    papers: list[PaperRef] = Field(default_factory=list)
+
+# 3. 커넥션 풀을 열고 체크포인터 활성화
+if psycopg_pool.closed:
+    await psycopg_pool.open()
+
+checkpointer = AsyncPostgresSaver(cast(Any, psycopg_pool))
+# 체크포인터용 테이블 자동 생성
+await checkpointer.setup()
+
+# 4. 에이전트 생성
+system_prompt = """
+당신은 생명공학 논문 데이터베이스를 다루는 전문 조력자입니다.
+질문이 오면 search_bio_papers 툴을 사용해 논문을 검색해 대답하세요.
+대답할 때 context에 없는 내용은 지어내지 마세요.
+"""
+
+agent = create_agent(
+    model="openai:gpt-4o-mini",
+    tools=[search_bio_papers, search_astronomy_papers],
+    system_prompt=system_prompt,
+    checkpointer=checkpointer,
+    state_schema=cast(Any, TestAgentState),
+    response_format=RAGAnswer
+)
+
+print("LangGraph 대화 에이전트 및 DB Checkpointer가 구축되었습니다.")
+```
+
+### 4. 2-Turn 대화 세션 복원 및 멀티-턴 실습
+하나의 고유한 `thread_id` 세션을 만들어, 1턴에서 물어본 내용을 2턴에서 기억하는지 직접 DB 체크포인트 기반 복원을 테스트합니다.
+
+```python
+# 독립된 스레드 식별자 생성
+config = {"configurable": {"thread_id": "notebook-test-thread-999"}}
+
+# --- 1턴 질답 ---
+print("=== 1턴 전송 ===")
+input_message_1 = {"messages": [("user", "유전체 시퀀싱에 Attention 기법을 적용한 최근 논문이 있어?")]}
+
+async for event in agent.astream(input_message_1, config):
+    if "agent" in event:
+        output = event["agent"]["messages"][-1].content
+        print(f"에이전트 최종 출력 DTO: {output}\n")
+
+# --- 2턴 질답 (이전 질문의 맥락을 기억하는지 질문) ---
+print("=== 2턴 전송 ===")
+input_message_2 = {"messages": [("user", "그 논문의 제목과 arxiv_id가 각각 뭐라고 했었지?")]}
+
+async for event in agent.astream(input_message_2, config):
+    if "agent" in event:
+        output = event["agent"]["messages"][-1].content
+        print(f"에이전트 최종 출력 DTO: {output}\n")
+```
+
+### 5. 토큰 스트리밍(Token-by-Token) 응답 실습
+대화 결과를 한 번에 묶어 응답하면 대기 지연이 길어지므로, 사용자의 체감 대기 속도를 비약적으로 높일 수 있는 스트리밍 generator를 직접 다루어 봅니다.
+
+```python
+# 스트리밍 모드는 구조화 출력 DTO 없이 텍스트 메시지를 조각 단위로 반환하게 만듭니다.
+stream_agent = create_agent(
+    model="openai:gpt-4o-mini",
+    tools=[search_bio_papers],
+    system_prompt="당신은 유능한 생명공학 요약기입니다. 질문 시 간결히 줄글로 대답하세요.",
+    checkpointer=checkpointer,
+    state_schema=cast(Any, TestAgentState)
+)
+
+async def stream_token_by_token():
+    config_stream = {"configurable": {"thread_id": "notebook-test-stream-888"}}
+    msg = {"messages": [("user", "유전자 시퀀싱 모델의 Attention 필요성을 2줄로 요약해줘.")]}
+    
+    print("에이전트 스트리밍 출력 개시: ")
+    # astream_events의 v2 API로 토큰을 직접 가로챕니다.
+    async for event in stream_agent.astream_events(msg, config_stream, version="v2"):
+        kind = event["event"]
+        if kind == "on_chat_model_stream":
+            content = event["data"]["chunk"].content
+            if content:
+                print(content, end="", flush=True)
+
+await stream_token_by_token()
+```
+
+### 6. 리소스 종료
+실습에 활용한 DB psycopg connection pool을 닫고 종료합니다.
+
+```python
+if not psycopg_pool.closed:
+    await psycopg_pool.close()
+print("데이터베이스 커넥션 풀이 안전하게 닫혔습니다.")
+```
+
