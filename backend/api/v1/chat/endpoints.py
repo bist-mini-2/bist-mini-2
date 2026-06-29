@@ -203,11 +203,11 @@ async def send_message_multi_stream(
     Args:
         user (LoginCheckDep): 인증이 완료된 현재 로그인 유저의 JWT 페이로드 정보.
         session_id (str): 대화 스트림을 기록 및 유지할 대상 채팅방의 고유 UUID 식별자(=thread_id).
-        request (ChatMessageRequest): 실시간 질의할 사용자 입력 텍스트 요청 DTO.
+        request (ChatMessageRequest): 실시간 질의할 사용자 입력 텍스트 및 선택적 이미지 DTO.
         service (ChatServiceDep): 멀티 에이전트 스트리밍과 출처·추천 저장을 조율하는 서비스 의존성.
 
     Returns:
-        StreamingResponse: status/token/route 이벤트(JSON 라인) 실시간 응답 스트림.
+        StreamingResponse: status/token/route/image_analysis 이벤트(JSON 라인) 실시간 응답 스트림.
     """
     return StreamingResponse(
         service.send_message_multi_stream(user["sub"], session_id, request.message, request.image),
