@@ -909,3 +909,40 @@
   box-shadow: 0 0 0 2px var(--accent-glow);
   background: var(--accent-glow);
 }
+
+/* ---- 이미지 확대 뷰어(라이트박스) ---- */
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+  animation: lightboxFadeIn 0.28s ease;
+}
+.lightboxClosing {
+  animation: lightboxFadeOut 0.26s ease forwards;
+}
+@keyframes lightboxFadeIn {
+  from { background: rgba(0, 0, 0, 0); }
+  to   { background: rgba(0, 0, 0, 0.78); }
+}
+@keyframes lightboxFadeOut {
+  from { background: rgba(0, 0, 0, 0.78); }
+  to   { background: rgba(0, 0, 0, 0); }
+}
+.lightboxImage {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  cursor: default;
+  will-change: transform;
+}
+/* 썸네일에 확대 가능 표시 */
+.bubbleImage,
+.imagePreviewThumb {
+  cursor: zoom-in;
+}

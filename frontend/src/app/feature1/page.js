@@ -1,7 +1,7 @@
 "use client"
 
 import ReactMarkdown from "react-markdown";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMessages, sendMessage, sendMessageStream, createSession, generateTitle } from "@/apis/bioChatApi";
 import PaperPanel from "@/components/feature1/PaperPanel";
@@ -32,6 +32,9 @@ export default function Feature1Page() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [panelIndex, setPanelIndex] = useState(null); // 오른쪽 패널에 띄울 메시지 index (null이면 닫힘)
   const [streamStatus, setStreamStatus] = useState(null); // 스트리밍 중 도구 상태: web_search|paper_search|datetime|null
+  const [lightbox, setLightbox] = useState(null); // { src, rect } | null — 확대 뷰어
+  // 썸네일 클릭 시 그 화면 좌표(rect)와 함께 라이트박스를 연다.
+  const openLightbox = (src, rect) => setLightbox({ src, rect });
 
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
@@ -308,7 +311,12 @@ export default function Feature1Page() {
     >
       {imageDataUrl && (
         <div className={styles.imagePreview}>
-          <img src={imageDataUrl} alt="첨부할 이미지 미리보기" className={styles.imagePreviewThumb} />
+          <img
+            src={imageDataUrl}
+            alt="첨부할 이미지 미리보기"
+            className={styles.imagePreviewThumb}
+            onClick={(e) => openLightbox(imageDataUrl, e.currentTarget.getBoundingClientRect())}
+          />
           <button
             className={styles.imagePreviewRemove}
             onClick={() => setImageDataUrl(null)}
@@ -388,6 +396,13 @@ export default function Feature1Page() {
           </p>
         </div>
         {inputArea}
+        {lightbox && (
+          <ImageLightbox
+            src={lightbox.src}
+            originRect={lightbox.rect}
+            onClose={() => setLightbox(null)}
+          />
+        )}
       </div>
     );
   }
@@ -416,6 +431,7 @@ export default function Feature1Page() {
                 isStreaming={isSending && idx === messages.length - 1}
                 isLast={idx === messages.length - 1}
                 onSelectSuggestion={handleSelectSuggestion}
+                onOpenLightbox={openLightbox}
               />
             ))
           )}
@@ -431,6 +447,14 @@ export default function Feature1Page() {
         papers={selectedPapers}
         onClose={() => setPanelIndex(null)}
       />
+
+      {lightbox && (
+        <ImageLightbox
+          src={lightbox.src}
+          originRect={lightbox.rect}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </div>
   );
 }
@@ -468,7 +492,7 @@ function parseAnswer(content) {
  * 사용자/AI 메시지 말풍선.
  * AI 메시지는 설명(explanation) + "논문 N편" 패널 토글 버튼 + 검색 출처(sources)를 표시한다.
  */
-function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, isLast, onSelectSuggestion }) {
+function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, isLast, onSelectSuggestion, onOpenLightbox }) {
   const isUser = message.role === "user";
 
   // 아직 토큰이 안 온 빈 답변 말풍선은 렌더하지 않는다 (로딩은 LoadingBubble이 담당)
@@ -553,7 +577,12 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, i
       )}
       <div className={styles.bubbleGroup}>
         {isUser && message.image && (
-          <img src={message.image} alt="첨부 이미지" className={styles.bubbleImage} />
+          <img
+            src={message.image}
+            alt="첨부 이미지"
+            className={styles.bubbleImage}
+            onClick={(e) => onOpenLightbox && onOpenLightbox(message.image, e.currentTarget.getBoundingClientRect())}
+          />
         )}
         <div className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAi} ${message.isError ? styles.bubbleError : ""}`}>
           {isUser ? (
@@ -769,5 +798,94 @@ function CloverMark({ size = 44, animated = true }) {
         <circle cx="50" cy="50" r="6" fill="var(--accent-color)" opacity="0.7" />
       </g>
     </svg>
+  );
+}
+
+// ───────────────────────────────────────────────────────────
+// 🎛️ 라이트박스 애니메이션 튜닝 손잡이 — 이 값들만 바꿔가며 느낌 조정
+//   · OPEN_MS / CLOSE_MS: 열기·닫기 모션 길이(ms). 키울수록 느긋.
+//   · EASE_OPEN / EASE_CLOSE: cubic-bezier 곡선. 막히면 Claude에게 원하는 느낌 설명.
+//   · 추천 출발점: 열기는 끝에서 사뿐히(감속), 닫기는 약간 빠르게.
+const OPEN_MS = 320;
+const CLOSE_MS = 260;
+const EASE_OPEN = "cubic-bezier(0.16, 1, 0.3, 1)";   // 빠르게 나와 끝에서 부드럽게 안착
+const EASE_CLOSE = "cubic-bezier(0.4, 0, 1, 1)";     // 시작은 천천히, 갈수록 빠르게 사라짐
+// ───────────────────────────────────────────────────────────
+
+/**
+ * 이미지 확대 뷰어(라이트박스). 클릭한 썸네일 위치(originRect)에서 중앙으로
+ * FLIP 확대하고, 닫을 때 그 자리로 역재생한다. ESC·배경클릭으로 닫는다.
+ *
+ * 핵심: invert(썸네일 위치로 되돌림) → play(중앙으로 풂)를 같은 프레임에 하면
+ * 브라우저가 시작/끝 차이를 못 느껴 모션이 생략된다. 그래서 requestAnimationFrame을
+ * 두 번 써서 두 프레임으로 확실히 분리한다(이게 "열기 모션 없음" 버그의 수정 포인트).
+ */
+function ImageLightbox({ src, originRect, onClose }) {
+  const imgRef = useRef(null);
+  const overlayRef = useRef(null);
+  const [closing, setClosing] = useState(false);
+
+  // 최종(중앙) 위치 대비 썸네일 위치로 되돌리는 transform 문자열을 만든다.
+  const invertTransform = (final) => {
+    const scale = originRect.width / final.width;
+    const tx = (originRect.left + originRect.width / 2) - (final.left + final.width / 2);
+    const ty = (originRect.top + originRect.height / 2) - (final.top + final.height / 2);
+    return `translate(${tx}px, ${ty}px) scale(${scale})`;
+  };
+
+  // 열기: invert를 한 프레임 그린 뒤, 다음 프레임에 play로 풀어 트랜지션을 살린다.
+  useLayoutEffect(() => {
+    const img = imgRef.current;
+    if (!img || !originRect) return;
+    const final = img.getBoundingClientRect();
+    img.style.transformOrigin = "center center";
+    img.style.transition = "none";
+    img.style.transform = invertTransform(final); // First: 썸네일 위치/크기로
+    // 두 프레임 분리 — 첫 rAF에서 invert가 실제로 페인트되게 한 뒤, 둘째 rAF에서 play.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        img.style.transition = `transform ${OPEN_MS}ms ${EASE_OPEN}`;
+        img.style.transform = "translate(0,0) scale(1)"; // Play: 중앙 확대
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [originRect, src]);
+
+  // 닫기: 현재(중앙)에서 썸네일 위치로 역재생 후 언마운트.
+  const handleClose = () => {
+    const img = imgRef.current;
+    if (!img || !originRect) { onClose(); return; }
+    const final = img.getBoundingClientRect();
+    img.style.transition = `transform ${CLOSE_MS}ms ${EASE_CLOSE}`;
+    img.style.transform = invertTransform(final);
+    setClosing(true); // 배경 페이드아웃 트리거
+    setTimeout(onClose, CLOSE_MS);
+  };
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") handleClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      ref={overlayRef}
+      className={`${styles.lightboxOverlay} ${closing ? styles.lightboxClosing : ""}`}
+      style={{
+        // 배경 페이드도 같은 길이로 맞춰 모션 일체감을 준다.
+        animationDuration: `${closing ? CLOSE_MS : OPEN_MS}ms`,
+      }}
+      onClick={handleClose}
+    >
+      <img
+        ref={imgRef}
+        src={src}
+        alt="확대 이미지"
+        className={styles.lightboxImage}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
   );
 }
