@@ -1,4 +1,5 @@
 import logging
+import operator
 from typing import Annotated, Any, AsyncGenerator, TypedDict, cast
 
 from langchain.agents import create_agent
@@ -22,8 +23,10 @@ class _PaperWorkerState(TypedDict):
     state_schema에 sources 키가 있어야 누적이 동작한다(기존 chat_agent의 BioAgentState 패턴).
     """
     messages: Annotated[list, add_messages]
-    sources: list[dict]
-    web_sources: list[dict]
+    # 검색 도구가 한 step에 여러 번 호출돼도 누적되도록 reducer(operator.add) 지정.
+    # (reducer 없으면 동시 업데이트 시 INVALID_CONCURRENT_GRAPH_UPDATE 발생)
+    sources: Annotated[list[dict], operator.add]
+    web_sources: Annotated[list[dict], operator.add]
 
 
 #################################################################################

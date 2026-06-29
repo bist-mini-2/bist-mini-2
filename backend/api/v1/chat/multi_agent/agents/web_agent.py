@@ -1,4 +1,5 @@
 import logging
+import operator
 from typing import Annotated, Any, AsyncGenerator, TypedDict, cast
 
 from langchain.agents import create_agent
@@ -18,8 +19,9 @@ class _WebWorkerState(TypedDict):
     state_schema에 web_sources 키가 있어야 누적이 동작한다.
     """
     messages: Annotated[list, add_messages]
-    sources: list[dict]
-    web_sources: list[dict]
+    # 동시 도구 업데이트 누적용 reducer (paper_agent와 동일 사유).
+    sources: Annotated[list[dict], operator.add]
+    web_sources: Annotated[list[dict], operator.add]
 
 
 #################################################################################
