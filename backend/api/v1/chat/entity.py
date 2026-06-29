@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, DateTime, Integer, ForeignKey, func
+from sqlalchemy import String, DateTime, Integer, ForeignKey, func, LargeBinary
 from api.database.config.entity_base import Base
 
 
@@ -78,4 +78,25 @@ class ChatSuggestionEntity(Base):
     )
     message_index: Mapped[int] = mapped_column("message_index", Integer, nullable=False)
     question: Mapped[str] = mapped_column("question", String(300), nullable=False)
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime, server_default=func.now())
+
+
+class ChatImageEntity(Base):
+    """사용자 메시지에 첨부된 이미지(BLOB) 엔티티.
+
+    어느 방(session_id)의 몇 번째 메시지(message_index = user 메시지)에 붙은
+    이미지인지 기록한다. 방이 삭제되면 ON DELETE CASCADE로 함께 삭제된다.
+    """
+    __tablename__ = "chat_image"
+
+    id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(
+        "session_id",
+        String(36),
+        ForeignKey("chat_session.session_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    message_index: Mapped[int] = mapped_column("message_index", Integer, nullable=False)
+    image_data: Mapped[bytes] = mapped_column("image_data", LargeBinary, nullable=False)
+    media_type: Mapped[str] = mapped_column("media_type", String(50), nullable=False)
     created_at: Mapped[datetime] = mapped_column("created_at", DateTime, server_default=func.now())

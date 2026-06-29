@@ -16,6 +16,8 @@ from api.v1.chat.multi_agent.nodes.analysis_node import agent as analysis_agent
 from api.v1.chat.multi_agent.nodes.paper_node import agent as paper_agent
 from api.v1.chat.multi_agent.nodes.web_node import agent as web_agent
 from api.v1.chat.multi_agent.nodes.synthesis_node import agent as synthesis_agent
+# 이미지 분석 에이전트 — 그래프 노드가 아니라 run_stream 앞단에서만 호출하므로 직접 import.
+from api.v1.chat.multi_agent.agents.image_agent import ImageAgent
 from api.v1.chat.multi_agent.state import MultiAgentState
 
 
@@ -45,6 +47,8 @@ class ChatMultiAgentSupervisor:
         self.web_agent = web_agent
         # 종합(synthesis) 에이전트 — run_stream에서 종합 답변 토큰 스트리밍에 사용.
         self.synthesis_agent = synthesis_agent
+        # 이미지 분석 에이전트 — run_stream 앞단에서 이미지→검색쿼리 변환에 사용(노드 아님, B-1 방식).
+        self.image_agent = ImageAgent()
 
     # 그래프(작업 흐름) 구성 메소드 — 팬아웃 + 종합(현재 활성)
     def build_workflow(self):
@@ -134,7 +138,7 @@ class ChatMultiAgentSupervisor:
 
     # 스트리밍 실행 메소드 — 팬아웃 + 종합(현재 활성)
     async def run_stream(
-        self, query: str, conversation_id: str
+        self, query: str, conversation_id: str, image: str | None = None
     ) -> AsyncGenerator[dict, None]:
         """논문·웹 병렬 검색 후, 종합 답변을 토큰 스트리밍한다(팬아웃+종합).
 
@@ -142,20 +146,41 @@ class ChatMultiAgentSupervisor:
         종합(synthesis) 답변만 토큰 단위로 흘려보낸다. 검색 출처는 그래프/checkpointer가
         아니라 run의 반환 dict에서 직접 받아 지역변수로 들고 있다가 마지막에 알린다.
 
+        image(data URL)이 주어지면 ImageAgent로 검색 쿼리를 먼저 생성해 검색에 사용하고,
+        없으면 원질문을 그대로 검색에 쓴다. 종합(synthesis)에는 항상 원질문 query를 넘긴다.
+
         이벤트:
+            - {"type":"status","data":"image_analysis"}  이미지 분석 시작(이미지 있을 때만)
             - {"type":"status","data":"paper_search"}   검색 시작 알림
             - {"type":"status","data":"web_search"}
             - {"type":"status","data":"synthesizing"}    종합 시작 알림
             - {"type":"token","data":...}                종합 답변 토큰
             - {"type":"sources","data":{"sources":[...],"web_sources":[...]}}  종료 직전 1회
         """
+        # 0) 이미지가 있으면 분석해 검색 쿼리를 생성한다. 없으면 원질문을 그대로 검색에 쓴다.
+        #    검색용(search_query)과 사용자 원질문(query)을 분리한다:
+        #    - 검색(paper/web)에는 search_query 사용
+        #    - 종합(synthesis)·대화기록에는 원질문 query 사용(아래 변경 없음)
+        if image:
+            yield {"type": "status", "data": "image_analysis"}
+            try:
+                image_result = await self.image_agent.run(image, query)
+                search_query = image_result.get("query") or query
+                self.logger.info(f"이미지 분석 검색 쿼리 생성: {search_query}")
+            except Exception as e:
+                # 이미지 분석 실패 시 원질문으로 폴백(전체 흐름은 계속 진행).
+                self.logger.error(f"이미지 분석 실패, 원질문으로 폴백: {e}")
+                search_query = query
+        else:
+            search_query = query
+
         # 1) 검색 병렬 — status 먼저 알리고 동시에 실행
         yield {"type": "status", "data": "paper_search"}
         yield {"type": "status", "data": "web_search"}
 
         paper_result, web_result = await asyncio.gather(
-            self.paper_agent.run(query),
-            self.web_agent.run(query),
+            self.paper_agent.run(search_query),
+            self.web_agent.run(search_query),
             return_exceptions=True,
         )
         # 예외 방어: 실패한 쪽은 빈 결과로 처리
