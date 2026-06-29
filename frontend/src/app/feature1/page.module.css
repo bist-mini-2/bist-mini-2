@@ -902,3 +902,10 @@
   object-fit: cover;
   display: block;
 }
+
+/* ---- 이미지 드래그 오버 시 입력창 강조 ---- */
+.inputWrapperDragActive {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+  background: var(--accent-glow);
+}

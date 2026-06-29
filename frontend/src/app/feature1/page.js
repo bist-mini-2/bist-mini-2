@@ -27,6 +27,7 @@ export default function Feature1Page() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [imageDataUrl, setImageDataUrl] = useState(null); // 첨부 이미지 data URL (없으면 null)
+  const [isDragActive, setIsDragActive] = useState(false); // 입력 영역 위로 이미지 드래그 중인지
   const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [panelIndex, setPanelIndex] = useState(null); // 오른쪽 패널에 띄울 메시지 index (null이면 닫힘)
@@ -108,6 +109,42 @@ export default function Feature1Page() {
     const reader = new FileReader();
     reader.onload = (e) => setImageDataUrl(e.target.result);
     reader.readAsDataURL(file);
+  };
+
+  // 입력 영역에 이미지 파일을 드롭하면 첨부한다.
+  const handleDragOver = (e) => {
+    e.preventDefault(); // drop 이벤트를 받으려면 dragover에서 기본동작 차단 필수
+    if (!isSending) setIsDragActive(true);
+  };
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    // 자식 요소로의 이동은 무시하고, 컨테이너 밖으로 완전히 나갈 때만 해제
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    setIsDragActive(false);
+  };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragActive(false);
+    if (isSending) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleImageFile(file);
+  };
+
+  // 입력창에 이미지를 붙여넣기(Ctrl/Cmd+V)하면 첨부한다.
+  const handlePaste = (e) => {
+    if (isSending) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          handleImageFile(file);
+          e.preventDefault(); // 이미지 붙여넣기 시 입력창에 잡텍스트가 안 들어가게
+        }
+        break;
+      }
+    }
   };
 
   // 메시지를 전송한다. 방이 없으면 먼저 새 방을 만들고(질문 내용을 제목으로) 전송한다.
@@ -262,7 +299,12 @@ export default function Feature1Page() {
 
   // 입력 영역(공통) — 빈 화면과 대화 화면 모두에서 사용
   const inputArea = (
-    <div className={styles.inputArea}>
+    <div
+      className={styles.inputArea}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {imageDataUrl && (
         <div className={styles.imagePreview}>
           <img src={imageDataUrl} alt="첨부할 이미지 미리보기" className={styles.imagePreviewThumb} />
@@ -275,7 +317,7 @@ export default function Feature1Page() {
           </button>
         </div>
       )}
-      <div className={styles.inputWrapper}>
+      <div className={`${styles.inputWrapper} ${isDragActive ? styles.inputWrapperDragActive : ""}`}>
         <input
           type="file"
           accept="image/*"
@@ -300,6 +342,7 @@ export default function Feature1Page() {
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="생명공학·천문학·컴퓨터공학 논문, 무엇이든 물어보세요…"
           rows={1}
           disabled={isSending}
@@ -314,7 +357,9 @@ export default function Feature1Page() {
         </button>
       </div>
       <span className={styles.inputHint}>
-        Enter 전송 · Shift+Enter 줄바꿈
+        {isDragActive
+          ? "여기에 이미지를 놓으세요"
+          : "Enter 전송 · Shift+Enter 줄바꿈 · 이미지 드래그·붙여넣기 가능"}
       </span>
     </div>
   );
