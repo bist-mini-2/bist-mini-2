@@ -2,7 +2,13 @@ import os
 import math
 from PIL import Image, ImageDraw, ImageFont
 
+# ---------------------------------------------------------
+# High-DPI (Retina/Print-quality) Scale Factor
+# ---------------------------------------------------------
+SCALE = 3  # Render at 3x resolution (e.g., 3600px width)
+
 def get_font(size):
+    scaled_size = int(size * SCALE)
     # macOS system fonts supporting Korean
     font_paths = [
         "/System/Library/Fonts/AppleSDGothicNeo.ttc",   # Primary macOS Korean font (Sandeol Gothic)
@@ -13,7 +19,7 @@ def get_font(size):
     for path in font_paths:
         if os.path.exists(path):
             try:
-                return ImageFont.truetype(path, size)
+                return ImageFont.truetype(path, scaled_size)
             except:
                 pass
     return ImageFont.load_default()
@@ -41,23 +47,30 @@ FLOW_INDIGO = "#4F46E5"         # Indigo 600
 FLOW_TEXT = "#1E293B"
 
 def draw_rounded_rect(draw, coords, r, fill, outline=None, width=1):
-    x1, y1, x2, y2 = coords
-    draw.rounded_rectangle([x1, y1, x2, y2], radius=r, fill=fill, outline=outline, width=width)
+    x1, y1, x2, y2 = [int(coord * SCALE) for coord in coords]
+    scaled_r = int(r * SCALE)
+    scaled_width = int(width * SCALE)
+    draw.rounded_rectangle([x1, y1, x2, y2], radius=scaled_r, fill=fill, outline=outline, width=scaled_width)
 
 def draw_shadow_rect(draw, coords, r, fill, outline=None, width=1, shadow_offset=5):
-    x1, y1, x2, y2 = coords
+    x1, y1, x2, y2 = [int(coord * SCALE) for coord in coords]
+    scaled_r = int(r * SCALE)
+    scaled_width = int(width * SCALE)
+    scaled_offset = int(shadow_offset * SCALE)
+    
     # Draw soft light-grey shadow
-    draw.rounded_rectangle([x1 + shadow_offset, y1 + shadow_offset, x2 + shadow_offset, y2 + shadow_offset], radius=r, fill=SHADOW_COLOR)
+    draw.rounded_rectangle([x1 + scaled_offset, y1 + scaled_offset, x2 + scaled_offset, y2 + scaled_offset], radius=scaled_r, fill=SHADOW_COLOR)
     # Draw main card
-    draw.rounded_rectangle([x1, y1, x2, y2], radius=r, fill=fill, outline=outline, width=width)
+    draw.rounded_rectangle([x1, y1, x2, y2], radius=scaled_r, fill=fill, outline=outline, width=scaled_width)
 
 def draw_arrow(draw, start, end, color, width=3):
-    x1, y1 = start
-    x2, y2 = end
-    draw.line([x1, y1, x2, y2], fill=color, width=width)
+    x1, y1 = [int(coord * SCALE) for coord in start]
+    x2, y2 = [int(coord * SCALE) for coord in end]
+    scaled_width = int(width * SCALE)
+    draw.line([x1, y1, x2, y2], fill=color, width=scaled_width)
     
     angle = math.atan2(y2 - y1, x2 - x1)
-    arrow_len = 12
+    arrow_len = 12 * SCALE
     # Left wing
     left_x = x2 - arrow_len * math.cos(angle - math.pi / 6)
     left_y = y2 - arrow_len * math.sin(angle - math.pi / 6)
@@ -68,15 +81,18 @@ def draw_arrow(draw, start, end, color, width=3):
     draw.polygon([x2, y2, left_x, left_y, right_x, right_y], fill=color)
 
 def generate_tier1(output_path):
-    img = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
+    # Transparent canvas (RGBA) scaled
+    img = Image.new("RGBA", (1200 * SCALE, 600 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
+    # Fonts (Scaled automatically in get_font)
     card_title_font = get_font(20)
     card_body_font = get_font(14)
     flow_font = get_font(16)
     
+    # LEFT Box: Frontend Tier
     draw_rounded_rect(draw, (80, 30, 520, 570), 12, fill=GROUP_BG, outline=ACCENT_SKY, width=2)
-    draw.text((110, 50), "Frontend Tier (Next.js & Bootstrap 5)", fill=ACCENT_SKY, font=card_title_font)
+    draw.text((110 * SCALE, 50 * SCALE), "Frontend Tier (Next.js & Bootstrap 5)", fill=ACCENT_SKY, font=card_title_font)
     
     cards_fe = [
         ("UI View Components", "React user interface components for Chat Hub,\nGap Analyzer and Gem Factory."),
@@ -88,12 +104,13 @@ def generate_tier1(output_path):
     y = 100
     for title, desc in cards_fe:
         draw_shadow_rect(draw, (110, y, 490, y + 100), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-        draw.text((130, y + 15), title, fill=TEXT_CARD_TITLE, font=card_title_font)
-        draw.text((130, y + 45), desc, fill=TEXT_CARD_BODY, font=card_body_font)
+        draw.text((130 * SCALE, (y + 15) * SCALE), title, fill=TEXT_CARD_TITLE, font=card_title_font)
+        draw.text((130 * SCALE, (y + 45) * SCALE), desc, fill=TEXT_CARD_BODY, font=card_body_font)
         y += 115
         
+    # RIGHT Box: Application Tier
     draw_rounded_rect(draw, (680, 30, 1120, 570), 12, fill=GROUP_BG, outline=ACCENT_PURPLE, width=2)
-    draw.text((710, 50), "Application Tier (FastAPI & Auth)", fill=ACCENT_PURPLE, font=card_title_font)
+    draw.text((710 * SCALE, 50 * SCALE), "Application Tier (FastAPI & Auth)", fill=ACCENT_PURPLE, font=card_title_font)
     
     cards_app = [
         ("JWT Security & Auth Guard", "Decodes, parses and validates JWT signature.\nVerifies user credentials and session status."),
@@ -103,23 +120,24 @@ def generate_tier1(output_path):
     y = 140
     for title, desc in cards_app:
         draw_shadow_rect(draw, (710, y, 1090, y + 120), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-        draw.text((730, y + 20), title, fill=TEXT_CARD_TITLE, font=card_title_font)
-        draw.text((730, y + 55), desc, fill=TEXT_CARD_BODY, font=card_body_font)
+        draw.text((730 * SCALE, (y + 20) * SCALE), title, fill=TEXT_CARD_TITLE, font=card_title_font)
+        draw.text((730 * SCALE, (y + 55) * SCALE), desc, fill=TEXT_CARD_BODY, font=card_body_font)
         y += 180
         
+    # Flows and Arrows
     draw_arrow(draw, (490, 390), (710, 200), color=FLOW_RED, width=3)
-    draw.text((515, 250), "1. Bearer JWT Requests", fill=FLOW_RED, font=flow_font)
+    draw.text((515 * SCALE, 250 * SCALE), "1. Bearer JWT Requests", fill=FLOW_RED, font=flow_font)
     
     draw_arrow(draw, (900, 260), (900, 320), color=FLOW_GREEN, width=3)
-    draw.text((920, 280), "2. Pass Authorized", fill=FLOW_GREEN, font=flow_font)
+    draw.text((920 * SCALE, 280 * SCALE), "2. Pass Authorized", fill=FLOW_GREEN, font=flow_font)
     
     draw_arrow(draw, (710, 400), (490, 505), color=FLOW_INDIGO, width=3)
-    draw.text((505, 465), "3. Server-Sent Events", fill=FLOW_INDIGO, font=flow_font)
+    draw.text((505 * SCALE, 465 * SCALE), "3. Server-Sent Events", fill=FLOW_INDIGO, font=flow_font)
     
     img.save(output_path)
 
 def generate_tier2(output_path):
-    img = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1200 * SCALE, 600 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     card_title_font = get_font(20)
@@ -127,46 +145,46 @@ def generate_tier2(output_path):
     flow_font = get_font(16)
     
     draw_rounded_rect(draw, (120, 30, 1080, 570), 12, fill=GROUP_BG, outline=ACCENT_PURPLE, width=2)
-    draw.text((150, 55), "LangGraph Multi-Agent Engine (Shared State: MultiAgentState)", fill=ACCENT_PURPLE, font=card_title_font)
+    draw.text((150 * SCALE, 55 * SCALE), "LangGraph Multi-Agent Engine (Shared State: MultiAgentState)", fill=ACCENT_PURPLE, font=card_title_font)
     
     draw_shadow_rect(draw, (180, 250, 430, 370), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((200, 265), "AnalysisNode", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((200, 300), "Intent Analysis &\nDual Query Optimizer", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((200 * SCALE, 265 * SCALE), "AnalysisNode", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((200 * SCALE, 300 * SCALE), "Intent Analysis &\nDual Query Optimizer", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_shadow_rect(draw, (550, 110, 800, 230), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((570, 125), "PaperNode", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((570, 160), "pgvector RAG Search\nwith Cos Similarity Guard", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((570 * SCALE, 125 * SCALE), "PaperNode", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((570 * SCALE, 160 * SCALE), "pgvector RAG Search\nwith Cos Similarity Guard", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_shadow_rect(draw, (550, 390, 800, 510), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((570, 405), "WebNode", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((570, 440), "Tavily Web Search API\nReal-time Market News", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((570 * SCALE, 405 * SCALE), "WebNode", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((570 * SCALE, 440 * SCALE), "Tavily Web Search API\nReal-time Market News", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_shadow_rect(draw, (920, 250, 1170, 370), 8, fill=CARD_BG, outline=ACCENT_SKY, width=1)
-    draw.text((940, 265), "SynthesisNode", fill=ACCENT_SKY, font=card_title_font)
-    draw.text((940, 300), "Cross-Reference\nJoins & Final Synthesis", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((940 * SCALE, 265 * SCALE), "SynthesisNode", fill=ACCENT_SKY, font=card_title_font)
+    draw.text((940 * SCALE, 300 * SCALE), "Cross-Reference\nJoins & Final Synthesis", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_arrow(draw, (60, 310), (180, 310), color=FLOW_GREEN, width=3)
-    draw.text((75, 280), "User Query", fill=FLOW_GREEN, font=flow_font)
+    draw.text((75 * SCALE, 280 * SCALE), "User Query", fill=FLOW_GREEN, font=flow_font)
     
     draw_arrow(draw, (430, 280), (550, 170), color=FLOW_INDIGO, width=3)
-    draw.text((435, 185), "Parallel Broadcast", fill=FLOW_INDIGO, font=flow_font)
+    draw.text((435 * SCALE, 185 * SCALE), "Parallel Broadcast", fill=FLOW_INDIGO, font=flow_font)
     
     draw_arrow(draw, (430, 340), (550, 450), color=FLOW_INDIGO, width=3)
-    draw.text((435, 420), "Parallel Broadcast", fill=FLOW_INDIGO, font=flow_font)
+    draw.text((435 * SCALE, 420 * SCALE), "Parallel Broadcast", fill=FLOW_INDIGO, font=flow_font)
     
     draw_arrow(draw, (800, 170), (920, 280), color=ACCENT_PURPLE, width=3)
-    draw.text((820, 185), "Merge Context", fill=ACCENT_PURPLE, font=flow_font)
+    draw.text((820 * SCALE, 185 * SCALE), "Merge Context", fill=ACCENT_PURPLE, font=flow_font)
     
     draw_arrow(draw, (800, 450), (920, 340), color=ACCENT_PURPLE, width=3)
-    draw.text((820, 420), "Merge Context", fill=ACCENT_PURPLE, font=flow_font)
+    draw.text((820 * SCALE, 420 * SCALE), "Merge Context", fill=ACCENT_PURPLE, font=flow_font)
     
     draw_arrow(draw, (1170, 310), (1240, 310), color=FLOW_RED, width=3)
-    draw.text((1180, 280), "Yield", fill=FLOW_RED, font=flow_font)
+    draw.text((1180 * SCALE, 280 * SCALE), "Yield", fill=FLOW_RED, font=flow_font)
     
     img.save(output_path)
 
 def generate_tier3(output_path):
-    img = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1200 * SCALE, 600 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     card_title_font = get_font(20)
@@ -174,7 +192,7 @@ def generate_tier3(output_path):
     flow_font = get_font(16)
     
     draw_rounded_rect(draw, (80, 30, 480, 570), 12, fill=GROUP_BG, outline=ACCENT_PURPLE, width=2)
-    draw.text((110, 50), "Application Services (FastAPI)", fill=ACCENT_PURPLE, font=card_title_font)
+    draw.text((110 * SCALE, 50 * SCALE), "Application Services (FastAPI)", fill=ACCENT_PURPLE, font=card_title_font)
     
     app_services = [
         ("LangGraph Agent Engine", "Triggers Multi-Agent workflows & RAG search tools."),
@@ -185,12 +203,12 @@ def generate_tier3(output_path):
     y = 110
     for title, desc in app_services:
         draw_shadow_rect(draw, (110, y, 450, y + 100), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-        draw.text((130, y + 15), title, fill=TEXT_CARD_TITLE, font=card_title_font)
-        draw.text((130, y + 45), desc, fill=TEXT_CARD_BODY, font=card_body_font)
+        draw.text((130 * SCALE, (y + 15) * SCALE), title, fill=TEXT_CARD_TITLE, font=card_title_font)
+        draw.text((130 * SCALE, (y + 45) * SCALE), desc, fill=TEXT_CARD_BODY, font=card_body_font)
         y += 150
         
     draw_rounded_rect(draw, (720, 30, 1120, 570), 12, fill=GROUP_BG, outline=ACCENT_EMERALD, width=2)
-    draw.text((750, 50), "Database & Cache (Storage Tier)", fill=ACCENT_EMERALD, font=card_title_font)
+    draw.text((750 * SCALE, 50 * SCALE), "Database & Cache (Storage Tier)", fill=ACCENT_EMERALD, font=card_title_font)
     
     db_services = [
         ("PostgreSQL 17 DB", "Stores relational metadata: chat_session,\nchat_sources, and research_gap_task."),
@@ -202,26 +220,26 @@ def generate_tier3(output_path):
     y = 100
     for title, desc in db_services:
         draw_shadow_rect(draw, (750, y, 1090, y + 90), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-        draw.text((770, y + 12), title, fill=TEXT_CARD_TITLE, font=card_title_font)
-        draw.text((770, y + 40), desc, fill=TEXT_CARD_BODY, font=card_body_font)
+        draw.text((770 * SCALE, (y + 12) * SCALE), title, fill=TEXT_CARD_TITLE, font=card_title_font)
+        draw.text((770 * SCALE, (y + 40) * SCALE), desc, fill=TEXT_CARD_BODY, font=card_body_font)
         y += 115
         
     draw_arrow(draw, (450, 160), (750, 350), color=FLOW_INDIGO, width=2)
-    draw.text((470, 230), "Checkpoints (thread_id)", fill=FLOW_INDIGO, font=flow_font)
+    draw.text((470 * SCALE, 230 * SCALE), "Checkpoints (thread_id)", fill=FLOW_INDIGO, font=flow_font)
     
     draw_arrow(draw, (450, 180), (750, 235), color=FLOW_RED, width=2)
-    draw.text((490, 190), "Cosine Similarity Search", fill=FLOW_RED, font=flow_font)
+    draw.text((490 * SCALE, 190 * SCALE), "Cosine Similarity Search", fill=FLOW_RED, font=flow_font)
     
     draw_arrow(draw, (450, 310), (750, 145), color=ACCENT_PURPLE, width=2)
-    draw.text((490, 310), "Task Progress & Translation", fill=ACCENT_PURPLE, font=flow_font)
+    draw.text((490 * SCALE, 310 * SCALE), "Task Progress & Translation", fill=ACCENT_PURPLE, font=flow_font)
     
     draw_arrow(draw, (450, 460), (750, 465), color=ACCENT_EMERALD, width=2)
-    draw.text((485, 440), "Citation Cache Hits", fill=ACCENT_EMERALD, font=flow_font)
+    draw.text((485 * SCALE, 440 * SCALE), "Citation Cache Hits", fill=ACCENT_EMERALD, font=flow_font)
     
     img.save(output_path)
 
 def generate_physical_structure(output_path):
-    img = Image.new("RGBA", (1200, 420), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1200 * SCALE, 420 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     card_title_font = get_font(18)
@@ -229,48 +247,48 @@ def generate_physical_structure(output_path):
     flow_font = get_font(14)
     
     draw_rounded_rect(draw, (50, 20, 380, 400), 12, fill=GROUP_BG, outline=ACCENT_SKY, width=2)
-    draw.text((70, 40), "Frontend Tier (Next.js)", fill=ACCENT_SKY, font=card_title_font)
+    draw.text((70 * SCALE, 40 * SCALE), "Frontend Tier (Next.js)", fill=ACCENT_SKY, font=card_title_font)
     
     draw_shadow_rect(draw, (70, 90, 360, 370), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((90, 110), "• 반응형 대시보드 UI", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((90, 140), "Bootstrap 5 컴포넌트 기반 구조화\n모바일/데스크톱 최적화 레이아웃", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((90 * SCALE, 110 * SCALE), "• 반응형 대시보드 UI", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((90 * SCALE, 140 * SCALE), "Bootstrap 5 컴포넌트 기반 구조화\n모바일/데스크톱 최적화 레이아웃", fill=TEXT_CARD_BODY, font=card_body_font)
     
-    draw.text((90, 210), "• SSE 실시간 렌더링", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((90, 240), "EventSource 수신부 구현\n비동기 완료 알림 및 토큰 스트리밍", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((90 * SCALE, 210 * SCALE), "• SSE 실시간 렌더링", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((90 * SCALE, 240 * SCALE), "EventSource 수신부 구현\n비동기 완료 알림 및 토큰 스트리밍", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_rounded_rect(draw, (460, 20, 790, 400), 12, fill=GROUP_BG, outline=ACCENT_PURPLE, width=2)
-    draw.text((480, 40), "Application Tier (FastAPI)", fill=ACCENT_PURPLE, font=card_title_font)
+    draw.text((480 * SCALE, 40 * SCALE), "Application Tier (FastAPI)", fill=ACCENT_PURPLE, font=card_title_font)
     
     draw_shadow_rect(draw, (480, 90, 770, 370), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((500, 110), "• 에이전트 오케스트레이션", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((500, 140), "LangGraph 다중 에이전트 엔진 구동\n사용자 정의 페르소나 (Gem) 빌드", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((500 * SCALE, 110 * SCALE), "• 에이전트 오케스트레이션", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((500 * SCALE, 140 * SCALE), "LangGraph 다중 에이전트 엔진 구동\n사용자 정의 페르소나 (Gem) 빌드", fill=TEXT_CARD_BODY, font=card_body_font)
     
-    draw.text((500, 210), "• 비동기 백그라운드 처리", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((500, 240), "FastAPI BackgroundTasks 연동\n대규모 문헌분석 오프로딩 구조", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((500 * SCALE, 210 * SCALE), "• 비동기 백그라운드 처리", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((500 * SCALE, 240 * SCALE), "FastAPI BackgroundTasks 연동\n대규모 문헌분석 오프로딩 구조", fill=TEXT_CARD_BODY, font=card_body_font)
 
     draw_rounded_rect(draw, (870, 20, 1150, 400), 12, fill=GROUP_BG, outline=ACCENT_EMERALD, width=2)
-    draw.text((890, 40), "Data Store Tier (Postgres)", fill=ACCENT_EMERALD, font=card_title_font)
+    draw.text((890 * SCALE, 40 * SCALE), "Data Store Tier (Postgres)", fill=ACCENT_EMERALD, font=card_title_font)
     
     draw_shadow_rect(draw, (890, 90, 1130, 370), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((910, 110), "• PostgreSQL 17", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((910, 140), "관계형 메타 및 대화기록 보존\nPostgresSaver checkpointer 탑재", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((910 * SCALE, 110 * SCALE), "• PostgreSQL 17", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((910 * SCALE, 140 * SCALE), "관계형 메타 및 대화기록 보존\nPostgresSaver checkpointer 탑재", fill=TEXT_CARD_BODY, font=card_body_font)
     
-    draw.text((910, 210), "• pgvector 벡터 엔진", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((910, 240), "3072차원 HNSW 인덱싱\nGem별 동적 RAG 격리 컬렉션", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((910 * SCALE, 210 * SCALE), "• pgvector 벡터 엔진", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((910 * SCALE, 240 * SCALE), "3072차원 HNSW 인덱싱\nGem별 동적 RAG 격리 컬렉션", fill=TEXT_CARD_BODY, font=card_body_font)
 
     draw_arrow(draw, (380, 160), (460, 160), color=FLOW_INDIGO, width=3)
-    draw.text((395, 135), "API Request", fill=FLOW_TEXT, font=flow_font)
+    draw.text((395 * SCALE, 135 * SCALE), "API Request", fill=FLOW_TEXT, font=flow_font)
     
     draw_arrow(draw, (790, 160), (870, 160), color=FLOW_RED, width=3)
-    draw.text((805, 135), "SQL / Query", fill=FLOW_TEXT, font=flow_font)
+    draw.text((805 * SCALE, 135 * SCALE), "SQL / Query", fill=FLOW_TEXT, font=flow_font)
     
     draw_arrow(draw, (460, 280), (380, 280), color=FLOW_GREEN, width=3)
-    draw.text((392, 290), "SSE Stream", fill=FLOW_TEXT, font=flow_font)
+    draw.text((392 * SCALE, 290 * SCALE), "SSE Stream", fill=FLOW_TEXT, font=flow_font)
     
     img.save(output_path)
 
 def generate_agent_workflow(output_path):
-    img = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1200 * SCALE, 500 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     card_title_font = get_font(18)
@@ -278,28 +296,28 @@ def generate_agent_workflow(output_path):
     flow_font = get_font(14)
     
     draw_shadow_rect(draw, (60, 110, 220, 190), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((80, 130), "User Query", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((80, 160), "자연어 질의 수신", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((80 * SCALE, 130 * SCALE), "User Query", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((80 * SCALE, 160 * SCALE), "자연어 질의 수신", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_shadow_rect(draw, (290, 90, 520, 210), 8, fill=CARD_BG, outline=ACCENT_PURPLE, width=1)
-    draw.text((310, 110), "AnalysisNode", fill=ACCENT_PURPLE, font=card_title_font)
-    draw.text((310, 140), "의도 분석 & 키워드 최적화\n(gpt-4o-mini 기용)", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((310 * SCALE, 110 * SCALE), "AnalysisNode", fill=ACCENT_PURPLE, font=card_title_font)
+    draw.text((310 * SCALE, 140 * SCALE), "의도 분석 & 키워드 최적화\n(gpt-4o-mini 기용)", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_shadow_rect(draw, (620, 20, 840, 130), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((640, 40), "PaperNode", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((640, 70), "pgvector RAG 검색\n(Cos 유사도 0.35 필터)", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((640 * SCALE, 40 * SCALE), "PaperNode", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((640 * SCALE, 70 * SCALE), "pgvector RAG 검색\n(Cos 유사도 0.35 필터)", fill=TEXT_CARD_BODY, font=card_body_font)
 
     draw_shadow_rect(draw, (620, 170, 840, 280), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((640, 190), "WebNode", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((640, 220), "Tavily Web Search API\n실시간 동향 수집", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((640 * SCALE, 190 * SCALE), "WebNode", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((640 * SCALE, 220 * SCALE), "Tavily Web Search API\n실시간 동향 수집", fill=TEXT_CARD_BODY, font=card_body_font)
 
     draw_shadow_rect(draw, (940, 90, 1160, 210), 8, fill=CARD_BG, outline=ACCENT_SKY, width=1)
-    draw.text((960, 110), "SynthesisNode", fill=ACCENT_SKY, font=card_title_font)
-    draw.text((960, 140), "크로스 레퍼런스 합성\n(gpt-4o 고성능 종합)", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((960 * SCALE, 110 * SCALE), "SynthesisNode", fill=ACCENT_SKY, font=card_title_font)
+    draw.text((960 * SCALE, 140 * SCALE), "크로스 레퍼런스 합성\n(gpt-4o 고성능 종합)", fill=TEXT_CARD_BODY, font=card_body_font)
 
     draw_shadow_rect(draw, (440, 330, 760, 430), 8, fill=CARD_BG, outline=ACCENT_EMERALD, width=1)
-    draw.text((460, 350), "PostgresSaver (Checkpointer)", fill=ACCENT_EMERALD, font=card_title_font)
-    draw.text((460, 380), "스레드별 대화 히스토리 DB 자동 백업\n(상태전이 간 대화 맥락 영구 유지)", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((460 * SCALE, 350 * SCALE), "PostgresSaver (Checkpointer)", fill=ACCENT_EMERALD, font=card_title_font)
+    draw.text((460 * SCALE, 380 * SCALE), "스레드별 대화 히스토리 DB 자동 백업\n(상태전이 간 대화 맥락 영구 유지)", fill=TEXT_CARD_BODY, font=card_body_font)
 
     draw_arrow(draw, (220, 150), (290, 150), color=FLOW_GREEN, width=2)
     
@@ -307,30 +325,24 @@ def generate_agent_workflow(output_path):
     draw_arrow(draw, (520, 170), (620, 225), color=FLOW_INDIGO, width=2)
     
     draw_arrow(draw, (840, 75), (940, 130), color=FLOW_INDIGO, width=2)
-    draw.text((850, 85), "Merge", fill=FLOW_TEXT, font=flow_font)
+    draw.text((850 * SCALE, 85 * SCALE), "Merge", fill=FLOW_TEXT, font=flow_font)
     draw_arrow(draw, (840, 225), (940, 170), color=FLOW_INDIGO, width=2)
-    draw.text((850, 200), "Merge", fill=FLOW_TEXT, font=flow_font)
+    draw.text((850 * SCALE, 200 * SCALE), "Merge", fill=FLOW_TEXT, font=flow_font)
     
     draw_arrow(draw, (730, 150), (730, 330), color=FLOW_RED, width=2)
     draw_arrow(draw, (600, 330), (600, 150), color=FLOW_RED, width=2)
-    draw.text((615, 240), "State Load/Save", fill=FLOW_RED, font=flow_font)
+    draw.text((615 * SCALE, 240 * SCALE), "State Load/Save", fill=FLOW_RED, font=flow_font)
 
     img.save(output_path)
 
-
-# ---------------------------------------------------------
-# NEW: Use Case Basic Flow Diagrams (Transparent, Compact, Light Mode, Korean Font)
-# ---------------------------------------------------------
-
 def generate_usecase_hubs_rag_flow(output_path):
-    img = Image.new("RGBA", (1200, 300), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1200 * SCALE, 300 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     step_font = get_font(15)
     title_font = get_font(18)
     body_font = get_font(13)
     
-    # 5 steps layout
     steps = [
         ("Step 01", "한글 질문 입력", "사용자가 의문이 제기된\n학술 분야 및 신기술 관련\n한글 질문을 창에 입력"),
         ("Step 02", "쿼리 최적화 분해", "AnalysisNode 가 가동되어\n학술 RAG용 영어 키워드와\n실시간 Web 검색어 동시 추출"),
@@ -347,17 +359,13 @@ def generate_usecase_hubs_rag_flow(output_path):
     
     for i, (step, title, desc) in enumerate(steps):
         x = start_x + i * (card_width + spacing)
-        
-        # Border accent color for active flow
         accent = ACCENT_SKY if i % 2 == 0 else ACCENT_PURPLE
         draw_shadow_rect(draw, (x, y, x + card_width, y + card_height), 8, fill=CARD_BG, outline=accent, width=2)
         
-        # Text drawing
-        draw.text((x + 15, y + 15), step, fill=accent, font=step_font)
-        draw.text((x + 15, y + 40), title, fill=TEXT_CARD_TITLE, font=title_font)
-        draw.text((x + 15, y + 80), desc, fill=TEXT_CARD_BODY, font=body_font)
+        draw.text(( (x + 15) * SCALE, (y + 15) * SCALE ), step, fill=accent, font=step_font)
+        draw.text(( (x + 15) * SCALE, (y + 40) * SCALE ), title, fill=TEXT_CARD_TITLE, font=title_font)
+        draw.text(( (x + 15) * SCALE, (y + 80) * SCALE ), desc, fill=TEXT_CARD_BODY, font=body_font)
         
-        # Draw connecting arrows between cards
         if i < len(steps) - 1:
             arrow_start = (x + card_width, y + card_height // 2)
             arrow_end = (x + card_width + spacing, y + card_height // 2)
@@ -366,14 +374,13 @@ def generate_usecase_hubs_rag_flow(output_path):
     img.save(output_path)
 
 def generate_usecase_gap_analysis_flow(output_path):
-    img = Image.new("RGBA", (1200, 300), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1200 * SCALE, 300 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     step_font = get_font(14)
     title_font = get_font(17)
     body_font = get_font(12)
     
-    # 6 steps layout
     steps = [
         ("Step 01", "분석 세션 요청", "도메인(cs/bio/astro)\n지정 및 연구 분석 키워드\n서버에 전달"),
         ("Step 02", "비동기 오프로딩", "즉시 task_id 발급 후\nFastAPI BackgroundTasks\n스레드로 연산 오프로딩"),
@@ -391,13 +398,12 @@ def generate_usecase_gap_analysis_flow(output_path):
     
     for i, (step, title, desc) in enumerate(steps):
         x = start_x + i * (card_width + spacing)
-        
         accent = ACCENT_EMERALD if i % 2 == 0 else ACCENT_PURPLE
         draw_shadow_rect(draw, (x, y, x + card_width, y + card_height), 8, fill=CARD_BG, outline=accent, width=2)
         
-        draw.text((x + 12, y + 15), step, fill=accent, font=step_font)
-        draw.text((x + 12, y + 40), title, fill=TEXT_CARD_TITLE, font=title_font)
-        draw.text((x + 12, y + 80), desc, fill=TEXT_CARD_BODY, font=body_font)
+        draw.text(( (x + 12) * SCALE, (y + 15) * SCALE ), step, fill=accent, font=step_font)
+        draw.text(( (x + 12) * SCALE, (y + 40) * SCALE ), title, fill=TEXT_CARD_TITLE, font=title_font)
+        draw.text(( (x + 12) * SCALE, (y + 80) * SCALE ), desc, fill=TEXT_CARD_BODY, font=body_font)
         
         if i < len(steps) - 1:
             arrow_start = (x + card_width, y + card_height // 2)
@@ -407,14 +413,13 @@ def generate_usecase_gap_analysis_flow(output_path):
     img.save(output_path)
 
 def generate_usecase_arena_defense_flow(output_path):
-    img = Image.new("RGBA", (1200, 300), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1200 * SCALE, 300 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     step_font = get_font(15)
     title_font = get_font(18)
     body_font = get_font(13)
     
-    # 5 steps layout
     steps = [
         ("Step 01", "기밀 PDF 업로드", "사용자가 논문 초안 전송,\n메모리 임시 파싱 및\n전용 pgvector 테이블 개설"),
         ("Step 02", "3대 에이전트 토론", "방법론 검토/신규성 분석/\n학술 에디터 에이전트가\n토론을 거쳐 리뷰서 생성"),
@@ -431,13 +436,12 @@ def generate_usecase_arena_defense_flow(output_path):
     
     for i, (step, title, desc) in enumerate(steps):
         x = start_x + i * (card_width + spacing)
-        
         accent = ACCENT_EMERALD if i % 2 == 0 else ACCENT_SKY
         draw_shadow_rect(draw, (x, y, x + card_width, y + card_height), 8, fill=CARD_BG, outline=accent, width=2)
         
-        draw.text((x + 15, y + 15), step, fill=accent, font=step_font)
-        draw.text((x + 15, y + 40), title, fill=TEXT_CARD_TITLE, font=title_font)
-        draw.text((x + 15, y + 80), desc, fill=TEXT_CARD_BODY, font=body_font)
+        draw.text(( (x + 15) * SCALE, (y + 15) * SCALE ), step, fill=accent, font=step_font)
+        draw.text(( (x + 15) * SCALE, (y + 40) * SCALE ), title, fill=TEXT_CARD_TITLE, font=title_font)
+        draw.text(( (x + 15) * SCALE, (y + 80) * SCALE ), desc, fill=TEXT_CARD_BODY, font=body_font)
         
         if i < len(steps) - 1:
             arrow_start = (x + card_width, y + card_height // 2)
@@ -447,14 +451,13 @@ def generate_usecase_arena_defense_flow(output_path):
     img.save(output_path)
 
 def generate_usecase_gem_factory_flow(output_path):
-    img = Image.new("RGBA", (1200, 300), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1200 * SCALE, 300 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     step_font = get_font(15)
     title_font = get_font(18)
     body_font = get_font(13)
     
-    # 4 steps layout
     steps = [
         ("Step 01", "Gem 개설 및 설정", "사용자가 에이전트 이름,\n학술 참고 도메인 범위,\n맞춤형 페르소나 지침 기입"),
         ("Step 02", "격리 데이터셋 적재", "참고용 개별 연구 파일 주입,\n파싱 후 gem_{gem_id}_files\n전용 pgvector 공간 격리 생성"),
@@ -470,13 +473,12 @@ def generate_usecase_gem_factory_flow(output_path):
     
     for i, (step, title, desc) in enumerate(steps):
         x = start_x + i * (card_width + spacing)
-        
         accent = ACCENT_PURPLE if i % 2 == 0 else ACCENT_EMERALD
         draw_shadow_rect(draw, (x, y, x + card_width, y + card_height), 8, fill=CARD_BG, outline=accent, width=2)
         
-        draw.text((x + 18, y + 15), step, fill=accent, font=step_font)
-        draw.text((x + 18, y + 40), title, fill=TEXT_CARD_TITLE, font=title_font)
-        draw.text((x + 18, y + 80), desc, fill=TEXT_CARD_BODY, font=body_font)
+        draw.text(( (x + 18) * SCALE, (y + 15) * SCALE ), step, fill=accent, font=step_font)
+        draw.text(( (x + 18) * SCALE, (y + 40) * SCALE ), title, fill=TEXT_CARD_TITLE, font=title_font)
+        draw.text(( (x + 18) * SCALE, (y + 80) * SCALE ), desc, fill=TEXT_CARD_BODY, font=body_font)
         
         if i < len(steps) - 1:
             arrow_start = (x + card_width, y + card_height // 2)
@@ -503,4 +505,4 @@ if __name__ == "__main__":
     generate_usecase_arena_defense_flow("./docs/deliverables/4th/usecase_arena_defense_flow.png")
     generate_usecase_gem_factory_flow("./docs/deliverables/4th/usecase_gem_factory_flow.png")
     
-    print("All transparent diagrams generated successfully with AppleSDGothicNeo font support!")
+    print(f"All transparent diagrams generated successfully at {SCALE}x resolution (3600px width)!")
