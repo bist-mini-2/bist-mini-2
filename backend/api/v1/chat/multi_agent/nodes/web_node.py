@@ -15,8 +15,9 @@ async def web_node(state: MultiAgentState) -> dict:
     logger.info("웹 검색 노드 실행")
     # 에이전트를 실행해 답변과 웹 출처 얻기
     result = await agent.run(state["user_query"])
-    # 상태 업데이트: 최종 답변과 웹 출처 저장
+    # 상태 업데이트: 웹 답변(종합 입력용)과 웹 출처 저장.
+    # 병렬 실행이므로 paper_node와 같은 final_response를 쓰면 서로 덮어쓴다 → 별도 필드에 저장.
     return {
-        "final_response": result["answer"],
+        "web_answer": result["answer"],
         "web_sources": result["web_sources"],
     }

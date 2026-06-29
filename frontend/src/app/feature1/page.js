@@ -68,7 +68,8 @@ export default function Feature1Page() {
             role: item.role,
             content: item.content,
             sources: item.sources || [],
-            suggestions: item.suggestions || []
+            suggestions: item.suggestions || [],
+            web_sources: item.web_sources || []
           }));
           setMessages(history);
         }
@@ -130,13 +131,13 @@ export default function Feature1Page() {
       }
     }
 
-    setMessages((prev) => [...prev, { role: "user", content: text, sources: [] }]);
+    setMessages((prev) => [...prev, { role: "user", content: text, sources: [], web_sources: [] }]);
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
       // 빈 assistant 메시지를 먼저 추가하고, 토큰이 올 때마다 여기에 누적해 타이핑 효과를 낸다.
-      setMessages((prev) => [...prev, { role: "assistant", content: "", sources: [] }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", sources: [], web_sources: [] }]);
 
       await sendMessageStream(activeSessionId, text, (token) => {
         setMessages((prev) => {
@@ -165,6 +166,7 @@ export default function Feature1Page() {
                 ...last,
                 sources: lastItem.sources || [],
                 suggestions: lastItem.suggestions || [],
+                web_sources: lastItem.web_sources || [],
               };
             }
             return next;
@@ -390,36 +392,53 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, i
   // 참고 논문 = 실제 검색된 출처(sources). 패널/버튼이 이걸 사용한다.
   const refPapers = !isUser && Array.isArray(message.sources) ? message.sources : [];
 
+  // 웹 출처 = 멀티 에이전트 답변의 웹 검색 출처. 답변 아래 인라인 카드로 표시한다.
+  const webSources = !isUser && Array.isArray(message.web_sources) ? message.web_sources : [];
+
   // 본문 텍스트 속 인용 마커를 칩으로 바꾼다.
   // - 연속된 [1][2]는 하나의 칩으로 묶어, 호버 카드에서 넘겨본다(페이지네이션).
   // - 스트리밍 중에는 마커를 숨긴다(끝난 뒤에만 칩으로 표시).
   const renderWithCitations = (text) => {
     if (typeof text !== "string") return text;
 
-    // 스트리밍 중에는 [1], [1][2] 같은 마커를 화면에서 제거한다.
+    // 스트리밍 중에는 [1], [1][2], [web1] 같은 논문·웹 마커를 화면에서 제거한다(끝난 뒤에만 칩 표시).
     if (isStreaming) {
-      return text.replace(/\s*(?:\[\d+\])+\s*([.,!?。、])?/g, (mt, punc) => (punc ? punc : ""));
+      return text.replace(/\s*(?:\[(?:web)?\d+\])+\s*([.,!?。、])?/g, (mt, punc) => (punc ? punc : ""));
     }
 
-    if (refPapers.length === 0) return text;
+    // [^1^], [^12^] 같은 잔여 각주 표기를 화면에서 제거(백엔드가 막지만 이중 안전장치).
+    let work = text.replace(/\[\^?\d+\^\]/g, "");
 
-    // "있습니다 [1][2]." → "있습니다.[1][2]" : 칩 앞 공백 제거 + 뒤 문장부호를 칩 앞으로.
-    const normalized = text.replace(/\s*((?:\[\d+\])+)\s*([.,!?。、])/g, "$2$1");
-    // 연속된 마커 묶음([1] 또는 [1][2][3])을 기준으로 쪼갠다.
-    const parts = normalized.split(/((?:\[\d+\])+)/g);
+    // "있습니다 [1][2]." → "있습니다.[1][2]" : 칩 앞 공백 제거 + 뒤 문장부호를 칩 앞으로 (논문/웹 마커 모두).
+    const normalized = work.replace(/\s*((?:\[(?:web)?\d+\])+)\s*([.,!?。、])/g, "$2$1");
+    // 연속된 마커 묶음([1], [1][2], [web1], [web1][web2], 섞인 경우 포함)을 기준으로 쪼갠다.
+    const parts = normalized.split(/((?:\[(?:web)?\d+\])+)/g);
     return parts.map((part, i) => {
-      const isMarker = /^(?:\[\d+\])+$/.test(part);
+      const isMarker = /^(?:\[(?:web)?\d+\])+$/.test(part);
       if (isMarker) {
-        // 묶음 안의 번호들을 모아 유효한 논문만 추린다.
-        const nums = (part.match(/\d+/g) || []).map((d) => parseInt(d, 10));
-        const papers = nums
-          .map((n) => refPapers[n - 1])
-          .filter((s) => s && s.arxiv_id);
-        if (papers.length > 0) {
-          return <CitationChip key={i} papers={papers} />;
+        // 묶음 안에서 논문 마커([3])와 웹 마커([web2])를 각각 분리해 추출.
+        const tokens = part.match(/\[(?:web)?\d+\]/g) || [];
+        const paperNums = [];
+        const webNums = [];
+        for (const tk of tokens) {
+          const m = tk.match(/^\[web(\d+)\]$/);
+          if (m) webNums.push(parseInt(m[1], 10));
+          else {
+            const pm = tk.match(/^\[(\d+)\]$/);
+            if (pm) paperNums.push(parseInt(pm[1], 10));
+          }
         }
+        const papers = paperNums.map((n) => refPapers[n - 1]).filter((s) => s && s.arxiv_id);
+        const webs = webNums.map((n) => webSources[n - 1]).filter((w) => w && w.url);
+
+        const chips = [];
+        if (papers.length > 0) chips.push(<CitationChip key={`p${i}`} papers={papers} />);
+        if (webs.length > 0) chips.push(<WebCitationChip key={`w${i}`} webs={webs} />);
+        if (chips.length > 0) return <span key={i}>{chips}</span>;
+        // 유효한 출처가 하나도 없으면(범위 밖 번호 등) 마커를 텍스트로 두지 말고 제거.
+        return "";
       }
-      return part; // 일반 텍스트이거나 범위 밖 번호는 그대로
+      return part; // 일반 텍스트는 그대로
     });
   };
 
@@ -465,6 +484,36 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, i
             논문 {refPapers.length}편
             <i className={`bi ${isActive ? "bi-chevron-right" : "bi-chevron-left"} ${styles.paperTriggerChevron}`}></i>
           </button>
+        )}
+
+        {/* 웹 출처 — 퍼플렉시티 스타일 인라인 카드. 스트리밍 끝난 뒤에만 표시 */}
+        {!isUser && !isStreaming && webSources.length > 0 && (
+          <div className={styles.webSources}>
+            <span className={styles.webSourcesLabel}>
+              <i className="bi bi-globe2"></i> 웹 출처 {webSources.length}
+            </span>
+            <div className={styles.webSourceList}>
+              {webSources.map((w, i) => {
+                let domain = "";
+                try { domain = new URL(w.url).hostname.replace(/^www\./, ""); } catch { domain = w.url; }
+                return (
+                  <a
+                    key={i}
+                    className={styles.webSourceCard}
+                    href={w.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={w.title}
+                  >
+                    <span className={styles.webSourceDomain}>
+                      <i className="bi bi-link-45deg"></i> {domain}
+                    </span>
+                    <span className={styles.webSourceTitle}>{w.title}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         {/* 추천 후속 질문 — 모든 AI 답변에 표시(스트리밍 중인 답변은 끝난 뒤). DB에 영구 저장됨 */}
@@ -535,6 +584,47 @@ function CitationChip({ papers }) {
   );
 }
 
+/**
+ * 웹 인용 칩 — 웹 출처를 도메인으로 표시하고, 클릭 시 해당 페이지로 이동.
+ * 여러 웹 출처를 묶어 호버 카드에서 ‹ › 로 넘겨본다(CitationChip과 동일 UX).
+ */
+function WebCitationChip({ webs }) {
+  const [page, setPage] = useState(0);
+  const total = webs.length;
+  const cur = webs[Math.min(page, total - 1)];
+  let domain = "";
+  try { domain = new URL(cur.url).hostname.replace(/^www\./, ""); } catch { domain = cur.url; }
+
+  const go = (e, dir) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPage((p) => (p + dir + total) % total);
+  };
+
+  return (
+    <span className={styles.citationWrap}>
+      <a className={styles.webCitation} href={cur.url} target="_blank" rel="noopener noreferrer">
+        <i className="bi bi-globe2"></i> {domain}
+        {total > 1 && <span className={styles.citationMore}>+{total - 1}</span>}
+      </a>
+      <span className={styles.citationCard}>
+        {total > 1 && (
+          <span className={styles.citationNav}>
+            <button className={styles.citationNavBtn} onClick={(e) => go(e, -1)} aria-label="이전">‹</button>
+            <span className={styles.citationNavCount}>{page + 1} / {total}</span>
+            <button className={styles.citationNavBtn} onClick={(e) => go(e, 1)} aria-label="다음">›</button>
+          </span>
+        )}
+        <a className={styles.citationCardTitle} href={cur.url} target="_blank" rel="noopener noreferrer">
+          {cur.title || domain}
+        </a>
+        {cur.summary && <span className={styles.citationCardSummary}>{cur.summary}</span>}
+        <span className={styles.citationCardLink}>{domain} ↗</span>
+      </span>
+    </span>
+  );
+}
+
 
 /**
  * 답변 생성 중 표시되는 로딩 말풍선. 클로버 펄스 인디케이터를 포함한다.
@@ -543,8 +633,9 @@ function LoadingBubble({ status }) {
   const text =
     status === "web_search" ? "웹 검색 중" :
       status === "paper_search" ? "논문 검색 중" :
-        status === "datetime" ? "날짜 확인 중" :
-          "답변 생성 중";
+        status === "synthesizing" ? "답변 종합 중" :
+          status === "datetime" ? "날짜 확인 중" :
+            "답변 생성 중";
   return (
     <div className={styles.messageRow}>
       <div className={styles.aiAvatar}>

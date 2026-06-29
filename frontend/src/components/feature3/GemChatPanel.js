@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { chatWithGemStream, getGemMessages } from "@/apis/gemsApi";
 
 const GEM_PALETTES = [
@@ -199,7 +200,7 @@ function AssistantBubble({ msg, palette, initials, onOpenPapers }) {
           </div>
         ) : (
           <div className="gem-msg-bubble gem-msg-markdown">
-            <ReactMarkdown>{msg.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
           </div>
         )}
 

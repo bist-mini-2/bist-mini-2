@@ -590,6 +590,28 @@
   opacity: 0.8;
 }
 
+/* 웹 인용 칩 — 본문 인라인. 논문 칩(.citation)과 구분되는 톤 */
+.webCitation {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  margin: 0 1px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 25%, transparent);
+  border-radius: 6px;
+  text-decoration: none !important;
+  vertical-align: middle;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.webCitation:hover {
+  background: color-mix(in srgb, var(--accent-color) 20%, transparent);
+}
+
 /* 호버 시 뜨는 카드 */
 .citationCard {
   position: absolute;
@@ -749,4 +771,60 @@
 .suggestionChip i {
   font-size: 16px;
   opacity: 0.7;
+}
+
+/* 웹 출처 (퍼플렉시티 스타일) */
+.webSources {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.webSourcesLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--profile-role-color);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.02em;
+}
+.webSourceList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.webSourceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 220px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--accent-color) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 18%, transparent);
+  border-radius: 10px;
+  text-decoration: none !important;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.webSourceCard:hover {
+  background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent-color) 35%, transparent);
+  transform: translateY(-1px);
+}
+.webSourceDomain {
+  font-size: 10px;
+  color: var(--accent-color);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+}
+.webSourceTitle {
+  font-size: 12px;
+  color: var(--foreground);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

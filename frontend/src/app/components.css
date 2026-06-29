@@ -1713,3 +1713,33 @@
   transform: scale(1.08);
 }
 
+
+/* ── gem 마크다운 표 렌더링 ── */
+.gem-msg-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  display: block;
+}
+.gem-msg-markdown thead {
+  background: var(--sidebar-bg);
+}
+.gem-msg-markdown th,
+.gem-msg-markdown td {
+  border: 1px solid var(--card-border);
+  padding: 6px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+.gem-msg-markdown th {
+  font-weight: 700;
+  color: var(--foreground);
+}
+.gem-msg-markdown tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent);
+}
+.gem-msg-markdown tbody tr:hover {
+  background: color-mix(in srgb, var(--accent-color) 8%, transparent);
+}

@@ -5,7 +5,12 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import select, text
 from api.database.config.dbsession import OrmSessionDep
-from api.v1.chat.entity import ChatSessionEntity, ChatSourceEntity, ChatSuggestionEntity
+from api.v1.chat.entity import (
+    ChatSessionEntity,
+    ChatSourceEntity,
+    ChatSuggestionEntity,
+    ChatWebSourceEntity,
+)
 
 
 class ChatSessionDao:
@@ -117,6 +122,40 @@ class ChatSessionDao:
             select(ChatSourceEntity)
             .where(ChatSourceEntity.session_id == session_id)
             .order_by(ChatSourceEntity.message_index)
+        )
+        return list(result.scalars().all())
+
+    async def insert_web_sources(self, session_id: str, message_index: int, web_sources: list[dict]) -> None:
+        """특정 메시지의 웹 출처 목록을 저장합니다.
+
+        Args:
+            session_id (str): 대상 채팅 세션 ID.
+            message_index (int): 대화 내역 상에서의 어시스턴트 메시지 인덱스.
+            web_sources (list[dict]): 저장할 웹 출처 정보들의 리스트.
+        """
+        for src in web_sources:
+            self.orm_session.add(ChatWebSourceEntity(
+                session_id=session_id,
+                message_index=message_index,
+                url=src["url"],
+                title=src["title"],
+                summary=src.get("summary"),
+            ))
+        await self.orm_session.flush()
+
+    async def select_web_sources_by_session(self, session_id: str) -> list[ChatWebSourceEntity]:
+        """특정 방의 모든 웹 출처를 조회합니다 (메시지 index 순).
+
+        Args:
+            session_id (str): 대상 채팅 세션 ID.
+
+        Returns:
+            list[ChatWebSourceEntity]: 조회된 웹 출처 정보 엔티티 목록.
+        """
+        result = await self.orm_session.execute(
+            select(ChatWebSourceEntity)
+            .where(ChatWebSourceEntity.session_id == session_id)
+            .order_by(ChatWebSourceEntity.message_index)
         )
         return list(result.scalars().all())
 
