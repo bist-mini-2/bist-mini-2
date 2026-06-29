@@ -197,3 +197,47 @@ def test_get_messages_history_endpoint(mock_history):
     assert json_data["data"][1]["role"] == "assistant"
     assert json_data["data"][1]["sources"][0]["arxiv_id"] == "cs-1"
     mock_history.assert_called_once_with("test-user", "session-1")
+
+
+# =====================================================================
+# Multi Agent Endpoint Tests
+# =====================================================================
+
+@patch("api.v1.chat.multi_agent.supervisor.ChatMultiAgentSupervisor.run", new_callable=AsyncMock)
+def test_send_message_multi_endpoint(mock_run):
+    """멀티 에이전트(비스트리밍) 메시지 전송 API를 검증합니다."""
+    mock_run.return_value = {
+        "answer": "멀티 에이전트 답변입니다.",
+        "sources": [{"arxiv_id": "bio-1", "title": "Bio Title 1"}]
+    }
+
+    response = client.post(
+        "/api/v1/chat/sessions/session-1/messages/multi",
+        json={"message": "질문"}
+    )
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["status"] == "success"
+    assert json_data["data"]["answer"] == "멀티 에이전트 답변입니다."
+    assert json_data["data"]["sources"][0]["arxiv_id"] == "bio-1"
+    mock_run.assert_called_once_with("질문")
+
+
+@patch("api.v1.chat.services.ChatService.send_message_multi_stream")
+def test_send_message_multi_stream_endpoint(mock_send_multi_stream):
+    """멀티 에이전트 스트리밍 메시지 전송 API를 검증합니다."""
+    async def mock_generator(*args, **kwargs):
+        yield '{"type": "status", "data": "paper_search"}\n'
+        yield '{"type": "token", "data": "답변"}\n'
+        yield '{"type": "route", "data": "paper"}\n'
+
+    mock_send_multi_stream.return_value = mock_generator()
+
+    response = client.post(
+        "/api/v1/chat/sessions/session-1/messages/multi/stream",
+        json={"message": "인사"}
+    )
+    assert response.status_code == 200
+    assert response.headers["Content-Type"].startswith("text/plain")
+    assert response.text == '{"type": "status", "data": "paper_search"}\n{"type": "token", "data": "답변"}\n{"type": "route", "data": "paper"}\n'
+    mock_send_multi_stream.assert_called_once_with("test-user", "session-1", "인사")

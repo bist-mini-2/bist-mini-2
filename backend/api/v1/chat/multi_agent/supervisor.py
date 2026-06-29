@@ -41,6 +41,7 @@ class ChatMultiAgentSupervisor:
 
     # 그래프(작업 흐름) 구성 메소드
     def build_workflow(self):
+        """StateGraph를 생성하고 노드와 엣지를 추가하여 컴파일한다."""
         # 그래프 생성
         graph = StateGraph(MultiAgentState)
 
@@ -170,6 +171,11 @@ class ChatMultiAgentSupervisor:
 
     # 그래프 시각화 메소드 (디버깅)
     def get_graph_image(self):
+        """컴파일된 그래프 구조의 Mermaid 이미지를 PNG 바이트로 반환한다.
+
+        Returns:
+            bytes: 그래프의 PNG 바이너리 데이터.
+        """
         return self.work_flow.get_graph().draw_mermaid_png()
 
 
