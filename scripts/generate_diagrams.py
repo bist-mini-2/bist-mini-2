@@ -95,7 +95,6 @@ class SVGBuilder:
         w = x2 - x1
         h = y2 - y1
         if shadow:
-            # Add soft vector shadow behind
             self.elements.append(f'  <rect x="{x1 + shadow_offset}" y="{y1 + shadow_offset}" width="{w}" height="{h}" rx="{rx}" fill="{SHADOW_COLOR_HEX}" />')
         self.elements.append(f'  <rect x="{x1}" y="{y1}" width="{w}" height="{h}" rx="{rx}" fill="{fill}" stroke="{stroke}" stroke-width="{stroke_width}" />')
         
@@ -138,7 +137,6 @@ class SVGBuilder:
 # Tier 1 Drawings
 # ---------------------------------------------------------
 def generate_tier1(output_png, output_svg):
-    # --- 1. Generate PNG (3x High-DPI) ---
     img = Image.new("RGBA", (1200 * SCALE, 600 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -189,7 +187,7 @@ def generate_tier1(output_png, output_svg):
     
     img.save(output_png)
 
-    # --- 2. Generate SVG (Scalable Vector) ---
+    # --- SVG ---
     svg = SVGBuilder(1200, 600)
     svg.add_rect((80, 30, 520, 570), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_SKY, stroke_width=2)
     svg.add_text((110, 50), "Frontend Tier (Next.js & Bootstrap 5)", font_size=20, font_weight="bold", fill=ACCENT_SKY)
@@ -817,6 +815,142 @@ def generate_usecase_gem_factory_flow(output_png, output_svg):
     svg.save(output_svg)
 
 
+# ---------------------------------------------------------
+# Database ERD Drawings
+# ---------------------------------------------------------
+def generate_database_erd(output_png, output_svg):
+    img = Image.new("RGBA", (1200 * SCALE, 740 * SCALE), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    
+    card_title_font = get_font(18)
+    card_body_font = get_font(12)
+    relation_font = get_font(12)
+    
+    # 3대 그룹 배경 박스
+    draw_rounded_rect(draw, (40, 20, 750, 710), 12, fill=GROUP_BG, outline=ACCENT_PURPLE, width=2)
+    draw.text((60 * SCALE, 35 * SCALE), "비즈니스 & 메타데이터 영역 (PostgreSQL)", fill=ACCENT_PURPLE, font=card_title_font)
+    
+    draw_rounded_rect(draw, (790, 20, 1170, 710), 12, fill=GROUP_BG, outline=ACCENT_EMERALD, width=2)
+    draw.text((810 * SCALE, 35 * SCALE), "벡터 저장소 영역 (pgvector)", fill=ACCENT_EMERALD, font=card_title_font)
+    
+    # MEMBER 카드
+    draw_shadow_rect(draw, (80, 90, 320, 260), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
+    draw.text((95 * SCALE, 105 * SCALE), "member (회원 정보)", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((95 * SCALE, 135 * SCALE), "mid VARCHAR(20) [PK]\nmname VARCHAR(20)\nmpassword VARCHAR(255)\nmemail VARCHAR(255) [UQ]\nmrole VARCHAR(20)", fill=TEXT_CARD_BODY, font=card_body_font)
+    
+    # CHAT_SESSION 카드
+    draw_shadow_rect(draw, (80, 300, 320, 440), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
+    draw.text((95 * SCALE, 315 * SCALE), "chat_session (대화방)", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((95 * SCALE, 345 * SCALE), "session_id VARCHAR(36) [PK]\nmember_id VARCHAR(20) [FK]\ntitle VARCHAR(100)\ncreated_at TIMESTAMP", fill=TEXT_CARD_BODY, font=card_body_font)
+    
+    # CHAT_SOURCE 카드
+    draw_shadow_rect(draw, (80, 480, 320, 640), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
+    draw.text((95 * SCALE, 495 * SCALE), "chat_source (참조 출처)", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((95 * SCALE, 525 * SCALE), "id SERIAL [PK]\nsession_id VARCHAR(36) [FK]\nmessage_index INTEGER\narxiv_id VARCHAR(50)\ntitle VARCHAR(500)", fill=TEXT_CARD_BODY, font=card_body_font)
+    
+    # GEM 카드
+    draw_shadow_rect(draw, (420, 90, 710, 260), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
+    draw.text((435 * SCALE, 105 * SCALE), "gem (특화 연구 비서)", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((435 * SCALE, 135 * SCALE), "gem_id VARCHAR(36) [PK]\nmember_id VARCHAR(20) [FK]\nname VARCHAR(100)\ndb_sources VARCHAR(50)\nsystem_prompt TEXT", fill=TEXT_CARD_BODY, font=card_body_font)
+    
+    # RESEARCH_GAP_TASK 카드
+    draw_shadow_rect(draw, (420, 300, 710, 520), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
+    draw.text((435 * SCALE, 315 * SCALE), "research_gap_task (공백 분석)", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((435 * SCALE, 345 * SCALE), "task_id VARCHAR(50) [PK]\nmid VARCHAR(20) [FK]\ndomain VARCHAR(50)\nquery TEXT\nstatus VARCHAR(20)\nprogress INTEGER\nresult JSONB\ntranslated_result JSONB", fill=TEXT_CARD_BODY, font=card_body_font)
+
+    # NOTIFICATION 카드
+    draw_shadow_rect(draw, (420, 550, 710, 690), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
+    draw.text((435 * SCALE, 565 * SCALE), "notification (알림 수신함)", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((435 * SCALE, 595 * SCALE), "id VARCHAR(50) [PK]\nmid VARCHAR(20) [FK]\ntitle VARCHAR(200)\nread BOOLEAN", fill=TEXT_CARD_BODY, font=card_body_font)
+
+    # LANGCHAIN_PG_COLLECTION 카드
+    draw_shadow_rect(draw, (830, 120, 1130, 260), 8, fill=CARD_BG, outline=ACCENT_EMERALD, width=1)
+    draw.text((845 * SCALE, 135 * SCALE), "langchain_pg_collection", fill=ACCENT_EMERALD, font=card_title_font)
+    draw.text((845 * SCALE, 165 * SCALE), "uuid UUID [PK]\nname VARCHAR\ncmetadata JSONB", fill=TEXT_CARD_BODY, font=card_body_font)
+
+    # LANGCHAIN_PG_EMBEDDING 카드
+    draw_shadow_rect(draw, (830, 340, 1130, 550), 8, fill=CARD_BG, outline=ACCENT_EMERALD, width=1)
+    draw.text((845 * SCALE, 355 * SCALE), "langchain_pg_embedding", fill=ACCENT_EMERALD, font=card_title_font)
+    draw.text((845 * SCALE, 385 * SCALE), "id VARCHAR [PK]\ncollection_id UUID [FK]\nembedding vector(3072)\ndocument TEXT\ncmetadata JSONB", fill=TEXT_CARD_BODY, font=card_body_font)
+
+    # Connections
+    draw_arrow(draw, (200, 260), (200, 300), color=FLOW_INDIGO, width=2)
+    draw.text((210 * SCALE, 270 * SCALE), "1 : N owns", fill=FLOW_TEXT, font=relation_font)
+    
+    draw_arrow(draw, (200, 440), (200, 480), color=FLOW_INDIGO, width=2)
+    draw.text((210 * SCALE, 450 * SCALE), "1 : N contains", fill=FLOW_TEXT, font=relation_font)
+
+    draw_arrow(draw, (320, 175), (420, 175), color=FLOW_INDIGO, width=2)
+    draw.text((330 * SCALE, 155 * SCALE), "1 : N", fill=FLOW_TEXT, font=relation_font)
+
+    draw_arrow(draw, (320, 220), (420, 320), color=FLOW_INDIGO, width=2)
+    draw_arrow(draw, (320, 240), (420, 570), color=FLOW_INDIGO, width=2)
+
+    draw_arrow(draw, (980, 260), (980, 340), color=FLOW_GREEN, width=2)
+    draw.text((990 * SCALE, 290 * SCALE), "1 : N", fill=FLOW_TEXT, font=relation_font)
+
+    img.save(output_png)
+
+    # --- SVG ---
+    svg = SVGBuilder(1200, 740)
+    svg.add_rect((40, 20, 750, 710), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=2)
+    svg.add_text((60, 35), "비즈니스 & 메타데이터 영역 (PostgreSQL)", font_size=18, font_weight="bold", fill=ACCENT_PURPLE)
+    
+    svg.add_rect((790, 20, 1170, 710), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_EMERALD, stroke_width=2)
+    svg.add_text((810, 35), "벡터 저장소 영역 (pgvector)", font_size=18, font_weight="bold", fill=ACCENT_EMERALD)
+    
+    # Cards
+    svg.add_rect((80, 90, 320, 260), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((95, 105), "member (회원 정보)", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((95, 135), "mid VARCHAR(20) [PK]\nmname VARCHAR(20)\nmpassword VARCHAR(255)\nmemail VARCHAR(255) [UQ]\nmrole VARCHAR(20)", font_size=12, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((80, 300, 320, 440), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((95, 315), "chat_session (대화방)", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((95, 345), "session_id VARCHAR(36) [PK]\nmember_id VARCHAR(20) [FK]\ntitle VARCHAR(100)\ncreated_at TIMESTAMP", font_size=12, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((80, 480, 320, 640), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((95, 495), "chat_source (참조 출처)", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((95, 525), "id SERIAL [PK]\nsession_id VARCHAR(36) [FK]\nmessage_index INTEGER\narxiv_id VARCHAR(50)\ntitle VARCHAR(500)", font_size=12, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((420, 90, 710, 260), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((435, 105), "gem (특화 연구 비서)", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((435, 135), "gem_id VARCHAR(36) [PK]\nmember_id VARCHAR(20) [FK]\nname VARCHAR(100)\ndb_sources VARCHAR(50)\nsystem_prompt TEXT", font_size=12, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((420, 300, 710, 520), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((435, 315), "research_gap_task (공백 분석)", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((435, 345), "task_id VARCHAR(50) [PK]\nmid VARCHAR(20) [FK]\ndomain VARCHAR(50)\nquery TEXT\nstatus VARCHAR(20)\nprogress INTEGER\nresult JSONB\ntranslated_result JSONB", font_size=12, fill=TEXT_CARD_BODY)
+
+    svg.add_rect((420, 550, 710, 690), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((435, 565), "notification (알림 수신함)", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((435, 595), "id VARCHAR(50) [PK]\nmid VARCHAR(20) [FK]\ntitle VARCHAR(200)\nread BOOLEAN", font_size=12, fill=TEXT_CARD_BODY)
+
+    svg.add_rect((830, 120, 1130, 260), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_EMERALD, stroke_width=1, shadow=True)
+    svg.add_text((845, 135), "langchain_pg_collection", font_size=18, font_weight="bold", fill=ACCENT_EMERALD)
+    svg.add_text((845, 165), "uuid UUID [PK]\nname VARCHAR\ncmetadata JSONB", font_size=12, fill=TEXT_CARD_BODY)
+
+    svg.add_rect((830, 340, 1130, 550), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_EMERALD, stroke_width=1, shadow=True)
+    svg.add_text((845, 355), "langchain_pg_embedding", font_size=18, font_weight="bold", fill=ACCENT_EMERALD)
+    svg.add_text((845, 385), "id VARCHAR [PK]\ncollection_id UUID [FK]\nembedding vector(3072)\ndocument TEXT\ncmetadata JSONB", font_size=12, fill=TEXT_CARD_BODY)
+
+    # Connections
+    svg.add_arrow((200, 260), (200, 300), color=FLOW_INDIGO, width=2)
+    svg.add_text((210, 275), "1 : N owns", font_size=12, fill=FLOW_TEXT)
+    
+    svg.add_arrow((200, 440), (200, 480), color=FLOW_INDIGO, width=2)
+    svg.add_text((210, 455), "1 : N contains", font_size=12, fill=FLOW_TEXT)
+
+    svg.add_arrow((320, 175), (420, 175), color=FLOW_INDIGO, width=2)
+    svg.add_text((330, 160), "1 : N", font_size=12, fill=FLOW_TEXT)
+
+    svg.add_arrow((320, 220), (420, 320), color=FLOW_INDIGO, width=2)
+    svg.add_arrow((320, 240), (420, 570), color=FLOW_INDIGO, width=2)
+
+    svg.add_arrow((980, 260), (980, 340), color=FLOW_GREEN, width=2)
+    svg.add_text((990, 295), "1 : N", font_size=12, fill=FLOW_TEXT)
+
+    svg.save(output_svg)
+
+
 if __name__ == "__main__":
     os.makedirs("./docs/deliverables/4th", exist_ok=True)
     
@@ -834,5 +968,8 @@ if __name__ == "__main__":
     generate_usecase_gap_analysis_flow("./docs/deliverables/4th/usecase_gap_analysis_flow.png", "./docs/deliverables/4th/usecase_gap_analysis_flow.svg")
     generate_usecase_arena_defense_flow("./docs/deliverables/4th/usecase_arena_defense_flow.png", "./docs/deliverables/4th/usecase_arena_defense_flow.svg")
     generate_usecase_gem_factory_flow("./docs/deliverables/4th/usecase_gem_factory_flow.png", "./docs/deliverables/4th/usecase_gem_factory_flow.svg")
+    
+    # Database ERD
+    generate_database_erd("./docs/deliverables/4th/database_erd.png", "./docs/deliverables/4th/database_erd.svg")
     
     print(f"All transparent PNGs and SVG Vector files generated successfully!")
