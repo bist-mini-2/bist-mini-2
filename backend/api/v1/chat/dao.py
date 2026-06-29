@@ -10,6 +10,7 @@ from api.v1.chat.entity import (
     ChatSourceEntity,
     ChatSuggestionEntity,
     ChatWebSourceEntity,
+    ChatImageEntity,
 )
 
 
@@ -188,6 +189,25 @@ class ChatSessionDao:
             select(ChatSuggestionEntity)
             .where(ChatSuggestionEntity.session_id == session_id)
             .order_by(ChatSuggestionEntity.message_index)
+        )
+        return list(result.scalars().all())
+
+    async def insert_image(self, session_id: str, message_index: int, image_data: bytes, media_type: str) -> None:
+        """특정 user 메시지에 첨부된 이미지를 BLOB으로 저장합니다."""
+        self.orm_session.add(ChatImageEntity(
+            session_id=session_id,
+            message_index=message_index,
+            image_data=image_data,
+            media_type=media_type,
+        ))
+        await self.orm_session.flush()
+
+    async def select_images_by_session(self, session_id: str) -> list[ChatImageEntity]:
+        """특정 방의 모든 첨부 이미지를 조회합니다 (메시지 index 순)."""
+        result = await self.orm_session.execute(
+            select(ChatImageEntity)
+            .where(ChatImageEntity.session_id == session_id)
+            .order_by(ChatImageEntity.message_index)
         )
         return list(result.scalars().all())
 

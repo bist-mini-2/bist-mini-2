@@ -828,3 +828,121 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ---- 이미지 첨부 버튼 (입력창 맨 왼쪽) ---- */
+.imageBtn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+  background: var(--sidebar-bg);
+  color: var(--profile-role-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.imageBtn:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  background: var(--accent-glow);
+}
+.imageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---- 입력창 위 이미지 미리보기 ---- */
+.imagePreview {
+  position: relative;
+  display: inline-flex;
+  align-self: flex-start;
+  margin-left: 4px;
+}
+.imagePreviewThumb {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+  object-fit: cover;
+  display: block;
+}
+.imagePreviewRemove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 0;
+}
+.imagePreviewRemove:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+/* ---- 사용자 말풍선 첨부 이미지 ---- */
+.bubbleImage {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--card-border);
+  object-fit: cover;
+  display: block;
+}
+
+/* ---- 이미지 드래그 오버 시 입력창 강조 ---- */
+.inputWrapperDragActive {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+  background: var(--accent-glow);
+}
+
+/* ---- 이미지 확대 뷰어(라이트박스) ---- */
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+  animation: lightboxFadeIn 0.28s ease;
+}
+.lightboxClosing {
+  animation: lightboxFadeOut 0.26s ease forwards;
+}
+@keyframes lightboxFadeIn {
+  from { background: rgba(0, 0, 0, 0); }
+  to   { background: rgba(0, 0, 0, 0.78); }
+}
+@keyframes lightboxFadeOut {
+  from { background: rgba(0, 0, 0, 0.78); }
+  to   { background: rgba(0, 0, 0, 0); }
+}
+.lightboxImage {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  cursor: default;
+  will-change: transform;
+}
+/* 썸네일에 확대 가능 표시 */
+.bubbleImage,
+.imagePreviewThumb {
+  cursor: zoom-in;
+}

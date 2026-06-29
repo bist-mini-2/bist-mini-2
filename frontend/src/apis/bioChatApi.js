@@ -80,7 +80,7 @@ export async function getMessages(sessionId) {
  * @param {(token: string) => void} onToken 토큰이 도착할 때마다 호출되는 콜백
  * @returns {Promise<void>} 스트리밍이 끝나면 resolve됩니다.
  */
-export async function sendMessageStream(sessionId, message, onToken, onStatus) {
+export async function sendMessageStream(sessionId, message, onToken, onStatus, image) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
   const res = await fetch(
@@ -91,7 +91,7 @@ export async function sendMessageStream(sessionId, message, onToken, onStatus) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify(image ? { message, image } : { message }),
     }
   );
   if (!res.ok || !res.body) throw new Error("스트리밍 요청 실패");
