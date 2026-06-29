@@ -39,34 +39,34 @@
 
 ```mermaid
 graph TD
-    User([사용자]) -->|1. POST /research-gap/analyze| Router[API Router]
-    Router -->|2. 백그라운드 등록| Service[ResearchGapService]
-    Service -->|3-1. 태스크 ID 반환| Router
+    User([사용자]) -->|1. 분석 요청: POST /research-gap/analyze| Router[API Router]
+    Router -->|2. 태스크 생성 및 백그라운드 등록| Service[ResearchGapService]
+    Service -->|3-1. 태스크 ID 즉각 반환| Router
     Router -->|3-2. HTTP 202 Accepted| User
     
-    subgraph Background_Worker_Thread [백그라운드 연산 스레드]
-        Service -->|4. run_batch_analysis| TaskState[진행률 10%]
+    subgraph Background_Worker_Thread [백그라운드 배치 연산 스레드]
+        Service -->|4. run_batch_analysis 시작| TaskState[진행률 10% 적재]
         
         subgraph Stage_1_Retrieval_and_Analysis [1단계: 검색 및 문헌 해체]
-            TaskState -->|5. RAG 검색| common_rag_pipeline
-            common_rag_pipeline -->|6. 중복 제거| TargetPapers[4개 논문 선출]
+            TaskState -->|5. 쿼리 벡터화 및 RAG 검색| common_rag_pipeline
+            common_rag_pipeline -->|6. 유사도 매칭 및 중복 제거| TargetPapers[4개 핵심 논문 본문 선출]
             TargetPapers -->|7-1. 진행률 40%| DBTask[(PostgreSQL: research_gap_task)]
-            TargetPapers -->|7-2. 한계 추출| LLMAnalys[gpt-4o-mini: PaperAnalysisResult]
-            LLMAnalys -->|8. Verbatim 추출| TempMatrix[개별 분석 매트릭스]
+            TargetPapers -->|7-2. 개별 논문 한계 추출| LLMAnalys[gpt-4o-mini: PaperAnalysisResult]
+            LLMAnalys -->|8. 핵심 요약 및 영문 verbatim 인용구 매칭| TempMatrix[개별 논문 분석 매트릭스 확보]
         end
         
-        subgraph Stage_2_Matrix_Synthesis [2단계: 공백 추론 및 추천]
+        subgraph Stage_2_Matrix_Synthesis [2단계: 공통 공백 추론 및 추천]
             TempMatrix -->|9-1. 진행률 80%| DBTask
-            TempMatrix -->|9-2. 매트릭스 주입| LLMSynth[gpt-4o-mini: ResearchGapMatrix]
-            LLMSynth -->|10. AI 미래 과제 도출| FinalReport[최종 분석 보고서]
+            TempMatrix -->|9-2. 매트릭스 종합 콘텍스트 주입| LLMSynth[gpt-4o-mini: ResearchGapMatrix]
+            LLMSynth -->|10. 공통 한계점 추론 & AI 미래 과제 도출| FinalReport[최종 분석 보고서]
         end
         
-        FinalReport -->|11. 진행률 100% 완료| TaskComplete[COMPLETED 저장]
-        TaskComplete -->|12. 알림 적재| DBNotif[(PostgreSQL: notification)]
+        FinalReport -->|11. 진행률 100% 완료| TaskComplete[status: COMPLETED 저장]
+        TaskComplete -->|12. 완료 알림 적재| DBNotif[(PostgreSQL: notification)]
     end
     
     TaskComplete -->|13. 실시간 알림 푸시| SSE[SSE Broadcaster]
-    SSE -->|14. 브라우저 알림 배달| User
+    SSE -->|14. 브라우저 팝업 알림 배달| User
 ```
 
 ### B. 비동기 작업 및 실시간 알림 시퀀스 다이어그램

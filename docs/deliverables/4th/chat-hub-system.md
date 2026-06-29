@@ -92,27 +92,27 @@ sequenceDiagram
 
     User->>API: POST /chat/stream (session_id, message)
     API->>SVC: send_message_multi_stream(session_id, message)
-    SVC->>DB: 사용자 채팅 세션 권한 검증
+    SVC->>DB: 사용자 채팅 세션 소유 권한 검증
     
     SVC->>SPV: run_stream(message, session_id)
     SPV->>ANA: run(message) - ainvoke
-    Note over ANA: 학술/웹 쿼리 동시 추출
+    Note over ANA: 영어 학술 키워드 및<br/>웹 서치 최적 쿼리 동시 추출
     ANA-->>SPV: 쿼리 분석 결과 반환
     
     %% 병렬 실행 트리거
-    Note over SPV, WEB: 듀얼 노드 무조건 병렬 실행
+    Note over SPV, WEB: 두 노드를 무조건적으로 병렬(Parallel) 실행
     par 학술 RAG 검색 실행
         SPV->>PAP: run_stream(paper_query)
-        PAP->>PAP: pgvector RAG 조회
-        PAP-->>SPV: sources 정보 누적
+        PAP->>PAP: pgvector astronomy_embeddings 등 RAG 조회
+        PAP-->>SPV: sources 및 논문 초록 정보 누적
     and 웹 실시간 검색 실행
         SPV->>WEB: run_stream(web_query)
         WEB->>WEB: Tavily Web Search API 작동
-        WEB-->>SPV: web_sources 정보 누적
+        WEB-->>SPV: web_sources 및 실시간 정보 누적
     end
     
     %% 최종 합성 노드 가동
-    Note over SPV, SYN: 결과 취합 후 합성 노드 구동
+    Note over SPV, SYN: 두 채널의 결과를 취합하여 합성 노드 구동
     SPV->>SYN: run_synthesis(papers + web_info)
     
     loop 토큰 스트리밍
@@ -126,12 +126,12 @@ sequenceDiagram
     SPV->>LGP: aupdate_state(thread_id, messages + sources + web_sources)
     
     par 사후 메타데이터 비동기 저장
-        SVC->>DB: chat_sources 저장
-        SVC->>SVC: generate_suggestions 실행
-        SVC->>DB: chat_suggestions 저장
+        SVC->>DB: INSERT INTO chat_sources (message_index, arxiv_id, title)
+        SVC->>SVC: generate_suggestions(합성 답변 기반 추천)
+        SVC->>DB: INSERT INTO chat_suggestions (message_index, question)
         SVC->>DB: COMMIT
     end
-    Note over User, DB: 답변 최종 배달 완료
+    Note over User, DB: 검증된 논문과 실시간 웹 동향이 융합된 답변 최종 배달 완료
 ```
 
 ---
