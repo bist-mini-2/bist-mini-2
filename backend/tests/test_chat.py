@@ -240,4 +240,4 @@ def test_send_message_multi_stream_endpoint(mock_send_multi_stream):
     assert response.status_code == 200
     assert response.headers["Content-Type"].startswith("text/plain")
     assert response.text == '{"type": "status", "data": "paper_search"}\n{"type": "token", "data": "답변"}\n{"type": "route", "data": "paper"}\n'
-    mock_send_multi_stream.assert_called_once_with("test-user", "session-1", "인사")
+    mock_send_multi_stream.assert_called_once_with("test-user", "session-1", "인사", None)
