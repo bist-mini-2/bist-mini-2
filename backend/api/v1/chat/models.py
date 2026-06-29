@@ -62,9 +62,14 @@ class ChatSessionResponseWrapper(SuccessResponse):
 class ChatMessageRequest(BaseDTO):
     """채팅방 메시지 전송 요청 스키마."""
     message: str = Field(
-        ..., 
-        description="에이전트에게 보낼 대화 메시지 텍스트", 
+        ...,
+        description="에이전트에게 보낼 대화 메시지 텍스트",
         examples=["CRISPR-Cas9 유전자 편집 기법의 최신 동향을 알려줘."]
+    )
+    image: str | None = Field(
+        default=None,
+        description="(선택) 멀티 에이전트 대화에서 함께 분석할 이미지. data URL(base64) 형식.",
+        examples=["data:image/png;base64,iVBORw0KGgo..."]
     )
 
 

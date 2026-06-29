@@ -210,7 +210,7 @@ async def send_message_multi_stream(
         StreamingResponse: status/token/route 이벤트(JSON 라인) 실시간 응답 스트림.
     """
     return StreamingResponse(
-        service.send_message_multi_stream(user["sub"], session_id, request.message),
+        service.send_message_multi_stream(user["sub"], session_id, request.message, request.image),
         media_type="text/plain; charset=utf-8",
     )
 

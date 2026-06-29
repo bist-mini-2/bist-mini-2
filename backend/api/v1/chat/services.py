@@ -190,7 +190,7 @@ class ChatService:
         except Exception as e:
             self.logger.error(f"스트리밍 출처·추천 저장 실패 (session_id={session_id}): {e}")
 
-    async def send_message_multi_stream(self, member_id: str, session_id: str, message: str) -> AsyncGenerator[str, None]:
+    async def send_message_multi_stream(self, member_id: str, session_id: str, message: str, image: str | None = None) -> AsyncGenerator[str, None]:
         """멀티 에이전트(팬아웃+종합)로 답변을 토큰 단위로 스트리밍한다. 소유자만 가능.
 
         supervisor.run_stream이 status/token 이벤트를 보낸 뒤, 종료 직전 sources 이벤트로
@@ -200,17 +200,19 @@ class ChatService:
             member_id (str): 요청 회원의 아이디.
             session_id (str): 대상 채팅 세션 ID(=thread_id).
             message (str): 사용자의 입력 질문 텍스트.
+            image (str | None): (선택) 함께 분석할 이미지의 data URL. 있으면 supervisor가 검색 쿼리 생성에 사용한다.
 
         Yields:
             str: 이벤트(JSON) 한 줄씩(status/token/sources).
         """
         await self._get_owned_session(member_id, session_id)
+        self.logger.info(f"멀티 스트리밍 요청 (session_id={session_id}, image={'있음' if image else '없음'})")
 
         full_answer_parts = []
         captured_sources = []
         captured_web_sources = []
 
-        async for event in self.supervisor.run_stream(message, session_id):
+        async for event in self.supervisor.run_stream(message, session_id, image):
             etype = event.get("type")
             if etype == "token":
                 full_answer_parts.append(event.get("data", ""))
