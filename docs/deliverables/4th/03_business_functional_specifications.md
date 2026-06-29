@@ -1,110 +1,39 @@
 # 6. 플랫폼 주요 비즈니스 기능 상세 명세서 (Business Functional Specifications)
 
-본 문서는 `bist-mini-2` 플랫폼의 3대 핵심 비즈니스 기능군인 **일반 채팅 허브 (F-01)**, **대규모 문헌 분석기 (F-02)**, **맞춤형 연구 비서 젬 팩토리 (F-03)** 각각에 대한 상세 기능 요구 사양을 정의합니다. 본 명세는 각 기능별 입출력 구조, 비즈니스 규칙 및 관계형 데이터베이스(PostgreSQL) 적재 조건을 포함합니다.
+본 문서는 `bist-mini-2` 플랫폼의 3대 핵심 비즈니스 기능군인 **일반 채팅 허브 (F-01)**, **대규모 문헌 분석기 (F-02)**, **맞춤형 연구 비서 젬 팩토리 (F-03)** 각각에 대한 상세 기능 요구 사양을 표(Table) 형식으로 정의합니다. 본 명세는 각 기능별 입출력 구조, 비즈니스 규칙 및 관계형 데이터베이스(PostgreSQL) 적재 조건을 포함합니다.
 
 ---
 
 ## 💬 6-1. 일반 채팅 허브 (General Chat Hub - F-01) 요구 명세
 
-### 1) F-01-01. 병렬 RAG 및 실시간 웹 융합 검색 연산
-*   **기능 개요**: 사용자의 한국어/영어 질문 키워드를 기반으로 내부 pgvector 학술 논문 검색(`paper_node`)과 외부 실시간 웹 검색(`web_node`)을 동시에 비동기 병렬 가동(`asyncio.gather`)하여 종합적인 지식 컨텍스트를 구성해야 한다.
-*   **입력 파라미터**:
-    *   `session_id` (VARCHAR(36)): 현재 활성화된 채팅 방의 세션 식별자
-    *   `user_question` (TEXT): 사용자가 입력한 자연어 발화 질문
-*   **동작 및 비즈니스 규칙**:
-    1.  `AnalysisNode`를 호출하여 질문의 의도를 파악하고, RAG용 영어 키워드와 웹 크롤링용 타겟 검색어를 분리 인출한다.
-    2.  `asyncio.gather`를 통해 `paper_node`와 `web_node`를 조건부 분기 없이 무조건적으로 병렬 가동하여 응답 지연을 방지한다.
-*   **출력 데이터 구조**:
-    *   `paper_context` (TEXT): 코사인 유사도 0.35 필터를 통과하여 수집된 상위 3개 논문 초록 조각
-    *   `web_context` (TEXT): Tavily Search API로부터 융합 수집된 실시간 시장 동향 조각
+일반 채팅 허브는 자연어 질문에 대해 논문 RAG와 웹 실시간 검색을 무조건적으로 병렬 가동하여, 융합 지식을 단일 마크다운 답변으로 완성하고 실시간 토큰 스트리밍을 공급하는 기본 제어 통제판입니다.
 
-### 2) F-01-02. SSE 기반 실시간 토큰 단위 스트리밍 답변
-*   **기능 개요**: 통합 합성 에이전트 노드(`SynthesisNode`)가 작성하는 최종 보고서 형태의 답변(마크다운 포맷)을 HTTP Server-Sent Events(SSE) 채널을 통해 실시간 토큰 단위로 끊김 없이 클라이언트에 푸시해야 한다.
-*   **입력 파라미터**:
-    *   `session_id` (VARCHAR(36)): 해당 스레드 식별자
-    *   `message` (TEXT): 사용자의 발화 질문 내용
-*   **동작 및 비즈니스 규칙**:
-    1.  GPT-4o 모델에 의한 최종 답변 생성을 호출하되, `stream=True` 옵션을 적용하여 토큰 발생 시마다 yield 스트리밍 처리를 수행한다.
-    2.  제너레이터 전송 단계에서 문자열 타입 캐싱 및 널(Null) 체크를 강제 적용한다.
-*   **출력 데이터 구조**:
-    *   `event: message` 와 함께 `data: {"token": "..."}` 형식의 JSON line 스트림 응답.
-
-### 3) F-01-03. 다중 인용 출처 자동 매핑 및 사후 적재
-*   **기능 개요**: 답변 작성 과정에서 RAG 컨텍스트로 실제 사용된 참조 논문의 ArXiv 서지 메타데이터(ArXiv ID, Title)를 답변과 인덱스 단위로 매핑하여 대화 완료 직후 `chat_sources` 관계형 테이블에 영구 저장해야 한다.
-*   **입력 파라미터**:
-    *   `session_id` (VARCHAR(36)): 대화방 UUID
-    *   `message_index` (INTEGER): 대화 세션 내 발화 턴 인덱스
-    *   `arxiv_id` (VARCHAR(50)): 참조된 ArXiv 논문 ID
-    *   `title` (VARCHAR(500)): 참조된 ArXiv 논문 제목
-*   **데이터베이스 적재 사양**:
-    *   **대상 테이블**: `chat_source`
-    *   **적재 조건**: 대화 턴이 종료되고 최종 스트리밍이 완료되는 시점에 백엔드에서 비동기 DB Commit을 트리거해 영구 적재한다.
+| 기능 코드 | 상세 기능명 | 입력 스펙 (Input) | 출력 스펙 (Output) | 비즈니스 규칙 및 작동 로직 | 기술 스택 및 DB 연동 |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **F-01-01** | 병렬 RAG 및 웹 융합 검색 | • `session_id` (VARCHAR)<br>• `user_question` (TEXT) | • `paper_context` (TEXT)<br>• `web_context` (TEXT) | • 질문 의도를 분석하여 학술 영어 키워드와 웹 검색어를 분리 인출한 뒤, 분기 없이 무조건 병렬 실행(`asyncio.gather`)해 지연을 보장 단축함. | • `AnalysisNode` (gpt-4o-mini)<br>• pgvector & Tavily API |
+| **F-01-02** | SSE 실시간 스트리밍 답변 | • `session_id` (VARCHAR)<br>• `message` (TEXT) | • `SSE Token Stream`<br>(JSON lines) | • GPT-4o 최종 마크다운 합성 답변을 HTTP Server-Sent Events(SSE) 방식을 사용해 토큰 발생 시마다 실시간 푸시 및 타자 효과 렌더링. | • FastAPI `StreamingResponse`<br>• OpenAI gpt-4o |
+| **F-01-03** | 인용 출처 매핑 및 적재 | • `session_id` (VARCHAR)<br>• `message_index` (INT)<br>• `arxiv_id` (VARCHAR)<br>• `title` (VARCHAR) | N/A (성공 코드) | • 대화 RAG 컨텍스트로 실제 참조된 ArXiv 논문 서지 메타데이터(ID, 제목)를 답변과 인덱스 매핑하여 대화 완료 즉시 영구 적재. | • PostgreSQL `chat_source`<br>• ON DELETE CASCADE |
 
 ---
 
 ## 📊 6-2. 대규모 문헌 스펙 비교 및 공백(Research Gap) 분석기 요구 명세
 
-### 1) F-02-01. 비동기 백그라운드 배치 프로세싱 및 진행 상태 추적
-*   **기능 개요**: 수십 편의 대규모 문헌 분석 작업 시 사용자가 브라우저를 블로킹하지 않고 다른 작업을 수행할 수 있도록 FastAPI `BackgroundTasks` 스레드로 연산을 오프로딩하고, DB 내 진행률(0~100%)을 실시간으로 업데이트해야 한다.
-*   **입력 파라미터**:
-    *   `domain` (VARCHAR(50)): 대상 학술 도메인 (`cs`, `bio`, `astronomy`)
-    *   `query` (TEXT): 분석 대상 기술 주제 키워드
-*   **동작 및 비즈니스 규칙**:
-    1.  요청 접수 즉시 백엔드는 신규 `task_id` (UUID)를 발급하고 데이터베이스에 상태를 `PENDING`으로 최초 인서트한다.
-    2.  연산 단계별(논문 선출 완료 시 40% ➡️ 개별 팩트 해체 시 80% ➡️ 리포트 합성 완료 시 100%) 진행도(`progress`) 필드를 실시간 갱신한다.
-*   **출력 데이터 구조**:
-    *   `task_id` (VARCHAR(50)): 비동기 배치 식별용 UUID
+대규모 문헌 스펙 비교 및 공백 분석기는 수십 편의 선행 연구 데이터를 비동기 배치로 읽어 '해결된 문제'와 '한계점'을 메타 분석하는 독립 대시보드 스펙입니다.
 
-### 2) F-02-02. 학술 팩트 보존성 보장 다국어 번역 및 원어 복원
-*   **기능 개요**: 영어로 생성된 최종 Research Gap 보고서를 한글로 번역하여 저장하되, 논문의 핵심 검증 근거인 `source_quote` 필드는 오역 방지를 위해 파이썬 메모리 가드 레이어를 통해 영어 원어 그대로 100% 강제 보존해야 한다.
-*   **입력 파라미터**:
-    *   `task_id` (VARCHAR(50)): 해당 비동기 작업 식별자
-*   **동작 및 비즈니스 규칙**:
-    1.  번역 API 구동 전, 데이터베이스에 저장된 영문 원본 결과의 `source_quote` 문자열 리스트를 메모리에 우선 복제해 보관한다.
-    2.  LLM에 번역을 수행하게 한 뒤, 반환된 한글 데이터 DTO 내 `source_quote` 값들을 앞서 보관해 둔 오리지널 영문 텍스트로 물리 덮어쓰기(Overwrite)하여 복구한다.
-*   **출력 데이터 구조**:
-    *   번역된 한글 결과 JSON 데이터 객체 (`translated_result` JSONB 내 적재).
-
-### 3) F-02-03. 완료 상태 브라우저 푸시 알림 및 캐싱
-*   **기능 개요**: 백그라운드 분석 연산이 완료되는 즉시 SSE Broadcaster를 호출하여 사용자 알림 수신함(`notification`)에 완료 메시지를 실시간 푸시하고, 브라우저가 온디맨드로 즉시 조회할 수 있도록 번역 보고서를 JSONB 형태로 영구 캐싱해야 한다.
-*   **동작 및 비즈니스 규칙**:
-    1.  백그라운드 스레드 가동이 100% 진행률에 다다르면 `research_gap_task` 테이블의 status를 `COMPLETED`로 변경하고, `notification` 테이블에 새 알림 레코드를 인서트한다.
-    2.  `NotificationBroadcaster`를 통해 SSE 리스너를 구독 중인 모든 클라이언트 브라우저로 완료 토스트 이벤트를 방송(Broadcast)한다.
-*   **데이터베이스 적재 사양**:
-    *   **대상 테이블**: `notification`, `research_gap_task`
-    *   **적재 조건**: 번역 완료 및 결과서 작성 성공 시점에 연동 실행.
+| 기능 코드 | 상세 기능명 | 입력 스펙 (Input) | 출력 스펙 (Output) | 비즈니스 규칙 및 작동 로직 | 기술 스택 및 DB 연동 |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **F-02-01** | 비동기 배치 분석 접수 | • `domain` (VARCHAR)<br>• `query` (TEXT) | • `task_id` (VARCHAR: UUID) | • 분석 요청 즉시 고유 `task_id`를 발급하고 데이터베이스 상태를 `PENDING`으로 적재하며 연산은 `BackgroundTasks`로 오프로딩함. | • FastAPI `BackgroundTasks`<br>• `research_gap_task` |
+| **F-02-02** | 학술 번역 및 원어 복원 | • `task_id` (VARCHAR) | • `translated_result` (JSONB) | • 영문 분석 결과를 한국어로 번역하되, 오역 및 팩트 왜곡 방지를 위해 핵심 인용구 `source_quote` 필드는 오리지널 영문으로 강제 오버라이트 보존. | • 파이썬 서비스 레이어 가드<br>• `translate_matrix` |
+| **F-02-03** | SSE 완료 알림 및 캐싱 | • `task_id` (VARCHAR) | • `event: task_completed`<br>(SSE push payload) | • 진행률 100% 도달 즉시 DB status를 `COMPLETED`로 변경하고, `notification` 테이블 적재 및 SSE를 통해 실시간 완료 토스트 푸시. | • SSE Broadcaster<br>• `notification` |
 
 ---
 
 ## ⚙️ 6-3. 맞춤형 연구 비서 젬 팩토리 (Research Gem Factory - F-03) 요구 명세
 
-### 1) F-03-01. 사용자 정의 페르소나 및 참조 데이터 소스 격리
-*   **기능 개요**: 사용자가 지정한 System Prompt 페르소나 지침과 학술 참고 도메인 범위 카테고리 조합을 바인딩하여 사용자 전용의 독립된 특화 비서(Gem) 메타데이터를 개설 및 관리해야 한다.
-*   **입력 파라미터**:
-    *   `name` (VARCHAR(100)): 비서 젬의 별칭 이름
-    *   `db_sources` (VARCHAR(50)): 참조 영역 코드 조합 (예: `cs,bio`)
-    *   `system_prompt` (TEXT): 젬에 주입될 핵심 동작 지침 및 규칙
-*   **동작 및 비즈니스 규칙**:
-    1.  회원당 최대 생성 젬의 개수 제한 조건을 확인 후, 신규 젬 UUID를 발급해 데이터베이스 메타 테이블에 저장한다.
-    2.  대화 요청 시 이 젬의 `system_prompt`를 인출해 LangGraph Supervisor Agent의 프롬프트 컨텍스트에 초기 바인딩하여 젬별 차별적 발화를 수립한다.
-*   **출력 데이터 구조**:
-    *   `gem_id` (VARCHAR(36)): 생성된 젬의 UUID 식별자
+맞춤형 연구 비서 젬 팩토리는 사용자가 특정 RAG 소스 참조 카테고리와 시스템 프롬프트 지침을 조합하여 개인화된 특화 비서(Gem)를 개설하고 RAG 대화를 가동하는 제어판 스펙입니다.
 
-### 2) F-03-02. 업로드 파일 온디맨드 벡터화 및 전용 pgvector 컬렉션 생성
-*   **기능 개요**: 젬에 연구용 개별 파일(PDF, TXT, DOCX 등) 주입 시 온디맨드로 텍스트 파싱 및 3072차원 임베딩을 가동하고, `gem_{gem_id}_files` 전용 pgvector 저장 컬렉션을 생성해 타 젬 대화방과 물리적으로 데이터를 격리 보존해야 한다.
-*   **입력 파라미터**:
-    *   `gem_id` (VARCHAR(36)): 대상 젬 식별자
-    *   `file` (UploadFile): 주입할 로컬 학술 연구 문서 파일
-*   **동작 및 비즈니스 규칙**:
-    1.  pdfium 및 docx 파서를 호출하여 문서를 500자 크기로 자동 청킹한다.
-    2.  `text-embedding-3-large` API를 통해 각 청크를 3072차원으로 임베딩하여 `gem_{gem_id}_files` 명칭의 격리된 pgvector 컬렉션으로 벌크 적재한다.
-*   **검증 기준**: 젬 A의 대화 RAG 구동 시 타 젬에 업로드된 외부 파일 내용이 전혀 참조/검출되지 않아야 한다.
-
-### 3) F-03-03. 젬 영구 소거 및 Cascade 데이터 영구 소멸 (Wipe-out)
-*   **기능 개요**: 젬 삭제 요청 시, 관계형 메타데이터 삭제와 동시에 `gem_{gem_id}_files` 벡터 컬렉션 스페이스를 DB에서 물리적으로 드롭(Drop Vector Collection)하여 불필요한 스토리지 잔여 바이트를 0으로 완벽히 소거해야 한다.
-*   **입력 파라미터**:
-    *   `gem_id` (VARCHAR(36)): 삭제할 대상 젬 UUID
-*   **동작 및 비즈니스 규칙**:
-    1.  `gem` 테이블에서 해당 `gem_id` 레코드를 삭제한다 (Cascade 규칙에 의해 관련 세션 및 소스 메타가 자동 삭제됨).
-    2.  백엔드 pgvector 연결 드라이버를 통해 `gem_{gem_id}_files` 컬렉션명을 타겟으로 `DROP TABLE` 또는 `DROP COLLECTION` 쿼리를 실행하여 디스크 공간을 영구 반환한다.
-*   **검증 기준**: 삭제 명령 후 DB 벡터 컬렉션 메타 테이블 조회 시, 해당 젬 전용 컬렉션명이 존재하지 않아야 한다.
+| 기능 코드 | 상세 기능명 | 입력 스펙 (Input) | 출력 스펙 (Output) | 비즈니스 규칙 및 작동 로직 | 기술 스택 및 DB 연동 |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **F-03-01** | 맞춤형 페르소나 Gem 개설 | • `name` (VARCHAR)<br>• `db_sources` (VARCHAR)<br>• `system_prompt` (TEXT) | • `gem_id` (VARCHAR: UUID) | • 사용자가 설정한 RAG 참고 분야(cs, bio, astronomy) 및 시스템 프롬프트 가이드라인을 바인딩하여 젬 메타데이터 생성. | • PostgreSQL `gem` 테이블<br>• Supervisor Agent 프롬프트 주입 |
+| **F-03-02** | 젬 전용 파일 적재 및 격리 | • `gem_id` (VARCHAR)<br>• `file` (UploadFile) | N/A (성공 코드) | • 개인 PDF 파일을 500자 청크 분할 및 임베딩하여 `gem_{gem_id}_files` 전용 컬렉션에 적재하고, 타 젬과의 RAG 데이터 접근을 물리적 격리. | • pgvector 격리 컬렉션<br>• pdfium & text-embedding-3-large |
+| **F-03-03** | 젬 삭제 및 데이터 영구 소멸 | • `gem_id` (VARCHAR) | N/A (성공 코드) | • 젬 삭제 요청 시, Cascade 규칙에 의해 관련 대화 메타를 삭제하고, `gem_{gem_id}_files` 컬렉션을 DB에서 물리적으로 드롭(Drop)하여 완전 소거. | • `DROP TABLE` / `DROP COLLECTION`<br>• PostgreSQL metadata Cascade |
