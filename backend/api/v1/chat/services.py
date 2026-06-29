@@ -3,6 +3,7 @@
 import logging
 import json
 import uuid
+import base64
 from typing import Annotated, AsyncGenerator
 from fastapi import Depends
 from api.common.exceptions import BusinessException
@@ -10,6 +11,16 @@ from api.v1.chat.chat_agent import ChatAgentDep
 from api.v1.chat.dao import ChatSessionDaoDep
 from api.v1.chat.entity import ChatSessionEntity
 from api.v1.chat.multi_agent.supervisor import ChatMultiAgentSupervisorDep
+
+
+def _decode_data_url(data_url: str) -> tuple[str, bytes | None]:
+    """'data:image/png;base64,...' → (media_type, raw_bytes). 형식이 아니면 ('', None)."""
+    try:
+        header, b64 = data_url.split(",", 1)            # header="data:image/png;base64"
+        media_type = header.split(":", 1)[1].split(";", 1)[0]  # "image/png"
+        return media_type, base64.b64decode(b64)
+    except Exception:
+        return "", None
 
 
 class ChatService:
@@ -252,6 +263,16 @@ class ChatService:
                     session_id, assistant_index, suggestions
                 )
 
+            # 3) 이미지 저장 — user 메시지(질문)에 첨부된 경우. (assistant 바로 앞이 그 질문)
+            if image:
+                user_index = assistant_index - 1
+                if user_index >= 0:
+                    media_type, raw = _decode_data_url(image)
+                    if raw is not None:
+                        await self.chat_session_dao.insert_image(
+                            session_id, user_index, raw, media_type
+                        )
+
             await self.chat_session_dao.commit()
         except Exception as e:
             self.logger.error(f"멀티 스트리밍 저장 실패 (session_id={session_id}): {e}")
@@ -291,10 +312,19 @@ class ChatService:
                 {"url": w.url, "title": w.title, "summary": w.summary or ""}
             )
 
+        # 저장된 첨부 이미지도 message_index 기준으로 묶는다 (user 메시지에 붙음, 1장).
+        images = await self.chat_session_dao.select_images_by_session(session_id)
+        images_by_index = {}
+        for img in images:
+            b64 = base64.b64encode(img.image_data).decode()
+            images_by_index.setdefault(img.message_index, f"data:{img.media_type};base64,{b64}")
+
         for idx, msg in enumerate(history):
             msg["sources"] = sources_by_index.get(idx, [])
             msg["suggestions"] = suggestions_by_index.get(idx, [])
             msg["web_sources"] = web_sources_by_index.get(idx, [])
+            if msg["role"] == "user" and idx in images_by_index:
+                msg["image"] = images_by_index[idx]
 
             # user 메시지 content에서 synthesis 래퍼 제거 (멀티 에이전트 대화 대응).
             # synthesis 입력은 "[질문]\n{q}\n\n[논문 기반 답변]...\n\n[웹 기반 답변]..." 형태로

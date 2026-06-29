@@ -70,6 +70,7 @@ export default function Feature1Page() {
           const history = (res.data || []).map((item) => ({
             role: item.role,
             content: item.content,
+            image: item.image || null,
             sources: item.sources || [],
             suggestions: item.suggestions || [],
             web_sources: item.web_sources || []

@@ -126,6 +126,11 @@ class ChatHistoryItem(BaseDTO):
         description="AI 답변의 근거가 된 웹 출처 목록 (사용자 메시지인 경우 빈 배열)",
         examples=[[]]
     )
+    image: str | None = Field(
+        default=None,
+        description="사용자 메시지에 첨부된 이미지의 data URL (없으면 null)",
+        examples=[None]
+    )
 
 
 class ChatHistoryResponseWrapper(SuccessResponse):
