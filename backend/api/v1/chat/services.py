@@ -191,10 +191,10 @@ class ChatService:
             self.logger.error(f"스트리밍 출처·추천 저장 실패 (session_id={session_id}): {e}")
 
     async def send_message_multi_stream(self, member_id: str, session_id: str, message: str) -> AsyncGenerator[str, None]:
-        """멀티 에이전트(슈퍼바이저)로 질문을 라우팅해 답변을 토큰 단위로 스트리밍한다. 소유자만 가능.
+        """멀티 에이전트(팬아웃+종합)로 답변을 토큰 단위로 스트리밍한다. 소유자만 가능.
 
-        supervisor.run_stream이 status/token 이벤트와 함께 종료 직전 route 이벤트를 보낸다.
-        route 값으로 출처 조회 경로(논문/웹)를 정한 뒤, 스트리밍 종료 후 출처·추천 질문을 저장한다.
+        supervisor.run_stream이 status/token 이벤트를 보낸 뒤, 종료 직전 sources 이벤트로
+        논문·웹 출처를 한 번 보낸다. 그 출처를 받아 두었다가 스트리밍 종료 후 저장한다.
 
         Args:
             member_id (str): 요청 회원의 아이디.
@@ -202,35 +202,43 @@ class ChatService:
             message (str): 사용자의 입력 질문 텍스트.
 
         Yields:
-            str: 이벤트(JSON) 한 줄씩(status/token/route).
+            str: 이벤트(JSON) 한 줄씩(status/token/sources).
         """
         await self._get_owned_session(member_id, session_id)
 
-        captured_route = "paper"   # route 이벤트로 갱신, 종료 후 출처 조회에 사용
+        full_answer_parts = []
+        captured_sources = []
+        captured_web_sources = []
 
         async for event in self.supervisor.run_stream(message, session_id):
-            # route 이벤트는 출처 경로 결정용 — 갱신만 하고 프론트로도 흘려보낸다
-            # (프론트는 status/token만 처리하고 route는 무시하므로 흘려보내도 안전).
-            if event.get("type") == "route":
-                captured_route = event.get("data", "paper")
-            yield json.dumps(event, ensure_ascii=False) + "\n"
+            etype = event.get("type")
+            if etype == "token":
+                full_answer_parts.append(event.get("data", ""))
+                yield json.dumps(event, ensure_ascii=False) + "\n"
+            elif etype == "sources":
+                # 출처 이벤트: 저장용으로 받아 둔다(프론트는 모르는 type이면 무시).
+                data = event.get("data", {})
+                captured_sources = data.get("sources", [])
+                captured_web_sources = data.get("web_sources", [])
+                yield json.dumps(event, ensure_ascii=False) + "\n"
+            else:
+                # status 등 나머지 이벤트는 그대로 흘려보낸다.
+                yield json.dumps(event, ensure_ascii=False) + "\n"
 
         # 스트리밍 종료 후 출처 + 추천 질문 저장 (실패해도 대화에는 영향 없음)
         try:
+            full_answer = "".join(full_answer_parts)
             history = await self.supervisor.get_history(session_id)
             assistant_index = len(history) - 1   # 마지막 메시지(방금 답변)의 index
 
-            # 1) 검색 출처 저장 (route에 따라 논문/웹 — 현재 DB는 논문 출처만 저장 대상)
-            src = await self.supervisor.get_latest_sources(captured_route, session_id)
-            sources = src.get("sources", [])
-            if sources:
+            # 1) 논문 출처 저장 (웹 출처는 3-B에서 테이블 추가 후 — 지금은 받아만 둔다)
+            if captured_sources:
                 await self.chat_session_dao.insert_sources(
-                    session_id, assistant_index, sources
+                    session_id, assistant_index, captured_sources
                 )
 
             # 2) 추천 후속 질문 생성·저장 (방금 질문 + 방금 답변 기반)
-            answer = history[-1]["content"] if history else ""
-            suggestions = await self.chat_agent.generate_suggestions(message, answer)
+            suggestions = await self.chat_agent.generate_suggestions(message, full_answer)
             if suggestions:
                 await self.chat_session_dao.insert_suggestions(
                     session_id, assistant_index, suggestions
@@ -238,7 +246,7 @@ class ChatService:
 
             await self.chat_session_dao.commit()
         except Exception as e:
-            self.logger.error(f"멀티 스트리밍 출처·추천 저장 실패 (session_id={session_id}): {e}")
+            self.logger.error(f"멀티 스트리밍 저장 실패 (session_id={session_id}): {e}")
 
     async def get_messages(self, member_id: str, session_id: str) -> list[dict]:
         """채팅방의 대화 내역을 출처와 함께 순서대로 반환한다. 소유자만 가능.

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Annotated, AsyncGenerator
 
@@ -14,6 +15,7 @@ from api.v1.chat.multi_agent.nodes.synthesis_node import synthesis_node
 from api.v1.chat.multi_agent.nodes.analysis_node import agent as analysis_agent
 from api.v1.chat.multi_agent.nodes.paper_node import agent as paper_agent
 from api.v1.chat.multi_agent.nodes.web_node import agent as web_agent
+from api.v1.chat.multi_agent.nodes.synthesis_node import agent as synthesis_agent
 from api.v1.chat.multi_agent.state import MultiAgentState
 
 
@@ -41,6 +43,8 @@ class ChatMultiAgentSupervisor:
         self.analysis_agent = analysis_agent
         self.paper_agent = paper_agent
         self.web_agent = web_agent
+        # 종합(synthesis) 에이전트 — run_stream에서 종합 답변 토큰 스트리밍에 사용.
+        self.synthesis_agent = synthesis_agent
 
     # 그래프(작업 흐름) 구성 메소드 — 팬아웃 + 종합(현재 활성)
     def build_workflow(self):
@@ -128,11 +132,63 @@ class ChatMultiAgentSupervisor:
             "web_sources": final_state.get("web_sources", []),
         }
 
-    # 스트리밍 실행 메소드
+    # 스트리밍 실행 메소드 — 팬아웃 + 종합(현재 활성)
     async def run_stream(
         self, query: str, conversation_id: str
     ) -> AsyncGenerator[dict, None]:
-        """라우팅(ainvoke) → 선택된 작업 에이전트 스트리밍(astream)을 하나로 잇는다.
+        """논문·웹 병렬 검색 후, 종합 답변을 토큰 스트리밍한다(팬아웃+종합).
+
+        StateGraph를 astream하지 않는다. 검색은 병렬 비스트리밍(ainvoke)으로 끝내고,
+        종합(synthesis) 답변만 토큰 단위로 흘려보낸다. 검색 출처는 그래프/checkpointer가
+        아니라 run의 반환 dict에서 직접 받아 지역변수로 들고 있다가 마지막에 알린다.
+
+        이벤트:
+            - {"type":"status","data":"paper_search"}   검색 시작 알림
+            - {"type":"status","data":"web_search"}
+            - {"type":"status","data":"synthesizing"}    종합 시작 알림
+            - {"type":"token","data":...}                종합 답변 토큰
+            - {"type":"sources","data":{"sources":[...],"web_sources":[...]}}  종료 직전 1회
+        """
+        # 1) 검색 병렬 — status 먼저 알리고 동시에 실행
+        yield {"type": "status", "data": "paper_search"}
+        yield {"type": "status", "data": "web_search"}
+
+        paper_result, web_result = await asyncio.gather(
+            self.paper_agent.run(query),
+            self.web_agent.run(query),
+            return_exceptions=True,
+        )
+        # 예외 방어: 실패한 쪽은 빈 결과로 처리
+        if isinstance(paper_result, dict):
+            paper_answer = paper_result.get("answer", "")
+            sources = paper_result.get("sources", [])
+        else:
+            self.logger.error(f"논문 검색 실패: {paper_result}")
+            paper_answer, sources = "", []
+        if isinstance(web_result, dict):
+            web_answer = web_result.get("answer", "")
+            web_sources = web_result.get("web_sources", [])
+        else:
+            self.logger.error(f"웹 검색 실패: {web_result}")
+            web_answer, web_sources = "", []
+
+        # 2) 종합 스트리밍 — conversation_id를 넘겨 대화 연속성 확보
+        yield {"type": "status", "data": "synthesizing"}
+        async for event in self.synthesis_agent.run_stream(
+            query, paper_answer, web_answer, conversation_id
+        ):
+            yield event
+
+        # 3) 출처 알림 — 호출자(service)가 저장에 사용. 논문·웹 둘 다.
+        yield {"type": "sources", "data": {"sources": sources, "web_sources": web_sources}}
+
+    # 스트리밍 실행 메소드 — 기존 라우팅 버전(보존, 비활성)
+    async def _run_stream_routing(
+        self, query: str, conversation_id: str
+    ) -> AsyncGenerator[dict, None]:
+        """[보존] 라우팅 방식 스트리밍. 되돌릴 때 대비해 남겨둔다(현재 미사용).
+
+        라우팅(ainvoke) → 선택된 작업 에이전트 스트리밍(astream)을 하나로 잇는다.
 
         StateGraph를 통째로 astream하지 않는다(중첩 서브그래프 토큰 추출이 복잡하므로).
         라우팅은 짧은 분류값이라 스트리밍이 불필요하므로 analysis를 ainvoke로 빠르게 호출해
@@ -181,15 +237,20 @@ class ChatMultiAgentSupervisor:
             "web_sources": [],
         }
 
-    # 공유 checkpointer에서 대화 내역 조회
+    # 종합 checkpointer에서 대화 내역 조회
     async def get_history(self, conversation_id: str) -> list[dict]:
-        """공유 checkpointer에서 이 방의 대화 내역을 [{role, content}]로 반환한다.
+        """종합 에이전트의 checkpointer에서 이 방의 대화(질문↔종합답변)를 반환한다.
 
-        paper/web 작업 에이전트는 같은 checkpointer·thread_id를 공유하므로, 어느
-        에이전트로 조회해도 동일한 대화가 나온다(paper_agent로 조회). 기존
-        chat_agent.get_history와 동일하게 human/ai 실제 발화만 필터링한다.
+        팬아웃 구조에선 검색(paper/web run)에 checkpointer가 없어 대화가 안 쌓이고,
+        진짜 답변인 종합(synthesis)만 thread_id별로 저장된다. 따라서 synthesis
+        에이전트의 checkpointer를 조회한다. 기존 chat_agent.get_history와 동일하게
+        human/ai 실제 발화만 필터링한다.
+
+        주의: synthesis 입력 user content는 "[질문]\\n{q}\\n\\n[논문 기반 답변]\\n..."
+        형태로 저장된다(LLM 종합용). 화면에는 순수 질문만 보여야 하므로, user 메시지는
+        "[질문]\\n" 다음부터 "[논문 기반 답변]" 전까지만 잘라 원질문으로 복원해 반환한다.
         """
-        agent = await self.paper_agent._ensure_stream_agent()
+        agent = await self.synthesis_agent._ensure_stream_agent()
         state = await agent.aget_state(
             {"configurable": {"thread_id": conversation_id}}
         )
@@ -199,7 +260,10 @@ class ChatMultiAgentSupervisor:
             msg_type = getattr(msg, "type", None)
             content = getattr(msg, "content", "")
             if msg_type == "human":
-                history.append({"role": "user", "content": content})
+                # 저장된 content에서 순수 질문만 복원(논문/웹 답변 텍스트 제거).
+                pure_query = content.split("\n\n[논문 기반 답변]")[0]
+                pure_query = pure_query.replace("[질문]\n", "").strip()
+                history.append({"role": "user", "content": pure_query})
             elif msg_type == "ai" and content:
                 # 도구 호출만 있는(content 비어있는) AI 메시지는 제외
                 history.append({"role": "assistant", "content": content})
