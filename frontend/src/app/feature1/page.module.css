@@ -828,3 +828,77 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ---- 이미지 첨부 버튼 (입력창 맨 왼쪽) ---- */
+.imageBtn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+  background: var(--sidebar-bg);
+  color: var(--profile-role-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.imageBtn:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  background: var(--accent-glow);
+}
+.imageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---- 입력창 위 이미지 미리보기 ---- */
+.imagePreview {
+  position: relative;
+  display: inline-flex;
+  align-self: flex-start;
+  margin-left: 4px;
+}
+.imagePreviewThumb {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+  object-fit: cover;
+  display: block;
+}
+.imagePreviewRemove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 0;
+}
+.imagePreviewRemove:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+/* ---- 사용자 말풍선 첨부 이미지 ---- */
+.bubbleImage {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--card-border);
+  object-fit: cover;
+  display: block;
+}

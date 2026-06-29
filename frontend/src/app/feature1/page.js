@@ -26,6 +26,7 @@ export default function Feature1Page() {
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [imageDataUrl, setImageDataUrl] = useState(null); // 첨부 이미지 data URL (없으면 null)
   const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [panelIndex, setPanelIndex] = useState(null); // 오른쪽 패널에 띄울 메시지 index (null이면 닫힘)
@@ -33,6 +34,7 @@ export default function Feature1Page() {
 
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
   const sendingRef = useRef(false);
   const isCreatingSessionRef = useRef(false);
 
@@ -100,6 +102,14 @@ export default function Feature1Page() {
     }
   };
 
+  // 파일 선택(D2에서 드롭·붙여넣기도)으로 받은 이미지 파일을 data URL로 변환해 저장한다.
+  const handleImageFile = (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setImageDataUrl(e.target.result);
+    reader.readAsDataURL(file);
+  };
+
   // 메시지를 전송한다. 방이 없으면 먼저 새 방을 만들고(질문 내용을 제목으로) 전송한다.
   // 메시지를 전송한다. 방이 없으면 먼저 새 방을 만들고(질문 내용을 제목으로) 전송한다.
   // overrideText가 주어지면(추천 질문 클릭 등) 입력창 대신 그 텍스트를 보낸다.
@@ -109,6 +119,8 @@ export default function Feature1Page() {
     sendingRef.current = true;
     setIsSending(true);
     setStreamStatus(null);
+
+    const imageToSend = imageDataUrl; // 이번 전송에 쓸 이미지를 캡처(이후 입력 초기화돼도 유지)
 
     let activeSessionId = sessionId;
     let isNewSession = false;   // ← 새 방인지 표시
@@ -131,8 +143,9 @@ export default function Feature1Page() {
       }
     }
 
-    setMessages((prev) => [...prev, { role: "user", content: text, sources: [], web_sources: [] }]);
+    setMessages((prev) => [...prev, { role: "user", content: text, image: imageToSend, sources: [], web_sources: [] }]);
     setInput("");
+    setImageDataUrl(null); // 전송 시작과 함께 첨부 미리보기 비움
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
@@ -150,6 +163,7 @@ export default function Feature1Page() {
         });
       },
         (status) => setStreamStatus(status),
+        imageToSend,
       );
 
       // 스트리밍이 끝나면 검색된 출처(sources)를 다시 불러와 마지막 답변에 붙인다.
@@ -249,7 +263,37 @@ export default function Feature1Page() {
   // 입력 영역(공통) — 빈 화면과 대화 화면 모두에서 사용
   const inputArea = (
     <div className={styles.inputArea}>
+      {imageDataUrl && (
+        <div className={styles.imagePreview}>
+          <img src={imageDataUrl} alt="첨부할 이미지 미리보기" className={styles.imagePreviewThumb} />
+          <button
+            className={styles.imagePreviewRemove}
+            onClick={() => setImageDataUrl(null)}
+            aria-label="이미지 제거"
+          >
+            <i className="bi bi-x"></i>
+          </button>
+        </div>
+      )}
       <div className={styles.inputWrapper}>
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={(e) => {
+            handleImageFile(e.target.files?.[0]);
+            e.target.value = ""; // 같은 파일 다시 선택 가능하게 초기화
+          }}
+        />
+        <button
+          className={styles.imageBtn}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isSending}
+          aria-label="이미지 추가"
+        >
+          <i className="bi bi-image"></i>
+        </button>
         <textarea
           ref={textareaRef}
           className={styles.input}
@@ -462,6 +506,9 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, i
         </div>
       )}
       <div className={styles.bubbleGroup}>
+        {isUser && message.image && (
+          <img src={message.image} alt="첨부 이미지" className={styles.bubbleImage} />
+        )}
         <div className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAi} ${message.isError ? styles.bubbleError : ""}`}>
           {isUser ? (
             message.content
@@ -631,6 +678,7 @@ function WebCitationChip({ webs }) {
  */
 function LoadingBubble({ status }) {
   const text =
+    status === "image_analysis" ? "이미지 분석 중" :
     status === "web_search" ? "웹 검색 중" :
       status === "paper_search" ? "논문 검색 중" :
         status === "synthesizing" ? "답변 종합 중" :
