@@ -116,6 +116,11 @@ class ChatHistoryItem(BaseDTO):
         description="AI 답변 뒤에 따라붙는 추천 후속 질문 목록 (사용자 메시지인 경우 빈 배열)",
         examples=[["메타유전체학과의 차이는?", "16S rRNA 분석이 뭐야?"]]
     )
+    web_sources: list[dict] = Field(
+        default_factory=list,
+        description="AI 답변의 근거가 된 웹 출처 목록 (사용자 메시지인 경우 빈 배열)",
+        examples=[[]]
+    )
 
 
 class ChatHistoryResponseWrapper(SuccessResponse):

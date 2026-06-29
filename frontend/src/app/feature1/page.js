@@ -68,7 +68,8 @@ export default function Feature1Page() {
             role: item.role,
             content: item.content,
             sources: item.sources || [],
-            suggestions: item.suggestions || []
+            suggestions: item.suggestions || [],
+            web_sources: item.web_sources || []
           }));
           setMessages(history);
         }
@@ -130,13 +131,13 @@ export default function Feature1Page() {
       }
     }
 
-    setMessages((prev) => [...prev, { role: "user", content: text, sources: [] }]);
+    setMessages((prev) => [...prev, { role: "user", content: text, sources: [], web_sources: [] }]);
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
       // 빈 assistant 메시지를 먼저 추가하고, 토큰이 올 때마다 여기에 누적해 타이핑 효과를 낸다.
-      setMessages((prev) => [...prev, { role: "assistant", content: "", sources: [] }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", sources: [], web_sources: [] }]);
 
       await sendMessageStream(activeSessionId, text, (token) => {
         setMessages((prev) => {
@@ -165,6 +166,7 @@ export default function Feature1Page() {
                 ...last,
                 sources: lastItem.sources || [],
                 suggestions: lastItem.suggestions || [],
+                web_sources: lastItem.web_sources || [],
               };
             }
             return next;
@@ -390,6 +392,9 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, i
   // 참고 논문 = 실제 검색된 출처(sources). 패널/버튼이 이걸 사용한다.
   const refPapers = !isUser && Array.isArray(message.sources) ? message.sources : [];
 
+  // 웹 출처 = 멀티 에이전트 답변의 웹 검색 출처. 답변 아래 인라인 카드로 표시한다.
+  const webSources = !isUser && Array.isArray(message.web_sources) ? message.web_sources : [];
+
   // 본문 텍스트 속 인용 마커를 칩으로 바꾼다.
   // - 연속된 [1][2]는 하나의 칩으로 묶어, 호버 카드에서 넘겨본다(페이지네이션).
   // - 스트리밍 중에는 마커를 숨긴다(끝난 뒤에만 칩으로 표시).
@@ -465,6 +470,36 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, i
             논문 {refPapers.length}편
             <i className={`bi ${isActive ? "bi-chevron-right" : "bi-chevron-left"} ${styles.paperTriggerChevron}`}></i>
           </button>
+        )}
+
+        {/* 웹 출처 — 퍼플렉시티 스타일 인라인 카드. 스트리밍 끝난 뒤에만 표시 */}
+        {!isUser && !isStreaming && webSources.length > 0 && (
+          <div className={styles.webSources}>
+            <span className={styles.webSourcesLabel}>
+              <i className="bi bi-globe2"></i> 웹 출처 {webSources.length}
+            </span>
+            <div className={styles.webSourceList}>
+              {webSources.map((w, i) => {
+                let domain = "";
+                try { domain = new URL(w.url).hostname.replace(/^www\./, ""); } catch { domain = w.url; }
+                return (
+                  <a
+                    key={i}
+                    className={styles.webSourceCard}
+                    href={w.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={w.title}
+                  >
+                    <span className={styles.webSourceDomain}>
+                      <i className="bi bi-link-45deg"></i> {domain}
+                    </span>
+                    <span className={styles.webSourceTitle}>{w.title}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         {/* 추천 후속 질문 — 모든 AI 답변에 표시(스트리밍 중인 답변은 끝난 뒤). DB에 영구 저장됨 */}
@@ -543,8 +578,9 @@ function LoadingBubble({ status }) {
   const text =
     status === "web_search" ? "웹 검색 중" :
       status === "paper_search" ? "논문 검색 중" :
-        status === "datetime" ? "날짜 확인 중" :
-          "답변 생성 중";
+        status === "synthesizing" ? "답변 종합 중" :
+          status === "datetime" ? "날짜 확인 중" :
+            "답변 생성 중";
   return (
     <div className={styles.messageRow}>
       <div className={styles.aiAvatar}>

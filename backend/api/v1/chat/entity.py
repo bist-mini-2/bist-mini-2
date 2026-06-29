@@ -39,6 +39,28 @@ class ChatSourceEntity(Base):
     created_at: Mapped[datetime] = mapped_column("created_at", DateTime, server_default=func.now())
 
 
+class ChatWebSourceEntity(Base):
+    """채팅 답변의 참고 웹페이지(출처) 엔티티.
+
+    어느 방(session_id)의 몇 번째 메시지(message_index)에 대한 웹 출처인지 기록한다.
+    방이 삭제되면 ON DELETE CASCADE로 함께 삭제된다.
+    """
+    __tablename__ = "chat_web_source"
+
+    id: Mapped[int] = mapped_column("id", Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(
+        "session_id",
+        String(36),
+        ForeignKey("chat_session.session_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    message_index: Mapped[int] = mapped_column("message_index", Integer, nullable=False)
+    url: Mapped[str] = mapped_column("url", String(1000), nullable=False)
+    title: Mapped[str] = mapped_column("title", String(500), nullable=False)
+    summary: Mapped[str | None] = mapped_column("summary", String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime, server_default=func.now())
+
+
 class ChatSuggestionEntity(Base):
     """채팅 답변 뒤에 따라붙는 추천 후속 질문 엔티티.
 

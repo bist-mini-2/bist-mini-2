@@ -231,10 +231,16 @@ class ChatService:
             history = await self.supervisor.get_history(session_id)
             assistant_index = len(history) - 1   # 마지막 메시지(방금 답변)의 index
 
-            # 1) 논문 출처 저장 (웹 출처는 3-B에서 테이블 추가 후 — 지금은 받아만 둔다)
+            # 1) 논문 출처 저장
             if captured_sources:
                 await self.chat_session_dao.insert_sources(
                     session_id, assistant_index, captured_sources
+                )
+
+            # 1-2) 웹 출처 저장 (퍼플렉시티 스타일 — 답변마다 웹 출처 보관)
+            if captured_web_sources:
+                await self.chat_session_dao.insert_web_sources(
+                    session_id, assistant_index, captured_web_sources
                 )
 
             # 2) 추천 후속 질문 생성·저장 (방금 질문 + 방금 답변 기반)
@@ -275,9 +281,29 @@ class ChatService:
         for s in suggestions:
             suggestions_by_index.setdefault(s.message_index, []).append(s.question)
 
+        # 저장된 웹 출처도 message_index 기준으로 묶는다.
+        web_sources = await self.chat_session_dao.select_web_sources_by_session(session_id)
+        web_sources_by_index = {}
+        for w in web_sources:
+            web_sources_by_index.setdefault(w.message_index, []).append(
+                {"url": w.url, "title": w.title, "summary": w.summary or ""}
+            )
+
         for idx, msg in enumerate(history):
             msg["sources"] = sources_by_index.get(idx, [])
             msg["suggestions"] = suggestions_by_index.get(idx, [])
+            msg["web_sources"] = web_sources_by_index.get(idx, [])
+
+            # user 메시지 content에서 synthesis 래퍼 제거 (멀티 에이전트 대화 대응).
+            # synthesis 입력은 "[질문]\n{q}\n\n[논문 기반 답변]...\n\n[웹 기반 답변]..." 형태로
+            # 저장되므로, 화면에는 순수 질문만 보이도록 supervisor.get_history와 동일하게 파싱한다.
+            # 단일 에이전트 대화는 "[논문 기반 답변]"이 없어 no-op로 안전하게 통과한다.
+            if msg["role"] == "user" and isinstance(msg.get("content"), str):
+                content = msg["content"]
+                if "[논문 기반 답변]" in content:
+                    content = content.split("\n\n[논문 기반 답변]")[0]
+                    content = content.replace("[질문]\n", "").strip()
+                    msg["content"] = content
 
         return history
 
