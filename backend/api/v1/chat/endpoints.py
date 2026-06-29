@@ -16,6 +16,7 @@ from api.v1.chat.models import (
     ChatHistoryResponseWrapper,
 )
 from api.v1.chat.services import ChatServiceDep
+from api.v1.chat.multi_agent.supervisor import ChatMultiAgentSupervisorDep
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +134,36 @@ async def send_message(
     )
 
 
+@router.post("/sessions/{session_id}/messages/multi", summary="[1단계 검증용] 멀티 에이전트(비스트리밍) 대화 메시지 전송 API")
+async def send_message_multi(
+    user: LoginCheckDep,
+    session_id: str,
+    request: ChatMessageRequest,
+    supervisor: ChatMultiAgentSupervisorDep,
+) -> ChatMessageResponseWrapper:
+    """1단계 검증용 멀티 에이전트(비스트리밍) 엔드포인트.
+
+    슈퍼바이저 멀티 에이전트(ChatMultiAgentSupervisor)로 질문을 분석·라우팅하여
+    논문 검색(paper) 또는 웹 검색(web) 에이전트가 생성한 답변과 출처를 반환한다.
+    이번 단계에서는 동작 검증이 목적이므로 대화 저장(checkpointer)·추천 질문·인용
+    후처리는 연결하지 않으며, session_id도 서명 일관성을 위해 받기만 하고 저장에는
+    사용하지 않는다.
+
+    Args:
+        user (LoginCheckDep): 인증이 완료된 현재 로그인 유저의 JWT 페이로드 정보.
+        session_id (str): 서명 일관성을 위해 경로로 받는 채팅방 식별자(이번 단계 미사용).
+        request (ChatMessageRequest): 유저가 입력한 대화 메시지 텍스트 요청 DTO.
+        supervisor (ChatMultiAgentSupervisorDep): 멀티 에이전트 라우팅을 수행하는 슈퍼바이저 의존성.
+
+    Returns:
+        ChatMessageResponseWrapper: 멀티 에이전트가 생성한 최종 답변(answer)과 논문 출처(sources).
+    """
+    result = await supervisor.run(request.message)
+    return ChatMessageResponseWrapper(
+        data=ChatMessageResponse(answer=result["answer"], sources=result["sources"])
+    )
+
+
 @router.post("/sessions/{session_id}/messages/stream", summary="실시간 스트리밍 대화 메시지 전송 API")
 async def send_message_stream(
     user: LoginCheckDep,
@@ -153,6 +184,33 @@ async def send_message_stream(
     """
     return StreamingResponse(
         service.send_message_stream(user["sub"], session_id, request.message),
+        media_type="text/plain; charset=utf-8",
+    )
+
+
+@router.post("/sessions/{session_id}/messages/multi/stream", summary="[멀티 에이전트] 실시간 스트리밍 대화 메시지 전송 API")
+async def send_message_multi_stream(
+    user: LoginCheckDep,
+    session_id: str,
+    request: ChatMessageRequest,
+    service: ChatServiceDep,
+):
+    """슈퍼바이저 멀티 에이전트로 질문을 라우팅(논문/웹)하여 답변을 토큰 단위로 스트리밍합니다.
+
+    analysis 에이전트가 질문을 논문(paper)/웹(web)으로 분류한 뒤, 선택된 작업 에이전트가
+    답변을 실시간 토큰으로 흘려보낸다. 스트림 종료 후 검색 출처와 추천 후속 질문을 저장한다.
+
+    Args:
+        user (LoginCheckDep): 인증이 완료된 현재 로그인 유저의 JWT 페이로드 정보.
+        session_id (str): 대화 스트림을 기록 및 유지할 대상 채팅방의 고유 UUID 식별자(=thread_id).
+        request (ChatMessageRequest): 실시간 질의할 사용자 입력 텍스트 요청 DTO.
+        service (ChatServiceDep): 멀티 에이전트 스트리밍과 출처·추천 저장을 조율하는 서비스 의존성.
+
+    Returns:
+        StreamingResponse: status/token/route 이벤트(JSON 라인) 실시간 응답 스트림.
+    """
+    return StreamingResponse(
+        service.send_message_multi_stream(user["sub"], session_id, request.message),
         media_type="text/plain; charset=utf-8",
     )
 

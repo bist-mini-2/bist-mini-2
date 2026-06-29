@@ -84,7 +84,7 @@ export async function sendMessageStream(sessionId, message, onToken, onStatus) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
   const res = await fetch(
-    `${backendUrl}/chat/sessions/${sessionId}/messages/stream`,
+    `${backendUrl}/chat/sessions/${sessionId}/messages/multi/stream`,
     {
       method: "POST",
       headers: {
