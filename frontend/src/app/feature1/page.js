@@ -401,30 +401,44 @@ function MessageBubble({ message, index, isActive, onTogglePanel, isStreaming, i
   const renderWithCitations = (text) => {
     if (typeof text !== "string") return text;
 
-    // 스트리밍 중에는 [1], [1][2] 같은 마커를 화면에서 제거한다.
+    // 스트리밍 중에는 [1], [1][2], [web1] 같은 논문·웹 마커를 화면에서 제거한다(끝난 뒤에만 칩 표시).
     if (isStreaming) {
-      return text.replace(/\s*(?:\[\d+\])+\s*([.,!?。、])?/g, (mt, punc) => (punc ? punc : ""));
+      return text.replace(/\s*(?:\[(?:web)?\d+\])+\s*([.,!?。、])?/g, (mt, punc) => (punc ? punc : ""));
     }
 
-    if (refPapers.length === 0) return text;
+    // [^1^], [^12^] 같은 잔여 각주 표기를 화면에서 제거(백엔드가 막지만 이중 안전장치).
+    let work = text.replace(/\[\^?\d+\^\]/g, "");
 
-    // "있습니다 [1][2]." → "있습니다.[1][2]" : 칩 앞 공백 제거 + 뒤 문장부호를 칩 앞으로.
-    const normalized = text.replace(/\s*((?:\[\d+\])+)\s*([.,!?。、])/g, "$2$1");
-    // 연속된 마커 묶음([1] 또는 [1][2][3])을 기준으로 쪼갠다.
-    const parts = normalized.split(/((?:\[\d+\])+)/g);
+    // "있습니다 [1][2]." → "있습니다.[1][2]" : 칩 앞 공백 제거 + 뒤 문장부호를 칩 앞으로 (논문/웹 마커 모두).
+    const normalized = work.replace(/\s*((?:\[(?:web)?\d+\])+)\s*([.,!?。、])/g, "$2$1");
+    // 연속된 마커 묶음([1], [1][2], [web1], [web1][web2], 섞인 경우 포함)을 기준으로 쪼갠다.
+    const parts = normalized.split(/((?:\[(?:web)?\d+\])+)/g);
     return parts.map((part, i) => {
-      const isMarker = /^(?:\[\d+\])+$/.test(part);
+      const isMarker = /^(?:\[(?:web)?\d+\])+$/.test(part);
       if (isMarker) {
-        // 묶음 안의 번호들을 모아 유효한 논문만 추린다.
-        const nums = (part.match(/\d+/g) || []).map((d) => parseInt(d, 10));
-        const papers = nums
-          .map((n) => refPapers[n - 1])
-          .filter((s) => s && s.arxiv_id);
-        if (papers.length > 0) {
-          return <CitationChip key={i} papers={papers} />;
+        // 묶음 안에서 논문 마커([3])와 웹 마커([web2])를 각각 분리해 추출.
+        const tokens = part.match(/\[(?:web)?\d+\]/g) || [];
+        const paperNums = [];
+        const webNums = [];
+        for (const tk of tokens) {
+          const m = tk.match(/^\[web(\d+)\]$/);
+          if (m) webNums.push(parseInt(m[1], 10));
+          else {
+            const pm = tk.match(/^\[(\d+)\]$/);
+            if (pm) paperNums.push(parseInt(pm[1], 10));
+          }
         }
+        const papers = paperNums.map((n) => refPapers[n - 1]).filter((s) => s && s.arxiv_id);
+        const webs = webNums.map((n) => webSources[n - 1]).filter((w) => w && w.url);
+
+        const chips = [];
+        if (papers.length > 0) chips.push(<CitationChip key={`p${i}`} papers={papers} />);
+        if (webs.length > 0) chips.push(<WebCitationChip key={`w${i}`} webs={webs} />);
+        if (chips.length > 0) return <span key={i}>{chips}</span>;
+        // 유효한 출처가 하나도 없으면(범위 밖 번호 등) 마커를 텍스트로 두지 말고 제거.
+        return "";
       }
-      return part; // 일반 텍스트이거나 범위 밖 번호는 그대로
+      return part; // 일반 텍스트는 그대로
     });
   };
 
@@ -565,6 +579,47 @@ function CitationChip({ papers }) {
         </a>
         {cur.summary && <span className={styles.citationCardSummary}>{cur.summary}</span>}
         <span className={styles.citationCardLink}>arXiv:{cur.arxiv_id} ↗</span>
+      </span>
+    </span>
+  );
+}
+
+/**
+ * 웹 인용 칩 — 웹 출처를 도메인으로 표시하고, 클릭 시 해당 페이지로 이동.
+ * 여러 웹 출처를 묶어 호버 카드에서 ‹ › 로 넘겨본다(CitationChip과 동일 UX).
+ */
+function WebCitationChip({ webs }) {
+  const [page, setPage] = useState(0);
+  const total = webs.length;
+  const cur = webs[Math.min(page, total - 1)];
+  let domain = "";
+  try { domain = new URL(cur.url).hostname.replace(/^www\./, ""); } catch { domain = cur.url; }
+
+  const go = (e, dir) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPage((p) => (p + dir + total) % total);
+  };
+
+  return (
+    <span className={styles.citationWrap}>
+      <a className={styles.webCitation} href={cur.url} target="_blank" rel="noopener noreferrer">
+        <i className="bi bi-globe2"></i> {domain}
+        {total > 1 && <span className={styles.citationMore}>+{total - 1}</span>}
+      </a>
+      <span className={styles.citationCard}>
+        {total > 1 && (
+          <span className={styles.citationNav}>
+            <button className={styles.citationNavBtn} onClick={(e) => go(e, -1)} aria-label="이전">‹</button>
+            <span className={styles.citationNavCount}>{page + 1} / {total}</span>
+            <button className={styles.citationNavBtn} onClick={(e) => go(e, 1)} aria-label="다음">›</button>
+          </span>
+        )}
+        <a className={styles.citationCardTitle} href={cur.url} target="_blank" rel="noopener noreferrer">
+          {cur.title || domain}
+        </a>
+        {cur.summary && <span className={styles.citationCardSummary}>{cur.summary}</span>}
+        <span className={styles.citationCardLink}>{domain} ↗</span>
       </span>
     </span>
   );

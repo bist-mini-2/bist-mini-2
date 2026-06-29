@@ -590,6 +590,28 @@
   opacity: 0.8;
 }
 
+/* 웹 인용 칩 — 본문 인라인. 논문 칩(.citation)과 구분되는 톤 */
+.webCitation {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  margin: 0 1px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 25%, transparent);
+  border-radius: 6px;
+  text-decoration: none !important;
+  vertical-align: middle;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.webCitation:hover {
+  background: color-mix(in srgb, var(--accent-color) 20%, transparent);
+}
+
 /* 호버 시 뜨는 카드 */
 .citationCard {
   position: absolute;

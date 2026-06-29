@@ -172,10 +172,10 @@ class ChatMultiAgentSupervisor:
             self.logger.error(f"웹 검색 실패: {web_result}")
             web_answer, web_sources = "", []
 
-        # 2) 종합 스트리밍 — conversation_id를 넘겨 대화 연속성 확보
+        # 2) 종합 스트리밍 — conversation_id로 대화 연속성, web_sources로 [web1] 인용 지원
         yield {"type": "status", "data": "synthesizing"}
         async for event in self.synthesis_agent.run_stream(
-            query, paper_answer, web_answer, conversation_id
+            query, paper_answer, web_answer, web_sources, conversation_id
         ):
             yield event
 
