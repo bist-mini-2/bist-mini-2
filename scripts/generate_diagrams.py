@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 # ---------------------------------------------------------
 # High-DPI (Retina/Print-quality) Scale Factor
 # ---------------------------------------------------------
-SCALE = 3  # Render PNGs at 3x resolution (e.g., 3600px width)
+SCALE = 3  # Render PNGs at 3x resolution (e.g., 4800px width for 1600px base)
 
 def get_font(size):
     scaled_size = int(size * SCALE)
@@ -41,6 +41,7 @@ TEXT_CARD_BODY = "#516075"      # Slate 500/600 for card details
 ACCENT_SKY = "#0284C7"          # Sky 600 (Frontend)
 ACCENT_PURPLE = "#7C3AED"       # Purple 600 (Application/Engine)
 ACCENT_EMERALD = "#059669"      # Emerald 600 (Storage/DB)
+ACCENT_ROSE = "#E11D48"         # Rose 600 (Security/Roadmap)
 
 # Flow Arrows (Vibrant, high-contrast)
 FLOW_RED = "#E11D48"            # Rose 600
@@ -819,19 +820,26 @@ def generate_usecase_gem_factory_flow(output_png, output_svg):
 # Database ERD Drawings
 # ---------------------------------------------------------
 def generate_database_erd(output_png, output_svg):
-    img = Image.new("RGBA", (1200 * SCALE, 740 * SCALE), (0, 0, 0, 0))
+    # Expanded width to 1600 to accommodate the 4th tier (Security/Roadmap)
+    img = Image.new("RGBA", (1600 * SCALE, 740 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     card_title_font = get_font(18)
     card_body_font = get_font(12)
     relation_font = get_font(12)
     
-    # 3대 그룹 배경 박스
+    # 4대 그룹 배경 박스
+    # 1 & 2. PostgreSQL RDB Metadata Box
     draw_rounded_rect(draw, (40, 20, 750, 710), 12, fill=GROUP_BG, outline=ACCENT_PURPLE, width=2)
     draw.text((60 * SCALE, 35 * SCALE), "비즈니스 & 메타데이터 영역 (PostgreSQL)", fill=ACCENT_PURPLE, font=card_title_font)
     
+    # 3. Vector DB Box
     draw_rounded_rect(draw, (790, 20, 1170, 710), 12, fill=GROUP_BG, outline=ACCENT_EMERALD, width=2)
     draw.text((810 * SCALE, 35 * SCALE), "벡터 저장소 영역 (pgvector)", fill=ACCENT_EMERALD, font=card_title_font)
+    
+    # 4. Security Sandbox Roadmap Box (NEW)
+    draw_rounded_rect(draw, (1210, 20, 1560, 710), 12, fill=GROUP_BG, outline=ACCENT_ROSE, width=2)
+    draw.text((1230 * SCALE, 35 * SCALE), "보안 디펜스 아레나 (향후 로드맵)", fill=ACCENT_ROSE, font=card_title_font)
     
     # MEMBER 카드
     draw_shadow_rect(draw, (80, 90, 320, 260), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
@@ -873,6 +881,21 @@ def generate_database_erd(output_png, output_svg):
     draw.text((845 * SCALE, 355 * SCALE), "langchain_pg_embedding", fill=ACCENT_EMERALD, font=card_title_font)
     draw.text((845 * SCALE, 385 * SCALE), "id VARCHAR [PK]\ncollection_id UUID [FK]\nembedding vector(3072)\ndocument TEXT\ncmetadata JSONB", fill=TEXT_CARD_BODY, font=card_body_font)
 
+    # DEFENSE_ARENA_SESSION 카드 (NEW - Roadmap)
+    draw_shadow_rect(draw, (1250, 90, 1520, 260), 8, fill=CARD_BG, outline=ACCENT_ROSE, width=1)
+    draw.text((1265 * SCALE, 105 * SCALE), "defense_arena_session", fill=ACCENT_ROSE, font=card_title_font)
+    draw.text((1265 * SCALE, 135 * SCALE), "session_id VARCHAR(36) [PK]\nmember_id VARCHAR(20)\nfile_name VARCHAR(255)\nfile_path VARCHAR(500)\nchunk_count INTEGER", fill=TEXT_CARD_BODY, font=card_body_font)
+
+    # DEFENSE_ARENA_CHUNK 카드 (NEW - Roadmap)
+    draw_shadow_rect(draw, (1250, 300, 1520, 450), 8, fill=CARD_BG, outline=ACCENT_ROSE, width=1)
+    draw.text((1265 * SCALE, 315 * SCALE), "defense_arena_chunk", fill=ACCENT_ROSE, font=card_title_font)
+    draw.text((1265 * SCALE, 345 * SCALE), "id SERIAL [PK]\nsession_id VARCHAR(36) [FK]\nchunk_index INTEGER\ntext_chunk TEXT\nembedding vector(3072)", fill=TEXT_CARD_BODY, font=card_body_font)
+
+    # DEFENSE_HISTORY 카드 (NEW - Roadmap)
+    draw_shadow_rect(draw, (1250, 480, 1520, 680), 8, fill=CARD_BG, outline=ACCENT_ROSE, width=1)
+    draw.text((1265 * SCALE, 495 * SCALE), "defense_history", fill=ACCENT_ROSE, font=card_title_font)
+    draw.text((1265 * SCALE, 525 * SCALE), "id SERIAL [PK]\nsession_id VARCHAR(36) [FK]\nturn INTEGER\nquestion TEXT\nanswer TEXT\nscore INTEGER\nfeedback TEXT", fill=TEXT_CARD_BODY, font=card_body_font)
+
     # Connections
     draw_arrow(draw, (200, 260), (200, 300), color=FLOW_INDIGO, width=2)
     draw.text((210 * SCALE, 270 * SCALE), "1 : N owns", fill=FLOW_TEXT, font=relation_font)
@@ -889,15 +912,29 @@ def generate_database_erd(output_png, output_svg):
     draw_arrow(draw, (980, 260), (980, 340), color=FLOW_GREEN, width=2)
     draw.text((990 * SCALE, 290 * SCALE), "1 : N", fill=FLOW_TEXT, font=relation_font)
 
+    # member 1 -> N defense_arena_session
+    draw_arrow(draw, (320, 130), (1250, 130), color=FLOW_RED, width=2)
+    
+    # defense_arena_session 1 -> N defense_arena_chunk
+    draw_arrow(draw, (1380, 260), (1380, 300), color=FLOW_RED, width=2)
+    draw.text((1395 * SCALE, 270 * SCALE), "1 : N", fill=FLOW_TEXT, font=relation_font)
+
+    # defense_arena_session 1 -> N defense_history
+    draw_arrow(draw, (1385, 260), (1385, 480), color=FLOW_RED, width=2)
+    draw.text((1395 * SCALE, 455 * SCALE), "1 : N", fill=FLOW_TEXT, font=relation_font)
+
     img.save(output_png)
 
     # --- SVG ---
-    svg = SVGBuilder(1200, 740)
+    svg = SVGBuilder(1600, 740)
     svg.add_rect((40, 20, 750, 710), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=2)
     svg.add_text((60, 35), "비즈니스 & 메타데이터 영역 (PostgreSQL)", font_size=18, font_weight="bold", fill=ACCENT_PURPLE)
     
     svg.add_rect((790, 20, 1170, 710), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_EMERALD, stroke_width=2)
     svg.add_text((810, 35), "벡터 저장소 영역 (pgvector)", font_size=18, font_weight="bold", fill=ACCENT_EMERALD)
+
+    svg.add_rect((1210, 20, 1560, 710), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_ROSE, stroke_width=2)
+    svg.add_text((1230, 35), "보안 디펜스 아레나 (향후 로드맵)", font_size=18, font_weight="bold", fill=ACCENT_ROSE)
     
     # Cards
     svg.add_rect((80, 90, 320, 260), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
@@ -932,6 +969,18 @@ def generate_database_erd(output_png, output_svg):
     svg.add_text((845, 355), "langchain_pg_embedding", font_size=18, font_weight="bold", fill=ACCENT_EMERALD)
     svg.add_text((845, 385), "id VARCHAR [PK]\ncollection_id UUID [FK]\nembedding vector(3072)\ndocument TEXT\ncmetadata JSONB", font_size=12, fill=TEXT_CARD_BODY)
 
+    svg.add_rect((1250, 90, 1520, 260), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_ROSE, stroke_width=1, shadow=True)
+    svg.add_text((1265, 105), "defense_arena_session", font_size=18, font_weight="bold", fill=ACCENT_ROSE)
+    svg.add_text((1265, 135), "session_id VARCHAR(36) [PK]\nmember_id VARCHAR(20)\nfile_name VARCHAR(255)\nfile_path VARCHAR(500)\nchunk_count INTEGER", font_size=12, fill=TEXT_CARD_BODY)
+
+    svg.add_rect((1250, 300, 1520, 450), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_ROSE, stroke_width=1, shadow=True)
+    svg.add_text((1265, 315), "defense_arena_chunk", font_size=18, font_weight="bold", fill=ACCENT_ROSE)
+    svg.add_text((1265, 345), "id SERIAL [PK]\nsession_id VARCHAR(36) [FK]\nchunk_index INTEGER\ntext_chunk TEXT\nembedding vector(3072)", font_size=12, fill=TEXT_CARD_BODY)
+
+    svg.add_rect((1250, 480, 1520, 680), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_ROSE, stroke_width=1, shadow=True)
+    svg.add_text((1265, 495), "defense_history", font_size=18, font_weight="bold", fill=ACCENT_ROSE)
+    svg.add_text((1265, 525), "id SERIAL [PK]\nsession_id VARCHAR(36) [FK]\nturn INTEGER\nquestion TEXT\nanswer TEXT\nscore INTEGER\nfeedback TEXT", font_size=12, fill=TEXT_CARD_BODY)
+
     # Connections
     svg.add_arrow((200, 260), (200, 300), color=FLOW_INDIGO, width=2)
     svg.add_text((210, 275), "1 : N owns", font_size=12, fill=FLOW_TEXT)
@@ -947,6 +996,14 @@ def generate_database_erd(output_png, output_svg):
 
     svg.add_arrow((980, 260), (980, 340), color=FLOW_GREEN, width=2)
     svg.add_text((990, 295), "1 : N", font_size=12, fill=FLOW_TEXT)
+
+    svg.add_arrow((320, 130), (1250, 130), color=FLOW_RED, width=2)
+    
+    svg.add_arrow((1380, 260), (1380, 300), color=FLOW_RED, width=2)
+    svg.add_text((1395, 275), "1 : N", font_size=12, fill=FLOW_TEXT)
+
+    svg.add_arrow((1385, 260), (1385, 480), color=FLOW_RED, width=2)
+    svg.add_text((1395, 455), "1 : N", font_size=12, fill=FLOW_TEXT)
 
     svg.save(output_svg)
 
@@ -969,7 +1026,7 @@ if __name__ == "__main__":
     generate_usecase_arena_defense_flow("./docs/deliverables/4th/usecase_arena_defense_flow.png", "./docs/deliverables/4th/usecase_arena_defense_flow.svg")
     generate_usecase_gem_factory_flow("./docs/deliverables/4th/usecase_gem_factory_flow.png", "./docs/deliverables/4th/usecase_gem_factory_flow.svg")
     
-    # Database ERD
+    # Database ERD (Fully expanded with 11 tables including roadmap structures)
     generate_database_erd("./docs/deliverables/4th/database_erd.png", "./docs/deliverables/4th/database_erd.svg")
     
     print(f"All transparent PNGs and SVG Vector files generated successfully!")
