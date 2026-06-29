@@ -1,0 +1,178 @@
+import logging
+from typing import Annotated, AsyncGenerator
+
+from fastapi import Depends
+from langgraph.graph import END, START, StateGraph
+
+from api.v1.chat.multi_agent.nodes.analysis_node import analysis_node
+from api.v1.chat.multi_agent.nodes.paper_node import paper_node
+from api.v1.chat.multi_agent.nodes.web_node import web_node
+# 스트리밍에서는 그래프 대신 작업 에이전트를 직접 호출하므로, nodes 모듈에 이미 만들어진
+# 싱글톤 에이전트를 재사용한다(같은 공유 checkpointer를 쓰므로 대화 연속성 유지 + 메모리 절약).
+from api.v1.chat.multi_agent.nodes.analysis_node import agent as analysis_agent
+from api.v1.chat.multi_agent.nodes.paper_node import agent as paper_agent
+from api.v1.chat.multi_agent.nodes.web_node import agent as web_agent
+from api.v1.chat.multi_agent.state import MultiAgentState
+
+
+# 조건 분기 함수 정의
+def route_fun(state: MultiAgentState) -> str:
+    """분석 결과(route)를 보고 다음 노드를 결정한다. 기본값은 paper."""
+    return "web" if state.get("route") == "web" else "paper"
+
+
+class ChatMultiAgentSupervisor:
+    """슈퍼바이저 멀티 에이전트.
+
+    흐름: START → analysis → (route_fun 분기) → paper_node 또는 web_node → END
+    강사님 sec09 CustomerSupportSupervisor 패턴을 따라 StateGraph로 직접 조립한다.
+    """
+
+    # 초기화 메소드
+    def __init__(self) -> None:
+        self.logger = logging.getLogger(f"{__name__}.ChatMultiAgentSupervisor")
+        # 그래프(작업 흐름) 구성
+        self.build_workflow()
+        # 스트리밍 전용: 라우팅/답변을 직접 호출하기 위해 작업 에이전트 인스턴스를 보유한다.
+        # (nodes 모듈의 싱글톤을 재사용 — 같은 공유 checkpointer로 대화가 연속된다.)
+        self.analysis_agent = analysis_agent
+        self.paper_agent = paper_agent
+        self.web_agent = web_agent
+
+    # 그래프(작업 흐름) 구성 메소드
+    def build_workflow(self):
+        # 그래프 생성
+        graph = StateGraph(MultiAgentState)
+
+        # 그래프에 노드 추가
+        graph.add_node("analysis", analysis_node)
+        graph.add_node("paper_node", paper_node)
+        graph.add_node("web_node", web_node)
+
+        # 그래프에 엣지 추가
+        graph.add_edge(START, "analysis")
+        # 분석 결과로 분기
+        graph.add_conditional_edges(
+            "analysis",
+            route_fun,
+            # { "리턴값": "다음노드" }
+            {
+                "paper": "paper_node",
+                "web": "web_node",
+            },
+        )
+        graph.add_edge("paper_node", END)
+        graph.add_edge("web_node", END)
+
+        # 그래프 컴파일
+        self.work_flow = graph.compile()
+
+    # 에이전트 실행 메소드
+    async def run(self, query: str) -> dict:
+        """질문을 받아 라우팅 후 답변과 출처를 반환한다.
+
+        Returns:
+            dict: {"answer": str, "sources": list[dict], "web_sources": list[dict]}
+        """
+        # 초기 상태 생성
+        initial_state = {
+            "messages": [],
+            "user_query": query,
+            "route": "",
+            "sources": [],
+            "web_sources": [],
+            "final_response": "",
+        }
+        # 그래프 실행
+        final_state = await self.work_flow.ainvoke(initial_state)
+        return {
+            "answer": final_state["final_response"],
+            "sources": final_state.get("sources", []),
+            "web_sources": final_state.get("web_sources", []),
+        }
+
+    # 스트리밍 실행 메소드
+    async def run_stream(
+        self, query: str, conversation_id: str
+    ) -> AsyncGenerator[dict, None]:
+        """라우팅(ainvoke) → 선택된 작업 에이전트 스트리밍(astream)을 하나로 잇는다.
+
+        StateGraph를 통째로 astream하지 않는다(중첩 서브그래프 토큰 추출이 복잡하므로).
+        라우팅은 짧은 분류값이라 스트리밍이 불필요하므로 analysis를 ainvoke로 빠르게 호출해
+        route만 정하고, 답변 토큰만 작업 에이전트의 run_stream으로 흘려보낸다(passthrough).
+        출처는 스트림 종료 후 get_latest_sources(route, conversation_id)로 조회한다.
+
+        yield 이벤트:
+            - {"type": "status", "data": "paper_search"|"web_search"}  (작업 에이전트가 발생)
+            - {"type": "token", "data": <텍스트 조각>}                 (작업 에이전트가 발생)
+            - {"type": "route", "data": "paper"|"web"}                 (스트림 종료 직전 1회)
+        """
+        # 1) 라우팅: analysis를 ainvoke로 빠르게 호출(예외 시 paper로 폴백)
+        try:
+            route_result = await self.analysis_agent.run(query)
+            route = route_result.get("route", "paper")
+        except Exception as e:
+            self.logger.error(f"라우팅 분석 실패, paper로 폴백: {e}")
+            route = "paper"
+        self.logger.info(f"스트리밍 라우팅 결정: route={route}")
+
+        # 2) 분기: route에 따라 작업 에이전트 선택
+        target = self.web_agent if route == "web" else self.paper_agent
+
+        # 3) 답변 토큰 스트리밍 — 작업 에이전트의 이벤트를 그대로 통과시킨다.
+        #    (작업 에이전트 run_stream은 내부에서 예외를 처리해 에러 토큰을 yield한다.)
+        async for event in target.run_stream(query, conversation_id):
+            yield event
+
+        # 4) 최종 route 알림 — 호출자(service)가 어느 에이전트에서 출처를 꺼낼지 결정용.
+        yield {"type": "route", "data": route}
+
+    # 스트림 종료 후 누적 출처 조회
+    async def get_latest_sources(self, route: str, conversation_id: str) -> dict:
+        """route에 따라 해당 작업 에이전트에서 누적된 출처를 꺼내 반환한다.
+
+        Returns:
+            dict: {"sources": list[dict], "web_sources": list[dict]}
+        """
+        if route == "web":
+            return {
+                "sources": [],
+                "web_sources": await self.web_agent.get_latest_web_sources(conversation_id),
+            }
+        return {
+            "sources": await self.paper_agent.get_latest_sources(conversation_id),
+            "web_sources": [],
+        }
+
+    # 공유 checkpointer에서 대화 내역 조회
+    async def get_history(self, conversation_id: str) -> list[dict]:
+        """공유 checkpointer에서 이 방의 대화 내역을 [{role, content}]로 반환한다.
+
+        paper/web 작업 에이전트는 같은 checkpointer·thread_id를 공유하므로, 어느
+        에이전트로 조회해도 동일한 대화가 나온다(paper_agent로 조회). 기존
+        chat_agent.get_history와 동일하게 human/ai 실제 발화만 필터링한다.
+        """
+        agent = await self.paper_agent._ensure_stream_agent()
+        state = await agent.aget_state(
+            {"configurable": {"thread_id": conversation_id}}
+        )
+        messages = state.values.get("messages", []) if state.values else []
+        history = []
+        for msg in messages:
+            msg_type = getattr(msg, "type", None)
+            content = getattr(msg, "content", "")
+            if msg_type == "human":
+                history.append({"role": "user", "content": content})
+            elif msg_type == "ai" and content:
+                # 도구 호출만 있는(content 비어있는) AI 메시지는 제외
+                history.append({"role": "assistant", "content": content})
+        return history
+
+    # 그래프 시각화 메소드 (디버깅)
+    def get_graph_image(self):
+        return self.work_flow.get_graph().draw_mermaid_png()
+
+
+ChatMultiAgentSupervisorDep = Annotated[
+    ChatMultiAgentSupervisor, Depends(ChatMultiAgentSupervisor)
+]
