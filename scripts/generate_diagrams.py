@@ -5,11 +5,10 @@ from PIL import Image, ImageDraw, ImageFont
 # ---------------------------------------------------------
 # High-DPI (Retina/Print-quality) Scale Factor
 # ---------------------------------------------------------
-SCALE = 3  # Render at 3x resolution (e.g., 3600px width)
+SCALE = 3  # Render PNGs at 3x resolution (e.g., 3600px width)
 
 def get_font(size):
     scaled_size = int(size * SCALE)
-    # macOS system fonts supporting Korean
     font_paths = [
         "/System/Library/Fonts/AppleSDGothicNeo.ttc",   # Primary macOS Korean font (Sandeol Gothic)
         "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
@@ -25,11 +24,14 @@ def get_font(size):
     return ImageFont.load_default()
 
 # ---------------------------------------------------------
-# DOCX Friendly Light & Transparent Theme Palette (RGBA)
+# DOCX Friendly Light Theme Palette
 # ---------------------------------------------------------
 GROUP_BG = (248, 250, 252, 255)         # Light Slate background for containers
+GROUP_BG_HEX = "#F8FAFC"
 CARD_BG = (255, 255, 255, 255)          # White background for cards
+CARD_BG_HEX = "#FFFFFF"
 SHADOW_COLOR = (226, 232, 240, 255)     # Very light grey shadow
+SHADOW_COLOR_HEX = "#E2E8F0"
 BORDER_COLOR = "#E2E8F0"                # Boundary border default
 
 TEXT_CARD_TITLE = "#1E293B"     # Slate 800 for card names
@@ -46,6 +48,9 @@ FLOW_GREEN = "#16A34A"          # Green 600
 FLOW_INDIGO = "#4F46E5"         # Indigo 600
 FLOW_TEXT = "#1E293B"
 
+# ---------------------------------------------------------
+# PNG Helpers
+# ---------------------------------------------------------
 def draw_rounded_rect(draw, coords, r, fill, outline=None, width=1):
     x1, y1, x2, y2 = [int(coord * SCALE) for coord in coords]
     scaled_r = int(r * SCALE)
@@ -58,9 +63,7 @@ def draw_shadow_rect(draw, coords, r, fill, outline=None, width=1, shadow_offset
     scaled_width = int(width * SCALE)
     scaled_offset = int(shadow_offset * SCALE)
     
-    # Draw soft light-grey shadow
     draw.rounded_rectangle([x1 + scaled_offset, y1 + scaled_offset, x2 + scaled_offset, y2 + scaled_offset], radius=scaled_r, fill=SHADOW_COLOR)
-    # Draw main card
     draw.rounded_rectangle([x1, y1, x2, y2], radius=scaled_r, fill=fill, outline=outline, width=scaled_width)
 
 def draw_arrow(draw, start, end, color, width=3):
@@ -71,26 +74,78 @@ def draw_arrow(draw, start, end, color, width=3):
     
     angle = math.atan2(y2 - y1, x2 - x1)
     arrow_len = 12 * SCALE
-    # Left wing
     left_x = x2 - arrow_len * math.cos(angle - math.pi / 6)
     left_y = y2 - arrow_len * math.sin(angle - math.pi / 6)
-    # Right wing
     right_x = x2 - arrow_len * math.cos(angle + math.pi / 6)
     right_y = y2 - arrow_len * math.sin(angle + math.pi / 6)
     
     draw.polygon([x2, y2, left_x, left_y, right_x, right_y], fill=color)
 
-def generate_tier1(output_path):
-    # Transparent canvas (RGBA) scaled
+# ---------------------------------------------------------
+# SVG Vector Drawing Helper Class
+# ---------------------------------------------------------
+class SVGBuilder:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.elements = []
+        
+    def add_rect(self, coords, rx=0, fill="none", stroke="none", stroke_width=1, shadow=False, shadow_offset=5):
+        x1, y1, x2, y2 = coords
+        w = x2 - x1
+        h = y2 - y1
+        if shadow:
+            # Add soft vector shadow behind
+            self.elements.append(f'  <rect x="{x1 + shadow_offset}" y="{y1 + shadow_offset}" width="{w}" height="{h}" rx="{rx}" fill="{SHADOW_COLOR_HEX}" />')
+        self.elements.append(f'  <rect x="{x1}" y="{y1}" width="{w}" height="{h}" rx="{rx}" fill="{fill}" stroke="{stroke}" stroke-width="{stroke_width}" />')
+        
+    def add_text(self, coord, text, font_size=14, font_weight="normal", fill="#000000", anchor="start"):
+        x, y = coord
+        lines = text.split('\n')
+        for i, line in enumerate(lines):
+            line_y = y + i * (font_size * 1.4)
+            safe_line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            weight_style = ' font-weight="bold"' if font_weight == "bold" else ''
+            self.elements.append(f'  <text x="{x}" y="{line_y}" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="{font_size}" fill="{fill}" text-anchor="{anchor}"{weight_style}>{safe_line}</text>')
+            
+    def add_arrow(self, start, end, color="#000000", width=2):
+        x1, y1 = start
+        x2, y2 = end
+        self.elements.append(f'  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" stroke-width="{width}" stroke-linecap="round" />')
+        
+        angle = math.atan2(y2 - y1, x2 - x1)
+        arrow_len = 12
+        left_x = x2 - arrow_len * math.cos(angle - math.pi / 6)
+        left_y = y2 - arrow_len * math.sin(angle - math.pi / 6)
+        right_x = x2 - arrow_len * math.cos(angle + math.pi / 6)
+        right_y = y2 - arrow_len * math.sin(angle + math.pi / 6)
+        
+        self.elements.append(f'  <polygon points="{x2},{y2} {left_x},{left_y} {right_x},{right_y}" fill="{color}" />')
+        
+    def save(self, file_path):
+        xml = [
+            '<?xml version="1.0" encoding="UTF-8" standalone="no"?>',
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.width}" height="{self.height}" viewBox="0 0 {self.width} {self.height}">',
+            '  <!-- Transparent Background -->',
+            '  <rect width="100%" height="100%" fill="none" />'
+        ]
+        xml.extend(self.elements)
+        xml.append('</svg>')
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(xml))
+
+# ---------------------------------------------------------
+# Tier 1 Drawings
+# ---------------------------------------------------------
+def generate_tier1(output_png, output_svg):
+    # --- 1. Generate PNG (3x High-DPI) ---
     img = Image.new("RGBA", (1200 * SCALE, 600 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
-    # Fonts (Scaled automatically in get_font)
     card_title_font = get_font(20)
     card_body_font = get_font(14)
     flow_font = get_font(16)
     
-    # LEFT Box: Frontend Tier
     draw_rounded_rect(draw, (80, 30, 520, 570), 12, fill=GROUP_BG, outline=ACCENT_SKY, width=2)
     draw.text((110 * SCALE, 50 * SCALE), "Frontend Tier (Next.js & Bootstrap 5)", fill=ACCENT_SKY, font=card_title_font)
     
@@ -108,7 +163,6 @@ def generate_tier1(output_path):
         draw.text((130 * SCALE, (y + 45) * SCALE), desc, fill=TEXT_CARD_BODY, font=card_body_font)
         y += 115
         
-    # RIGHT Box: Application Tier
     draw_rounded_rect(draw, (680, 30, 1120, 570), 12, fill=GROUP_BG, outline=ACCENT_PURPLE, width=2)
     draw.text((710 * SCALE, 50 * SCALE), "Application Tier (FastAPI & Auth)", fill=ACCENT_PURPLE, font=card_title_font)
     
@@ -124,7 +178,6 @@ def generate_tier1(output_path):
         draw.text((730 * SCALE, (y + 55) * SCALE), desc, fill=TEXT_CARD_BODY, font=card_body_font)
         y += 180
         
-    # Flows and Arrows
     draw_arrow(draw, (490, 390), (710, 200), color=FLOW_RED, width=3)
     draw.text((515 * SCALE, 250 * SCALE), "1. Bearer JWT Requests", fill=FLOW_RED, font=flow_font)
     
@@ -134,9 +187,46 @@ def generate_tier1(output_path):
     draw_arrow(draw, (710, 400), (490, 505), color=FLOW_INDIGO, width=3)
     draw.text((505 * SCALE, 465 * SCALE), "3. Server-Sent Events", fill=FLOW_INDIGO, font=flow_font)
     
-    img.save(output_path)
+    img.save(output_png)
 
-def generate_tier2(output_path):
+    # --- 2. Generate SVG (Scalable Vector) ---
+    svg = SVGBuilder(1200, 600)
+    svg.add_rect((80, 30, 520, 570), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_SKY, stroke_width=2)
+    svg.add_text((110, 50), "Frontend Tier (Next.js & Bootstrap 5)", font_size=20, font_weight="bold", fill=ACCENT_SKY)
+    
+    y = 100
+    for title, desc in cards_fe:
+        svg.add_rect((110, y, 490, y + 100), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+        svg.add_text((130, y + 15), title, font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
+        svg.add_text((130, y + 45), desc, font_size=14, fill=TEXT_CARD_BODY)
+        y += 115
+        
+    svg.add_rect((680, 30, 1120, 570), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=2)
+    svg.add_text((710, 50), "Application Tier (FastAPI & Auth)", font_size=20, font_weight="bold", fill=ACCENT_PURPLE)
+    
+    y = 140
+    for title, desc in cards_app:
+        svg.add_rect((710, y, 1090, y + 120), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+        svg.add_text((730, y + 20), title, font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
+        svg.add_text((730, y + 55), desc, font_size=14, fill=TEXT_CARD_BODY)
+        y += 180
+        
+    svg.add_arrow((490, 390), (710, 200), color=FLOW_RED, width=3)
+    svg.add_text((515, 250), "1. Bearer JWT Requests", font_size=16, fill=FLOW_RED)
+    
+    svg.add_arrow((900, 260), (900, 320), color=FLOW_GREEN, width=3)
+    svg.add_text((920, 280), "2. Pass Authorized", font_size=16, fill=FLOW_GREEN)
+    
+    svg.add_arrow((710, 400), (490, 505), color=FLOW_INDIGO, width=3)
+    svg.add_text((505, 465), "3. Server-Sent Events", font_size=16, fill=FLOW_INDIGO)
+    
+    svg.save(output_svg)
+
+
+# ---------------------------------------------------------
+# Tier 2 Drawings
+# ---------------------------------------------------------
+def generate_tier2(output_png, output_svg):
     img = Image.new("RGBA", (1200 * SCALE, 600 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -181,9 +271,54 @@ def generate_tier2(output_path):
     draw_arrow(draw, (1170, 310), (1240, 310), color=FLOW_RED, width=3)
     draw.text((1180 * SCALE, 280 * SCALE), "Yield", fill=FLOW_RED, font=flow_font)
     
-    img.save(output_path)
+    img.save(output_png)
 
-def generate_tier3(output_path):
+    # --- SVG ---
+    svg = SVGBuilder(1200, 600)
+    svg.add_rect((120, 30, 1080, 570), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=2)
+    svg.add_text((150, 55), "LangGraph Multi-Agent Engine (Shared State: MultiAgentState)", font_size=20, font_weight="bold", fill=ACCENT_PURPLE)
+    
+    svg.add_rect((180, 250, 430, 370), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((200, 265), "AnalysisNode", font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((200, 300), "Intent Analysis &\nDual Query Optimizer", font_size=14, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((550, 110, 800, 230), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((570, 125), "PaperNode", font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((570, 160), "pgvector RAG Search\nwith Cos Similarity Guard", font_size=14, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((550, 390, 800, 510), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((570, 405), "WebNode", font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((570, 440), "Tavily Web Search API\nReal-time Market News", font_size=14, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((920, 250, 1170, 370), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_SKY, stroke_width=1, shadow=True)
+    svg.add_text((940, 265), "SynthesisNode", font_size=20, font_weight="bold", fill=ACCENT_SKY)
+    svg.add_text((940, 300), "Cross-Reference\nJoins & Final Synthesis", font_size=14, fill=TEXT_CARD_BODY)
+    
+    svg.add_arrow((60, 310), (180, 310), color=FLOW_GREEN, width=3)
+    svg.add_text((75, 280), "User Query", font_size=16, fill=FLOW_GREEN)
+    
+    svg.add_arrow((430, 280), (550, 170), color=FLOW_INDIGO, width=3)
+    svg.add_text((435, 185), "Parallel Broadcast", font_size=16, fill=FLOW_INDIGO)
+    
+    svg.add_arrow((430, 340), (550, 450), color=FLOW_INDIGO, width=3)
+    svg.add_text((435, 420), "Parallel Broadcast", font_size=16, fill=FLOW_INDIGO)
+    
+    svg.add_arrow((800, 170), (920, 280), color=ACCENT_PURPLE, width=3)
+    svg.add_text((820, 185), "Merge Context", font_size=16, fill=ACCENT_PURPLE)
+    
+    svg.add_arrow((800, 450), (920, 340), color=ACCENT_PURPLE, width=3)
+    svg.add_text((820, 420), "Merge Context", font_size=16, fill=ACCENT_PURPLE)
+    
+    svg.add_arrow((1170, 310), (1240, 310), color=FLOW_RED, width=3)
+    svg.add_text((1180, 280), "Yield", font_size=16, fill=FLOW_RED)
+    
+    svg.save(output_svg)
+
+
+# ---------------------------------------------------------
+# Tier 3 Drawings
+# ---------------------------------------------------------
+def generate_tier3(output_png, output_svg):
     img = Image.new("RGBA", (1200 * SCALE, 600 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -236,9 +371,49 @@ def generate_tier3(output_path):
     draw_arrow(draw, (450, 460), (750, 465), color=ACCENT_EMERALD, width=2)
     draw.text((485 * SCALE, 440 * SCALE), "Citation Cache Hits", fill=ACCENT_EMERALD, font=flow_font)
     
-    img.save(output_path)
+    img.save(output_png)
 
-def generate_physical_structure(output_path):
+    # --- SVG ---
+    svg = SVGBuilder(1200, 600)
+    svg.add_rect((80, 30, 480, 570), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=2)
+    svg.add_text((110, 50), "Application Services (FastAPI)", font_size=20, font_weight="bold", fill=ACCENT_PURPLE)
+    
+    y = 110
+    for title, desc in app_services:
+        svg.add_rect((110, y, 450, y + 100), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+        svg.add_text((130, y + 15), title, font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
+        svg.add_text((130, y + 45), desc, font_size=14, fill=TEXT_CARD_BODY)
+        y += 150
+        
+    svg.add_rect((720, 30, 1120, 570), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_EMERALD, stroke_width=2)
+    svg.add_text((750, 50), "Database & Cache (Storage Tier)", font_size=20, font_weight="bold", fill=ACCENT_EMERALD)
+    
+    y = 100
+    for title, desc in db_services:
+        svg.add_rect((750, y, 1090, y + 90), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+        svg.add_text((770, y + 12), title, font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
+        svg.add_text((770, y + 40), desc, font_size=14, fill=TEXT_CARD_BODY)
+        y += 115
+        
+    svg.add_arrow((450, 160), (750, 350), color=FLOW_INDIGO, width=2)
+    svg.add_text((470, 230), "Checkpoints (thread_id)", font_size=16, fill=FLOW_INDIGO)
+    
+    svg.add_arrow((450, 180), (750, 235), color=FLOW_RED, width=2)
+    svg.add_text((490, 190), "Cosine Similarity Search", font_size=16, fill=FLOW_RED)
+    
+    svg.add_arrow((450, 310), (750, 145), color=ACCENT_PURPLE, width=2)
+    svg.add_text((490, 310), "Task Progress & Translation", font_size=16, fill=ACCENT_PURPLE)
+    
+    svg.add_arrow((450, 460), (750, 465), color=ACCENT_EMERALD, width=2)
+    svg.add_text((485, 440), "Citation Cache Hits", font_size=16, fill=ACCENT_EMERALD)
+    
+    svg.save(output_svg)
+
+
+# ---------------------------------------------------------
+# Physical Structure Drawings
+# ---------------------------------------------------------
+def generate_physical_structure(output_png, output_svg):
     img = Image.new("RGBA", (1200 * SCALE, 420 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -285,9 +460,50 @@ def generate_physical_structure(output_path):
     draw_arrow(draw, (460, 280), (380, 280), color=FLOW_GREEN, width=3)
     draw.text((392 * SCALE, 290 * SCALE), "SSE Stream", fill=FLOW_TEXT, font=flow_font)
     
-    img.save(output_path)
+    img.save(output_png)
 
-def generate_agent_workflow(output_path):
+    # --- SVG ---
+    svg = SVGBuilder(1200, 420)
+    svg.add_rect((50, 20, 380, 400), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_SKY, stroke_width=2)
+    svg.add_text((70, 40), "Frontend Tier (Next.js)", font_size=18, font_weight="bold", fill=ACCENT_SKY)
+    svg.add_rect((70, 90, 360, 370), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((90, 110), "• 반응형 대시보드 UI", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((90, 140), "Bootstrap 5 컴포넌트 기반 구조화\n모바일/데스크톱 최적화 레이아웃", font_size=13, fill=TEXT_CARD_BODY)
+    svg.add_text((90, 210), "• SSE 실시간 렌더링", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((90, 240), "EventSource 수신부 구현\n비동기 완료 알림 및 토큰 스트리밍", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((460, 20, 790, 400), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=2)
+    svg.add_text((480, 40), "Application Tier (FastAPI)", font_size=18, font_weight="bold", fill=ACCENT_PURPLE)
+    svg.add_rect((480, 90, 770, 370), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((500, 110), "• 에이전트 오케스트레이션", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((500, 140), "LangGraph 다중 에이전트 엔진 구동\n사용자 정의 페르소나 (Gem) 빌드", font_size=13, fill=TEXT_CARD_BODY)
+    svg.add_text((500, 210), "• 비동기 백그라운드 처리", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((500, 240), "FastAPI BackgroundTasks 연동\n대규모 문헌분석 오프로딩 구조", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((870, 20, 1150, 400), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_EMERALD, stroke_width=2)
+    svg.add_text((890, 40), "Data Store Tier (Postgres)", font_size=18, font_weight="bold", fill=ACCENT_EMERALD)
+    svg.add_rect((890, 90, 1130, 370), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((910, 110), "• PostgreSQL 17", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((910, 140), "관계형 메타 및 대화기록 보존\nPostgresSaver checkpointer 탑재", font_size=13, fill=TEXT_CARD_BODY)
+    svg.add_text((910, 210), "• pgvector 벡터 엔진", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((910, 240), "3072차원 HNSW 인덱싱\nGem별 동적 RAG 격리 컬렉션", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_arrow((380, 160), (460, 160), color=FLOW_INDIGO, width=3)
+    svg.add_text((395, 135), "API Request", font_size=14, fill=FLOW_TEXT)
+    
+    svg.add_arrow((790, 160), (870, 160), color=FLOW_RED, width=3)
+    svg.add_text((805, 135), "SQL / Query", font_size=14, fill=FLOW_TEXT)
+    
+    svg.add_arrow((460, 280), (380, 280), color=FLOW_GREEN, width=3)
+    svg.add_text((392, 290), "SSE Stream", font_size=14, fill=FLOW_TEXT)
+    
+    svg.save(output_svg)
+
+
+# ---------------------------------------------------------
+# Agent Workflow Drawings
+# ---------------------------------------------------------
+def generate_agent_workflow(output_png, output_svg):
     img = Image.new("RGBA", (1200 * SCALE, 500 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -333,9 +549,54 @@ def generate_agent_workflow(output_path):
     draw_arrow(draw, (600, 330), (600, 150), color=FLOW_RED, width=2)
     draw.text((615 * SCALE, 240 * SCALE), "State Load/Save", fill=FLOW_RED, font=flow_font)
 
-    img.save(output_path)
+    img.save(output_png)
 
-def generate_usecase_hubs_rag_flow(output_path):
+    # --- SVG ---
+    svg = SVGBuilder(1200, 500)
+    svg.add_rect((60, 110, 220, 190), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((80, 130), "User Query", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((80, 160), "자연어 질의 수신", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((290, 90, 520, 210), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=1, shadow=True)
+    svg.add_text((310, 110), "AnalysisNode", font_size=18, font_weight="bold", fill=ACCENT_PURPLE)
+    svg.add_text((310, 140), "의도 분석 & 키워드 최적화\n(gpt-4o-mini 기용)", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((620, 20, 840, 130), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((640, 40), "PaperNode", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((640, 70), "pgvector RAG 검색\n(Cos 유사도 0.35 필터)", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((620, 170, 840, 280), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
+    svg.add_text((640, 190), "WebNode", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((640, 220), "Tavily Web Search API\n실시간 동향 수집", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((940, 90, 1160, 210), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_SKY, stroke_width=1, shadow=True)
+    svg.add_text((960, 110), "SynthesisNode", font_size=18, font_weight="bold", fill=ACCENT_SKY)
+    svg.add_text((960, 140), "크로스 레퍼런스 합성\n(gpt-4o 고성능 종합)", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_rect((440, 330, 760, 430), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_EMERALD, stroke_width=1, shadow=True)
+    svg.add_text((460, 350), "PostgresSaver (Checkpointer)", font_size=18, font_weight="bold", fill=ACCENT_EMERALD)
+    svg.add_text((460, 380), "스레드별 대화 히스토리 DB 자동 백업\n(상태전이 간 대화 맥락 영구 유지)", font_size=13, fill=TEXT_CARD_BODY)
+    
+    svg.add_arrow((220, 150), (290, 150), color=FLOW_GREEN, width=2)
+    svg.add_arrow((520, 130), (620, 75), color=FLOW_INDIGO, width=2)
+    svg.add_arrow((520, 170), (620, 225), color=FLOW_INDIGO, width=2)
+    
+    svg.add_arrow((840, 75), (940, 130), color=FLOW_INDIGO, width=2)
+    svg.add_text((850, 85), "Merge", font_size=14, fill=FLOW_TEXT)
+    svg.add_arrow((840, 225), (940, 170), color=FLOW_INDIGO, width=2)
+    svg.add_text((850, 200), "Merge", font_size=14, fill=FLOW_TEXT)
+    
+    svg.add_arrow((730, 150), (730, 330), color=FLOW_RED, width=2)
+    svg.add_arrow((600, 330), (600, 150), color=FLOW_RED, width=2)
+    svg.add_text((615, 240), "State Load/Save", font_size=14, fill=FLOW_RED)
+    
+    svg.save(output_svg)
+
+
+# ---------------------------------------------------------
+# UC-01 Flow Drawings
+# ---------------------------------------------------------
+def generate_usecase_hubs_rag_flow(output_png, output_svg):
     img = Image.new("RGBA", (1200 * SCALE, 300 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -371,9 +632,27 @@ def generate_usecase_hubs_rag_flow(output_path):
             arrow_end = (x + card_width + spacing, y + card_height // 2)
             draw_arrow(draw, arrow_start, arrow_end, color=FLOW_GREEN, width=2)
             
-    img.save(output_path)
+    img.save(output_png)
 
-def generate_usecase_gap_analysis_flow(output_path):
+    # --- SVG ---
+    svg = SVGBuilder(1200, 300)
+    for i, (step, title, desc) in enumerate(steps):
+        x = start_x + i * (card_width + spacing)
+        accent = ACCENT_SKY if i % 2 == 0 else ACCENT_PURPLE
+        svg.add_rect((x, y, x + card_width, y + card_height), rx=8, fill=CARD_BG_HEX, stroke=accent, stroke_width=2, shadow=True)
+        svg.add_text((x + 15, y + 15), step, font_size=15, font_weight="bold", fill=accent)
+        svg.add_text((x + 15, y + 40), title, font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+        svg.add_text((x + 15, y + 80), desc, font_size=13, fill=TEXT_CARD_BODY)
+        
+        if i < len(steps) - 1:
+            svg.add_arrow((x + card_width, y + card_height // 2), (x + card_width + spacing, y + card_height // 2), color=FLOW_GREEN, width=2)
+    svg.save(output_svg)
+
+
+# ---------------------------------------------------------
+# UC-02 Flow Drawings
+# ---------------------------------------------------------
+def generate_usecase_gap_analysis_flow(output_png, output_svg):
     img = Image.new("RGBA", (1200 * SCALE, 300 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -410,9 +689,27 @@ def generate_usecase_gap_analysis_flow(output_path):
             arrow_end = (x + card_width + spacing, y + card_height // 2)
             draw_arrow(draw, arrow_start, arrow_end, color=FLOW_INDIGO, width=2)
             
-    img.save(output_path)
+    img.save(output_png)
 
-def generate_usecase_arena_defense_flow(output_path):
+    # --- SVG ---
+    svg = SVGBuilder(1200, 300)
+    for i, (step, title, desc) in enumerate(steps):
+        x = start_x + i * (card_width + spacing)
+        accent = ACCENT_EMERALD if i % 2 == 0 else ACCENT_PURPLE
+        svg.add_rect((x, y, x + card_width, y + card_height), rx=8, fill=CARD_BG_HEX, stroke=accent, stroke_width=2, shadow=True)
+        svg.add_text((x + 12, y + 15), step, font_size=14, font_weight="bold", fill=accent)
+        svg.add_text((x + 12, y + 40), title, font_size=17, font_weight="bold", fill=TEXT_CARD_TITLE)
+        svg.add_text((x + 12, y + 80), desc, font_size=12, fill=TEXT_CARD_BODY)
+        
+        if i < len(steps) - 1:
+            svg.add_arrow((x + card_width, y + card_height // 2), (x + card_width + spacing, y + card_height // 2), color=FLOW_INDIGO, width=2)
+    svg.save(output_svg)
+
+
+# ---------------------------------------------------------
+# UC-03 Flow Drawings
+# ---------------------------------------------------------
+def generate_usecase_arena_defense_flow(output_png, output_svg):
     img = Image.new("RGBA", (1200 * SCALE, 300 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -448,9 +745,27 @@ def generate_usecase_arena_defense_flow(output_path):
             arrow_end = (x + card_width + spacing, y + card_height // 2)
             draw_arrow(draw, arrow_start, arrow_end, color=FLOW_RED, width=2)
             
-    img.save(output_path)
+    img.save(output_png)
 
-def generate_usecase_gem_factory_flow(output_path):
+    # --- SVG ---
+    svg = SVGBuilder(1200, 300)
+    for i, (step, title, desc) in enumerate(steps):
+        x = start_x + i * (card_width + spacing)
+        accent = ACCENT_EMERALD if i % 2 == 0 else ACCENT_SKY
+        svg.add_rect((x, y, x + card_width, y + card_height), rx=8, fill=CARD_BG_HEX, stroke=accent, stroke_width=2, shadow=True)
+        svg.add_text((x + 15, y + 15), step, font_size=15, font_weight="bold", fill=accent)
+        svg.add_text((x + 15, y + 40), title, font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+        svg.add_text((x + 15, y + 80), desc, font_size=13, fill=TEXT_CARD_BODY)
+        
+        if i < len(steps) - 1:
+            svg.add_arrow((x + card_width, y + card_height // 2), (x + card_width + spacing, y + card_height // 2), color=FLOW_RED, width=2)
+    svg.save(output_svg)
+
+
+# ---------------------------------------------------------
+# UC-04 Flow Drawings
+# ---------------------------------------------------------
+def generate_usecase_gem_factory_flow(output_png, output_svg):
     img = Image.new("RGBA", (1200 * SCALE, 300 * SCALE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -485,24 +800,39 @@ def generate_usecase_gem_factory_flow(output_path):
             arrow_end = (x + card_width + spacing, y + card_height // 2)
             draw_arrow(draw, arrow_start, arrow_end, color=FLOW_INDIGO, width=2)
             
-    img.save(output_path)
+    img.save(output_png)
+
+    # --- SVG ---
+    svg = SVGBuilder(1200, 300)
+    for i, (step, title, desc) in enumerate(steps):
+        x = start_x + i * (card_width + spacing)
+        accent = ACCENT_PURPLE if i % 2 == 0 else ACCENT_EMERALD
+        svg.add_rect((x, y, x + card_width, y + card_height), rx=8, fill=CARD_BG_HEX, stroke=accent, stroke_width=2, shadow=True)
+        svg.add_text((x + 18, y + 15), step, font_size=15, font_weight="bold", fill=accent)
+        svg.add_text((x + 18, y + 40), title, font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
+        svg.add_text((x + 18, y + 80), desc, font_size=13, fill=TEXT_CARD_BODY)
+        
+        if i < len(steps) - 1:
+            svg.add_arrow((x + card_width, y + card_height // 2), (x + card_width + spacing, y + card_height // 2), color=FLOW_INDIGO, width=2)
+    svg.save(output_svg)
+
 
 if __name__ == "__main__":
     os.makedirs("./docs/deliverables/4th", exist_ok=True)
     
     # 3-Tier System Architecture
-    generate_tier1("./docs/deliverables/4th/system_architecture_tier1.png")
-    generate_tier2("./docs/deliverables/4th/system_architecture_tier2.png")
-    generate_tier3("./docs/deliverables/4th/system_architecture_tier3.png")
+    generate_tier1("./docs/deliverables/4th/system_architecture_tier1.png", "./docs/deliverables/4th/system_architecture_tier1.svg")
+    generate_tier2("./docs/deliverables/4th/system_architecture_tier2.png", "./docs/deliverables/4th/system_architecture_tier2.svg")
+    generate_tier3("./docs/deliverables/4th/system_architecture_tier3.png", "./docs/deliverables/4th/system_architecture_tier3.svg")
     
     # Physical Structure & Agent Workflow
-    generate_physical_structure("./docs/deliverables/4th/physical_system_structure.png")
-    generate_agent_workflow("./docs/deliverables/4th/ai_agent_workflow.png")
+    generate_physical_structure("./docs/deliverables/4th/physical_system_structure.png", "./docs/deliverables/4th/physical_system_structure.svg")
+    generate_agent_workflow("./docs/deliverables/4th/ai_agent_workflow.png", "./docs/deliverables/4th/ai_agent_workflow.svg")
     
     # Use Case Flows
-    generate_usecase_hubs_rag_flow("./docs/deliverables/4th/usecase_hubs_rag_flow.png")
-    generate_usecase_gap_analysis_flow("./docs/deliverables/4th/usecase_gap_analysis_flow.png")
-    generate_usecase_arena_defense_flow("./docs/deliverables/4th/usecase_arena_defense_flow.png")
-    generate_usecase_gem_factory_flow("./docs/deliverables/4th/usecase_gem_factory_flow.png")
+    generate_usecase_hubs_rag_flow("./docs/deliverables/4th/usecase_hubs_rag_flow.png", "./docs/deliverables/4th/usecase_hubs_rag_flow.svg")
+    generate_usecase_gap_analysis_flow("./docs/deliverables/4th/usecase_gap_analysis_flow.png", "./docs/deliverables/4th/usecase_gap_analysis_flow.svg")
+    generate_usecase_arena_defense_flow("./docs/deliverables/4th/usecase_arena_defense_flow.png", "./docs/deliverables/4th/usecase_arena_defense_flow.svg")
+    generate_usecase_gem_factory_flow("./docs/deliverables/4th/usecase_gem_factory_flow.png", "./docs/deliverables/4th/usecase_gem_factory_flow.svg")
     
-    print(f"All transparent diagrams generated successfully at {SCALE}x resolution (3600px width)!")
+    print(f"All transparent PNGs and SVG Vector files generated successfully!")

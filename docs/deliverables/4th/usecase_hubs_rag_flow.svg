@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300">
+  <!-- Transparent Background -->
+  <rect width="100%" height="100%" fill="none" />
+  <rect x="55" y="45" width="190" height="220" rx="8" fill="#E2E8F0" />
+  <rect x="50" y="40" width="190" height="220" rx="8" fill="#FFFFFF" stroke="#0284C7" stroke-width="2" />
+  <text x="65" y="55.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="15" fill="#0284C7" text-anchor="start" font-weight="bold">Step 01</text>
+  <text x="65" y="80.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">한글 질문 입력</text>
+  <text x="65" y="120.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">사용자가 의문이 제기된</text>
+  <text x="65" y="138.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">학술 분야 및 신기술 관련</text>
+  <text x="65" y="156.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">한글 질문을 창에 입력</text>
+  <line x1="240" y1="150" x2="280" y2="150" stroke="#16A34A" stroke-width="2" stroke-linecap="round" />
+  <polygon points="280,150 269.60769515458674,156.0 269.60769515458674,144.0" fill="#16A34A" />
+  <rect x="285" y="45" width="190" height="220" rx="8" fill="#E2E8F0" />
+  <rect x="280" y="40" width="190" height="220" rx="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2" />
+  <text x="295" y="55.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="15" fill="#7C3AED" text-anchor="start" font-weight="bold">Step 02</text>
+  <text x="295" y="80.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">쿼리 최적화 분해</text>
+  <text x="295" y="120.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">AnalysisNode 가 가동되어</text>
+  <text x="295" y="138.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">학술 RAG용 영어 키워드와</text>
+  <text x="295" y="156.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">실시간 Web 검색어 동시 추출</text>
+  <line x1="470" y1="150" x2="510" y2="150" stroke="#16A34A" stroke-width="2" stroke-linecap="round" />
+  <polygon points="510,150 499.60769515458674,156.0 499.60769515458674,144.0" fill="#16A34A" />
+  <rect x="515" y="45" width="190" height="220" rx="8" fill="#E2E8F0" />
+  <rect x="510" y="40" width="190" height="220" rx="8" fill="#FFFFFF" stroke="#0284C7" stroke-width="2" />
+  <text x="525" y="55.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="15" fill="#0284C7" text-anchor="start" font-weight="bold">Step 03</text>
+  <text x="525" y="80.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">병렬 RAG 타격</text>
+  <text x="525" y="120.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">asyncio.gather 에 의해</text>
+  <text x="525" y="138.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">paper_node 와 web_node 가</text>
+  <text x="525" y="156.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">비동기 병렬 방식으로 동시 실행</text>
+  <line x1="700" y1="150" x2="740" y2="150" stroke="#16A34A" stroke-width="2" stroke-linecap="round" />
+  <polygon points="740,150 729.6076951545867,156.0 729.6076951545867,144.0" fill="#16A34A" />
+  <rect x="745" y="45" width="190" height="220" rx="8" fill="#E2E8F0" />
+  <rect x="740" y="40" width="190" height="220" rx="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2" />
+  <text x="755" y="55.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="15" fill="#7C3AED" text-anchor="start" font-weight="bold">Step 04</text>
+  <text x="755" y="80.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">지식 크로스 융합</text>
+  <text x="755" y="120.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">SynthesisNode 가 논문 이론과</text>
+  <text x="755" y="138.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">실시간 웹 동향 지식을 결합해</text>
+  <text x="755" y="156.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">인라인 인용이 담긴 리포트 합성</text>
+  <line x1="930" y1="150" x2="970" y2="150" stroke="#16A34A" stroke-width="2" stroke-linecap="round" />
+  <polygon points="970,150 959.6076951545867,156.0 959.6076951545867,144.0" fill="#16A34A" />
+  <rect x="975" y="45" width="190" height="220" rx="8" fill="#E2E8F0" />
+  <rect x="970" y="40" width="190" height="220" rx="8" fill="#FFFFFF" stroke="#0284C7" stroke-width="2" />
+  <text x="985" y="55.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="15" fill="#0284C7" text-anchor="start" font-weight="bold">Step 05</text>
+  <text x="985" y="80.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">실시간 스트리밍</text>
+  <text x="985" y="120.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">완성된 리포트를 실시간 토큰</text>
+  <text x="985" y="138.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">스트리밍으로 화면 출력 및</text>
+  <text x="985" y="156.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="13" fill="#516075" text-anchor="start">출처와 후속 질문 정보 DB 적재</text>
+</svg>
