@@ -7,6 +7,8 @@ from langgraph.graph import END, START, StateGraph
 from api.v1.chat.multi_agent.nodes.analysis_node import analysis_node
 from api.v1.chat.multi_agent.nodes.paper_node import paper_node
 from api.v1.chat.multi_agent.nodes.web_node import web_node
+from api.v1.chat.multi_agent.nodes.gather_node import gather_node
+from api.v1.chat.multi_agent.nodes.synthesis_node import synthesis_node
 # 스트리밍에서는 그래프 대신 작업 에이전트를 직접 호출하므로, nodes 모듈에 이미 만들어진
 # 싱글톤 에이전트를 재사용한다(같은 공유 checkpointer를 쓰므로 대화 연속성 유지 + 메모리 절약).
 from api.v1.chat.multi_agent.nodes.analysis_node import agent as analysis_agent
@@ -22,10 +24,11 @@ def route_fun(state: MultiAgentState) -> str:
 
 
 class ChatMultiAgentSupervisor:
-    """슈퍼바이저 멀티 에이전트.
+    """슈퍼바이저 멀티 에이전트(팬아웃 + 종합).
 
-    흐름: START → analysis → (route_fun 분기) → paper_node 또는 web_node → END
-    강사님 sec09 CustomerSupportSupervisor 패턴을 따라 StateGraph로 직접 조립한다.
+    흐름: START → (paper_node ∥ web_node 병렬) → gather → synthesis → END
+    논문·웹 두 에이전트를 병렬로 호출한 뒤, 둘의 답변을 종합(synthesis)해 하나의
+    답변을 만든다(퍼플렉시티 스타일). 강사님 sec09 팬아웃+취합 패턴을 따른다.
     """
 
     # 초기화 메소드
@@ -39,9 +42,40 @@ class ChatMultiAgentSupervisor:
         self.paper_agent = paper_agent
         self.web_agent = web_agent
 
-    # 그래프(작업 흐름) 구성 메소드
+    # 그래프(작업 흐름) 구성 메소드 — 팬아웃 + 종합(현재 활성)
     def build_workflow(self):
-        """StateGraph를 생성하고 노드와 엣지를 추가하여 컴파일한다."""
+        """StateGraph를 팬아웃(논문∥웹) + 종합 구조로 구성해 컴파일한다.
+
+        흐름: START → (paper_node ∥ web_node) → gather → synthesis → END
+        - START에서 paper_node·web_node로 동시에 엣지를 그어 병렬 실행한다.
+        - 두 노드가 같은 gather로 엣지를 그어, 둘 다 끝날 때까지 대기 후 진행한다.
+        """
+        # 그래프 생성
+        graph = StateGraph(MultiAgentState)
+
+        # 그래프에 노드 추가
+        graph.add_node("paper_node", paper_node)
+        graph.add_node("web_node", web_node)
+        graph.add_node("gather", gather_node)
+        graph.add_node("synthesis", synthesis_node)
+
+        # 그래프에 엣지 추가
+        graph.add_edge(START, "paper_node")   # 병렬 분기
+        graph.add_edge(START, "web_node")
+        graph.add_edge("paper_node", "gather")  # 병렬 완료 대기
+        graph.add_edge("web_node", "gather")
+        graph.add_edge("gather", "synthesis")
+        graph.add_edge("synthesis", END)
+
+        # 그래프 컴파일
+        self.work_flow = graph.compile()
+
+    # 그래프(작업 흐름) 구성 메소드 — 기존 라우팅 버전(보존, 비활성)
+    def _build_workflow_routing(self):
+        """[보존] 라우팅 버전 그래프. 되돌릴 때 대비해 남겨둔다(현재 미사용).
+
+        흐름: START → analysis → (route_fun 분기) → paper_node 또는 web_node → END
+        """
         # 그래프 생성
         graph = StateGraph(MultiAgentState)
 
@@ -70,7 +104,7 @@ class ChatMultiAgentSupervisor:
 
     # 에이전트 실행 메소드
     async def run(self, query: str) -> dict:
-        """질문을 받아 라우팅 후 답변과 출처를 반환한다.
+        """질문을 받아 논문·웹 병렬 호출 후 종합한 답변과 출처를 반환한다.
 
         Returns:
             dict: {"answer": str, "sources": list[dict], "web_sources": list[dict]}
@@ -82,6 +116,8 @@ class ChatMultiAgentSupervisor:
             "route": "",
             "sources": [],
             "web_sources": [],
+            "paper_answer": "",
+            "web_answer": "",
             "final_response": "",
         }
         # 그래프 실행
