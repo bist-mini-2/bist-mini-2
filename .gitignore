@@ -57,6 +57,13 @@ docs/langchain-v5.pptx.pdf
 # =============================================================================
 # Local Dataset Storage (Do not commit large raw files)
 # =============================================================================
-/data/
+/data/*
+!/data/astro.pdf
 models/
 *.gguf
+
+# =============================================================================
+# Temporary Sandbox Storage (Feature 4 Uploads)
+# =============================================================================
+/backend/uploads/
+/frontend/dist-electron/

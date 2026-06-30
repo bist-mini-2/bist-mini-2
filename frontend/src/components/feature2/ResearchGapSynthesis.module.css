@@ -1,0 +1,67 @@
+.monoBadge {
+  font-family: var(--mono-font), monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  box-sizing: border-box;
+}
+
+.recommendedTopicCard {
+  border-left: 3px solid var(--accent-color);
+  background-color: var(--card-bg);
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border-top: 1px solid var(--card-border);
+  border-right: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 12px;
+}
+
+.listUnstyled {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.listIcon {
+  font-size: inherit; /* Ensure it matches the text font-size exactly */
+  align-self: flex-start;
+  margin-top: 0.08em; /* Adjusted specifically for exclamation circle vertical visual alignment */
+}
+
+.iconWarning {
+  color: #c98a2e; /* Muted warning amber matching status badge */
+}
+
+.recommendedTopicTitle {
+  color: var(--foreground);
+}
+
+.recommendedTopicDescription {
+  color: var(--menu-item-color);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

@@ -1,5 +1,10 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Build paths inside the project (backend/.env)
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ENV_FILE_PATH = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -19,16 +24,32 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 24 * 60  # 24 hours (1440 minutes)
 
     # Database Configuration
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@kosa165.iptime.org:50003/postgres"
 
+    # OpenAI API Key Configuration
+    OPENAI_API_KEY: str = ""
+    # 웹검색 API Key
+    TAVILY_API_KEY: str = ""
     # Automatically load from .env file if it exists
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_FILE_PATH,
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    @property
+    def PGVECTOR_URL(self) -> str:
+        """PGVector(psycopg_async) 연결 문자열 — DATABASE_URL에서 드라이버만 교체"""
+        return self.DATABASE_URL.replace(
+            "postgresql+asyncpg://", "postgresql+psycopg_async://"
+        )
 
 
 # Instantiate settings to be imported elsewhere
 settings = Settings()
 
+if settings.OPENAI_API_KEY:
+    os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
+
+if settings.TAVILY_API_KEY:                                 # ← 추가
+    os.environ["TAVILY_API_KEY"] = settings.TAVILY_API_KEY

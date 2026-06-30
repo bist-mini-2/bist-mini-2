@@ -24,7 +24,7 @@
 *   **상세 기능 명세서**: [functional-specification-2nd.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/functional-specification-2nd.md)
     *   *내용*: 유즈케이스와 매핑된 초정밀 세분화 API 핸들러, Pydantic DTO, 보안 로직 명세
 *   **시스템 아키텍처 및 API 명세서**: [system-architecture-api-spec.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/system-architecture-api-spec.md)
-    *   *내용*: 플랫폼 3티어 연동 구조(Mermaid) 및 15대 JSON/SSE API 상세 입출력 규격 명세
+    *   *내용*: 플랫폼 3티어 연동 구조(Mermaid) 및 15대 JSON API 상세 입출력 규격 명세
 *   **데이터셋 EDA 및 DB 스키마 설계**: [dataset-eda-db-schema.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/dataset-eda-db-schema.md)
     *   *내용*: MTEB 3대 데이터셋 구조분석 및 PostgreSQL pgvector DB 테이블 명세(ERD) DDL 정의
 *   **로컬 분산 임베딩 가이드**: [local-distributed-embedding-guide.md](file:///c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/local-distributed-embedding-guide.md)
@@ -96,15 +96,13 @@
 ### 💻 2.5 단계 4: 프론트엔드 연동 (Frontend & API Integration)
 *   **Next.js API 클라이언트** (`c:/Repo/bist-mini-2/frontend/src/apis/`):
     *   *역할*: 백엔드 FastAPI 엔드포인트를 호출하여 스레드, 샌드박스, 피어 리뷰 정보를 수신하는 fetch 모듈.
-*   **SSE 토큰/CoT 스트리밍 리스너** (`c:/Repo/bist-mini-2/frontend/src/app/` 하위 또는 hooks):
-    *   *역할*: 실시간 응답 토큰 및 생각의 흐름 로그를 실시간으로 스트리밍하여 W-01 화면에 점진적으로 렌더링하는 React Hook.
+*   **완료형 대화 및 CoT 결과 처리 리스너** (`c:/Repo/bist-mini-2/frontend/src/app/` 하위 또는 hooks):
+    *   *역할*: 대화 답변 응답 및 생각의 흐름 로그 데이터를 수신하여 W-01 화면에 렌더링하고 로딩 스피너 상태를 관리하는 React Hook.
 *   **D3/인터랙티브 그래프 렌더러** (`c:/Repo/bist-mini-2/frontend/src/components/`):
     *   *역할*: `GET /graph-structure` 및 `GET /papers/{id}/citations` 데이터 기반으로 관계망(LangGraph 및 Citation Graph) 노드-링크 시각화 컴포넌트 구현.
 
-### 🧪 2.6 단계 5: 테스트 & 제품 완료 보고 (Validation & Final Deliverables)
-*   **통합 및 단위 테스트 스크립트** (`c:/Repo/bist-mini-2/backend/tests/`):
-    *   *역할*: RAG 유사도 성능, Pydantic Structured Output 규격, 다중 에이전트 가설 검증 결과의 정확도를 검증하는 PyTest 코드.
-*   **테스트 검증 완료 보고서** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/test-report-2nd.md`):
-    *   *역할*: API 및 도구 연동 단위 테스트 성공 기록 및 RAG 정확도 팩트체크 테스트 스코어.
+### 🖥️ 2.6 단계 5: 제품 완료 보고 (Final Deliverables)
 *   **제품 시연 가이드 & 완료 보고서** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/walkthrough-2nd.md` 업데이트):
     *   *역할*: 개발이 완수된 최종 플랫폼 구동 및 시연 가이드라인과 릴리즈 버전의 산출물 현황 보고서.
+*   **3인 기준 2주 단기 집중 개발 로드맵 (WBS)** (`c:/Repo/bist-mini-2/docs/deliverables/2nd/project_plans/development-roadmap-wbs.md`):
+    *   *역할*: 6/30 배포 릴리즈 마감을 타겟으로 한 3인 평일 기준 상세 역할 분담 및 일자별 마일스톤 계획서.

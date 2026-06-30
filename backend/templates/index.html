@@ -1,85 +1,1362 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Welcome to the Bist Mini 2 FastAPI Application Portal. View documentation and monitor API status.">
-  <title>{{ app_name }} - Welcome Portal</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Unified Developer Portal (Bist DevPortal) - Monitor API maps, database ERD, Next.js routing, and server configurations in a premium Sage Green Dark Glassmorphism cockpit.">
+    <title>{{ app_name }} - Bist DevPortal</title>
+    
+    <!-- Premium Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Mermaid Diagram rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0b0c0b;
+            --card-bg: rgba(18, 22, 18, 0.55);
+            --card-border: rgba(151, 171, 144, 0.08);
+            --card-border-hover: rgba(151, 171, 144, 0.25);
+            --text-primary: #f2f5f2;
+            --text-secondary: #8a9488;
+            --sage-green: #97ab90;
+            --sage-glow: rgba(151, 171, 144, 0.15);
+            --accent-glow: rgba(151, 171, 144, 0.04);
+            
+            /* Method Badges */
+            --badge-get: #1e3a2f;
+            --badge-get-text: #8ce1b7;
+            --badge-post: #3c321d;
+            --badge-post-text: #e1c08c;
+            --badge-delete: #3d1f1f;
+            --badge-delete-text: #e18c8c;
+            --badge-put: #1d2a3d;
+            --badge-put-text: #8cb0e1;
+            
+            --font-outfit: 'Outfit', 'Inter', 'Noto Sans KR', sans-serif;
+            --font-inter: 'Inter', 'Noto Sans KR', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: var(--sage-green) rgba(18, 22, 18, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(18, 22, 18, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(151, 171, 144, 0.3);
+            border-radius: 4px;
+            border: 2px solid var(--bg-color);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(151, 171, 144, 0.6);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-inter);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Dynamic Backdrop Blur Blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            z-index: 0;
+            pointer-events: none;
+            animation: float 22s infinite alternate ease-in-out;
+            opacity: 0.7;
+        }
+
+        .blob-1 {
+            width: 600px;
+            height: 600px;
+            background-color: rgba(151, 171, 144, 0.07);
+            top: -15%;
+            left: -10%;
+        }
+
+        .blob-2 {
+            width: 700px;
+            height: 700px;
+            background-color: rgba(25, 36, 25, 0.3);
+            bottom: -10%;
+            right: -10%;
+            animation-duration: 28s;
+            animation-delay: -6s;
+        }
+
+        .blob-3 {
+            width: 500px;
+            height: 500px;
+            background-color: rgba(151, 171, 144, 0.04);
+            top: 35%;
+            left: 35%;
+            animation-duration: 20s;
+            animation-delay: -3s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(60px, 40px) scale(1.06); }
+            100% { transform: translate(-40px, -60px) scale(0.94); }
+        }
+
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 22px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(11, 12, 11, 0.75);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 25px;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-decoration: none;
+            letter-spacing: -0.8px;
+            font-family: var(--font-outfit);
+        }
+        
+        .logo i {
+            color: var(--sage-green);
+            text-shadow: 0 0 18px var(--sage-glow);
+            font-size: 26px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 14px;
+        }
+
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 20px;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .quick-action-btn:hover {
+            border-color: var(--sage-green);
+            box-shadow: 0 8px 20px var(--sage-glow);
+            color: var(--sage-green);
+            transform: translateY(-2px);
+        }
+
+        .container {
+            flex: 1;
+            position: relative;
+            z-index: 10;
+            max-width: 1440px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px 50px 60px 50px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Welcome Gateway Grid Layout (No Sidebar) */
+        #welcome-gateway {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .gateway-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 26px;
+            margin-top: 20px;
+        }
+
+        /* Glassmorphism Cards */
+        .gateway-card {
+            border-radius: 24px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            padding: 35px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 280px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .gateway-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(151, 171, 144, 0.05) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .gateway-card:hover {
+            border-color: var(--sage-green);
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--sage-glow);
+        }
+
+        .gateway-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header-icon {
+            font-size: 34px;
+            color: var(--sage-green);
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px var(--sage-glow);
+            display: flex;
+            align-items: center;
+        }
+
+        .card-body-title {
+            font-family: var(--font-outfit);
+            font-size: 22px;
+            font-weight: 800;
+            margin: 0 0 12px 0;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .card-body-desc {
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            line-height: 1.6;
+            margin: 0 0 25px 0;
+            flex-grow: 1;
+        }
+
+        .card-footer-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: rgba(151, 171, 144, 0.08);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: fit-content;
+        }
+
+        .gateway-card:hover .card-footer-btn {
+            background: rgba(151, 171, 144, 0.2);
+            border-color: var(--sage-green);
+            box-shadow: 0 0 10px var(--sage-glow);
+        }
+        
+        .card-footer-btn i {
+            transition: transform 0.2s ease;
+        }
+        .gateway-card:hover .card-footer-btn i {
+            transform: translateX(4px);
+        }
+
+        /* Detail Panel Layout */
+        .content-panel {
+            width: 100%;
+            border-radius: 28px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            padding: 45px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+            display: none;
+            animation: fadeIn 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            min-height: 650px;
+        }
+
+        /* Back to welcome portal navigation */
+        .back-nav {
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 22px;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: rgba(12, 14, 12, 0.5);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .back-btn:hover {
+            border-color: var(--sage-green);
+            color: var(--sage-green);
+            box-shadow: 0 0 15px var(--sage-glow);
+            transform: translateX(-4px);
+        }
+
+        .panel-title {
+            font-family: var(--font-outfit);
+            font-size: 34px;
+            font-weight: 800;
+            margin: 0 0 12px 0;
+            letter-spacing: -0.8px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--sage-green) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .panel-description {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin: 0 0 35px 0;
+            line-height: 1.6;
+        }
+
+        /* Overview Page Styling */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+            margin-bottom: 35px;
+        }
+
+        .stat-card {
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            background: rgba(12, 14, 12, 0.5);
+            padding: 26px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card:hover {
+            border-color: var(--sage-green);
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35), 0 0 15px var(--sage-glow);
+        }
+        
+        .stat-icon {
+            font-size: 26px;
+            color: var(--sage-green);
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px var(--sage-glow);
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        
+        .stat-value {
+            font-family: var(--font-outfit);
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        
+        .status-badge.online {
+            background: rgba(30, 58, 47, 0.7);
+            color: #8ce1b7;
+            border: 1px solid rgba(140, 225, 183, 0.2);
+        }
+        
+        .status-badge.offline {
+            background: rgba(61, 31, 31, 0.7);
+            color: #e18c8c;
+            border: 1px solid rgba(225, 140, 140, 0.2);
+        }
+
+        /* Modern Tables */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            background: rgba(12, 14, 12, 0.3);
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        
+        th, td {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--card-border);
+        }
+        
+        th {
+            background: rgba(12, 14, 12, 0.5);
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        
+        td {
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: rgba(151, 171, 144, 0.04);
+        }
+
+        .method-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .method-badge.get { background: var(--badge-get); color: var(--badge-get-text); }
+        .method-badge.post { background: var(--badge-post); color: var(--badge-post-text); }
+        .method-badge.delete { background: var(--badge-delete); color: var(--badge-delete-text); }
+        .method-badge.put { background: var(--badge-put); color: var(--badge-put-text); }
+
+        .badge-verified {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(30, 58, 47, 0.45);
+            color: #8ce1b7;
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(140, 225, 183, 0.15);
+        }
+        
+        .badge-missing {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(61, 31, 31, 0.45);
+            color: #e18c8c;
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(225, 140, 140, 0.15);
+        }
+
+        .search-box-wrapper {
+            position: relative;
+            margin-bottom: 25px;
+            max-width: 450px;
+        }
+
+        .search-box-wrapper i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px 20px 15px 48px;
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            background: rgba(12, 14, 12, 0.6);
+            color: var(--text-primary);
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: var(--sage-green);
+            box-shadow: 0 0 15px var(--sage-glow);
+        }
+
+        /* Timeline Changelog */
+        .timeline {
+            position: relative;
+            padding-left: 35px;
+            margin-top: 25px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: var(--card-border);
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            left: -35px;
+            top: 6px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg-color);
+            border: 4px solid var(--sage-green);
+            box-shadow: 0 0 12px var(--sage-green);
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-item:hover .timeline-dot {
+            transform: scale(1.2);
+            background: var(--sage-green);
+        }
+        
+        .timeline-card {
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            background: rgba(12, 14, 12, 0.35);
+            padding: 24px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .timeline-card:hover {
+            border-color: var(--sage-green);
+            transform: translateX(6px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .commit-hash {
+            font-family: monospace;
+            background: rgba(151, 171, 144, 0.16);
+            color: #d1ddd0;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        
+        .commit-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .commit-meta i {
+            color: var(--sage-green);
+        }
+        
+        .commit-subject {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* ERD View Container */
+        .erd-container {
+            width: 100%;
+            overflow: auto;
+            background: #0f100f;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            padding: 60px 40px 40px 40px;
+            box-shadow: inset 0 0 45px rgba(0,0,0,0.85);
+            text-align: center;
+            min-height: 600px;
+            position: relative;
+        }
+
+        .erd-container .mermaid {
+            background: transparent !important;
+            margin: 0 auto;
+            padding: 0;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .erd-container svg {
+            max-width: none !important;
+            width: 1600px !important;
+            height: auto !important;
+            transition: width 0.15s ease;
+        }
+
+        .erd-container.space-held {
+            cursor: grab !important;
+        }
+
+        .erd-container.dragging {
+            cursor: grabbing !important;
+        }
+
+        .erd-container.space-held * {
+            cursor: grab !important;
+            user-select: none;
+        }
+
+        .erd-container.dragging * {
+            cursor: grabbing !important;
+            user-select: none;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 30px 50px;
+            border-top: 1px solid var(--card-border);
+            background: rgba(12, 14, 12, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            position: relative;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
+    <!-- Ambient Backdrop Blur Blobs -->
+    <div class="blob blob-1" aria-hidden="true"></div>
+    <div class="blob blob-2" aria-hidden="true"></div>
+    <div class="blob blob-3" aria-hidden="true"></div>
 
-  <header>
-    <div class="brand" id="brand-header">
-      <span class="brand-dot"></span>
-      {{ app_name }}
+    <header>
+        <a href="/" class="logo">
+            <i class="bi bi-rocket-takeoff-fill"></i>
+            <span>{{ app_name }} DevPortal</span>
+        </a>
+        <div class="header-actions">
+            <a href="/docs" target="_blank" class="quick-action-btn">
+                <i class="bi bi-file-earmark-code-fill" style="color:var(--sage-green);"></i> Swagger UI
+            </a>
+            <a href="/redoc" target="_blank" class="quick-action-btn">
+                <i class="bi bi-file-earmark-text-fill" style="color:var(--sage-green);"></i> ReDoc
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- 1. Welcome Gateway (No Sidebar) -->
+        <div id="welcome-gateway">
+            <!-- Premium Welcome Hero -->
+            <section class="hero" style="text-align: center; margin: 2rem auto 4rem auto; max-width: 850px;">
+                <h1 style="font-family: var(--font-outfit); font-size: 3.5rem; font-weight: 800; line-height: 1.15; letter-spacing: -1.2px; margin-bottom: 1.4rem; color: #fff;">
+                    Accelerate Academic Research with <br><span style="background: linear-gradient(135deg, var(--sage-green) 0%, #ffffff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FastAPI Secure Engine</span>
+                </h1>
+                <p style="color: var(--text-secondary); font-size: 1.2rem; font-weight: 300; line-height: 1.7; margin: 0;">
+                    Welcome to the {{ app_name }} Developer Portal. Auditing API maps, reflecting live database structures, and monitoring runtime configurations in a premium gateway.
+                </p>
+            </section>
+            
+            <!-- Gateway Cards Grid -->
+            <div class="gateway-grid">
+                <!-- Card 1: Interactive Swagger -->
+                <a href="/docs" target="_blank" class="gateway-card" style="text-decoration: none;">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-rocket-takeoff-fill"></i></div>
+                        <h3 class="card-body-title">Interactive Swagger</h3>
+                        <p class="card-body-desc">FastAPI 대화형 Swagger UI 명세서입니다. 브라우저에서 직접 엔드포인트를 호출하고 JWT 인증 테스트를 수행할 수 있습니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Swagger UI <i class="bi bi-arrow-up-right"></i>
+                    </div>
+                </a>
+
+                <!-- Card 2: Structured ReDoc -->
+                <a href="/redoc" target="_blank" class="gateway-card" style="text-decoration: none;">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-book-half"></i></div>
+                        <h3 class="card-body-title">Structured ReDoc</h3>
+                        <p class="card-body-desc">3단 레이아웃으로 정리된 ReDoc API 명세서입니다. 엔드포인트별 상세 DTO 스키마 및 가이드 문서를 깨끗하게 읽을 수 있습니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open ReDoc <i class="bi bi-arrow-up-right"></i>
+                    </div>
+                </a>
+
+                <!-- Card 3: Overview stats -->
+                <div class="gateway-card" onclick="switchTab('overview')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-speedometer2"></i></div>
+                        <h3 class="card-body-title">대시보드 개요</h3>
+                        <p class="card-body-desc">실시간 서버 가동 상태, DB 커넥션, OpenAI API 키 검증 등 핵심 시스템 헬스 상태와 주요 통계를 종합 진단합니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Overview <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 2: API & Test Map -->
+                <div class="gateway-card" onclick="switchTab('api-map')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-braces"></i></div>
+                        <h3 class="card-body-title">API & 테스트 맵</h3>
+                        <p class="card-body-desc">FastAPI 서버의 모든 활성 엔드포인트 목록을 매핑하고, 매칭된 Pytest 단위/통합 테스트 코드 존재 여부를 실시간 검증합니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open API Map <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 3: Database ERD -->
+                <div class="gateway-card" onclick="switchTab('db-erd')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-database-fill-gear"></i></div>
+                        <h3 class="card-body-title">데이터베이스 ERD</h3>
+                        <p class="card-body-desc">SQLAlchemy ORM 메타데이터를 기반으로 실시간으로 빌드되는 데이터베이스 관계도입니다. 라이브 테이블 구조와 외래 키 관계를 시각화하여 확인합니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open ERD <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 4: Frontend Router Map -->
+                <div class="gateway-card" onclick="switchTab('fe-router')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-bezier2"></i></div>
+                        <h3 class="card-body-title">프론트 라우트 맵</h3>
+                        <p class="card-body-desc">Next.js App Router 디렉토리 구조 스캔을 통해 프론트엔드 라우트 경로와 해당 Jest 테스트 파일 목록을 매핑합니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Route Map <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 5: System Config -->
+                <div class="gateway-card" onclick="switchTab('config-board')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-sliders"></i></div>
+                        <h3 class="card-body-title">시스템 환경설정</h3>
+                        <p class="card-body-desc">Pydantic BaseSettings 모델과 .env 파일에서 가져온 실시간 시스템 설정 목록입니다. 보안 민감 정보는 자동 마스킹됩니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Configuration <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Card 6: Git Changelog -->
+                <div class="gateway-card" onclick="switchTab('git-changelog')">
+                    <div>
+                        <div class="card-header-icon"><i class="bi bi-git"></i></div>
+                        <h3 class="card-body-title">Git 최근 변경 이력</h3>
+                        <p class="card-body-desc">현재 원격/로컬 Git 저장소의 실시간 커밋 타임라인을 파싱하여 최근 20개의 변경 이력 상세 내역을 타임라인으로 보여줍니다.</p>
+                    </div>
+                    <div class="card-footer-btn">
+                        Open Changelog <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. Overview Panel -->
+        <div id="overview" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
+            <h2 class="panel-title">대시보드 개요</h2>
+            <p class="panel-description">Bist Mini 2의 실시간 시스템 헬스 상태, 의존성 연동 여부 및 핵심 통계를 종합 조회합니다.</p>
+            
+            <!-- System Stats Grid -->
+            <div class="overview-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-shield-fill-check" style="color:#8ce1b7;"></i></div>
+                    <div class="stat-label">시스템 상태</div>
+                    <div class="stat-value">Healthy (정상)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-database"></i></div>
+                    <div class="stat-label">데이터베이스 연결</div>
+                    <div class="stat-value">
+                        {% if db_connected %}
+                        <span class="status-badge online"><i class="bi bi-check-circle-fill"></i> Online</span>
+                        {% else %}
+                        <span class="status-badge offline"><i class="bi bi-x-circle-fill"></i> Offline</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-cpu-fill"></i></div>
+                    <div class="stat-label">OpenAI 연동</div>
+                    <div class="stat-value">
+                        {% if openai_configured %}
+                        <span class="status-badge online">Active</span>
+                        {% else %}
+                        <span class="status-badge offline">Missing</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+                    <div class="stat-label">서버 가동시간</div>
+                    <div class="stat-value" style="font-size: 17px; font-weight: 700; word-break: keep-all;">{{ uptime_str }}</div>
+                </div>
+            </div>
+
+            <div class="overview-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-terminal-fill"></i></div>
+                    <div class="stat-label">실행 환경</div>
+                    <div class="stat-value">{{ env }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-bug-fill"></i></div>
+                    <div class="stat-label">디버그 모드</div>
+                    <div class="stat-value">{% if debug_mode %}활성화{% else %}비활성화{% endif %}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-diagram-3-fill"></i></div>
+                    <div class="stat-label">백엔드 API 수</div>
+                    <div class="stat-value">{{ backend_routes_count }}개</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-window-sidebar"></i></div>
+                    <div class="stat-label">프론트엔드 라우트 수</div>
+                    <div class="stat-value">{{ frontend_pages_count }}개</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. API Map Panel -->
+        <div id="api-map" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
+            <h2 class="panel-title">백엔드 API 및 테스트 매핑</h2>
+            <p class="panel-description">FastAPI 서버에 라우팅 등록된 실시간 API 엔드포인트 목록과 테스트 커버리지 파일 매칭 현황입니다.</p>
+            
+            <div class="search-box-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="text" id="api-search" class="search-box" placeholder="엔드포인트 또는 설명 검색..." oninput="filterApi()">
+            </div>
+
+            <div class="table-responsive">
+                <table id="api-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 110px;">메소드</th>
+                            <th style="width: 280px;">엔드포인트 주소</th>
+                            <th>API 설명 / 요약</th>
+                            <th style="width: 120px; text-align: center;">인증 여부</th>
+                            <th style="width: 250px;">매핑된 테스트 파일</th>
+                        </tr>
+                    </thead>
+                    <tbody id="api-list-body">
+                        <!-- Dynamic rendering -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. DB ERD Panel -->
+        <div id="db-erd" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
+            <h2 class="panel-title">데이터베이스 ERD 시각화</h2>
+            <p class="panel-description">SQLAlchemy ORM 메타데이터와 라이브 스키마 역공학을 통해 실시간 생성된 관계도입니다.</p>
+            
+            <div class="erd-container">
+                <!-- Floating Info helper -->
+                <div style="position: absolute; top: 20px; left: 20px; z-index: 10; display: flex; gap: 8px; pointer-events: none;">
+                    <span class="quick-action-btn" style="padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; background: rgba(16, 20, 16, 0.95); pointer-events: none;">
+                        <i class="bi bi-keyboard-fill" style="color: var(--sage-green);"></i> Space + Left Drag : 이동
+                    </span>
+                </div>
+
+                <!-- Floating Zoom Controls -->
+                <div style="position: absolute; top: 20px; right: 20px; z-index: 10; display: flex; gap: 8px;">
+                    <button onclick="zoomErd(200)" class="quick-action-btn" style="padding: 8px 14px; border-radius: 10px; cursor: pointer;" title="확대">
+                        <i class="bi bi-zoom-in"></i>
+                    </button>
+                    <button onclick="zoomErd(-200)" class="quick-action-btn" style="padding: 8px 14px; border-radius: 10px; cursor: pointer;" title="축소">
+                        <i class="bi bi-zoom-out"></i>
+                    </button>
+                    <button onclick="resetErdZoom()" class="quick-action-btn" style="padding: 8px 14px; border-radius: 10px; cursor: pointer;" title="기본 크기">
+                        100%
+                    </button>
+                </div>
+                
+                <pre class="mermaid" id="erd-mermaid">
+{{ mermaid_code }}
+                </pre>
+            </div>
+        </div>
+
+        <!-- 4. Frontend Routes Panel -->
+        <div id="fe-router" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
+            <h2 class="panel-title">프론트엔드 라우팅 및 테스트 매핑</h2>
+            <p class="panel-description">Next.js App Router 디렉토리 구조(`/frontend/src/app`)를 스캔하여 매핑된 웹 페이지 및 Jest 테스트 파일 목록입니다.</p>
+            
+            <div class="search-box-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="text" id="fe-search" class="search-box" placeholder="라우트 경로 검색..." oninput="filterFe()">
+            </div>
+
+            <div class="table-responsive">
+                <table id="fe-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 250px;">라우트 경로</th>
+                            <th>물리 페이지 파일 위치</th>
+                            <th style="width: 300px;">매핑된 Jest 테스트 파일</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fe-list-body">
+                        <!-- Dynamic rendering -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 5. Settings Board Panel -->
+        <div id="config-board" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
+            <h2 class="panel-title">시스템 환경설정 검증</h2>
+            <p class="panel-description">Pydantic BaseSettings 모델과 <code>.env</code> 파일로부터 로드된 현재 설정 목록입니다. (민감정보는 마스킹 처리됨)</p>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 280px;">설정 키 (Key)</th>
+                            <th style="width: 140px;">데이터 타입</th>
+                            <th>설정 값 (Value)</th>
+                            <th style="width: 130px; text-align: center;">상태</th>
+                        </tr>
+                    </thead>
+                    <tbody id="config-list-body">
+                        <!-- Dynamic rendering -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 6. Git Changelog Panel -->
+        <div id="git-changelog" class="content-panel">
+            <div class="back-nav">
+                <button class="back-btn" onclick="showWelcomeGateway()"><i class="bi bi-arrow-left"></i> 웰컴 페이지로 돌아가기</button>
+            </div>
+            
+            <h2 class="panel-title">Git 최근 변경 이력</h2>
+            <p class="panel-description">현재 저장소에서 커밋된 최근 20개의 변경 이력 타임라인입니다.</p>
+            
+            <div class="timeline" id="changelog-timeline">
+                <!-- Dynamic rendering -->
+            </div>
+        </div>
     </div>
-    <div class="status-badge" id="system-status-badge">
-      <span class="status-dot"></span>
-      API Online
-    </div>
-  </header>
 
-  <main>
-    <section class="hero" id="hero-section">
-      <h1>Accelerate Backend Dev<br>with <span>FastAPI Template</span></h1>
-      <p>A beautifully structured foundation designed for speed, flexibility, and robust debugging. Explore the interactive documentation below to interact with the API.</p>
-    </section>
+    <!-- JSON Data for Javascript -->
+    <script id="backend-routes-data" type="application/json">{{ routes_json | safe }}</script>
+    <script id="frontend-pages-data" type="application/json">{{ pages_json | safe }}</script>
+    <script id="config-fields-data" type="application/json">{{ config_json | safe }}</script>
+    <script id="git-changelog-data" type="application/json">{{ changelog_json | safe }}</script>
 
-    <section class="grid" id="portal-grid">
-      <!-- Swagger UI Card -->
-      <article class="card" id="swagger-card">
-        <div>
-          <div class="card-icon">🚀</div>
-          <h2 class="card-title">Interactive OpenAPI Docs</h2>
-          <p class="card-description">Fully interactive Swagger UI documentation. Directly test endpoints, view request/response schemas, and handle authorization flow in the browser.</p>
-        </div>
-        <a href="/docs" class="card-link" id="swagger-link">
-          Open Swagger UI
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </a>
-      </article>
+    <footer>
+        <p>&copy; 2026 {{ app_name }} DevPortal. Designed with Sage Green Dark Glassmorphism. Built on FastAPI.</p>
+    </footer>
 
-      <!-- ReDoc Card -->
-      <article class="card" id="redoc-card">
-        <div>
-          <div class="card-icon">📖</div>
-          <h2 class="card-title">Structured ReDoc</h2>
-          <p class="card-description">Clean, three-panel structured API documentation powered by ReDoc. Excellent for reading, sharing, and understanding overall design principles.</p>
-        </div>
-        <a href="/redoc" class="card-link" id="redoc-link">
-          Open ReDoc
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </a>
-      </article>
+    <script>
+        // Data inject safely from JSON script tags
+        const backendRoutes = JSON.parse(document.getElementById('backend-routes-data').textContent);
+        const frontendPages = JSON.parse(document.getElementById('frontend-pages-data').textContent);
+        const configFields = JSON.parse(document.getElementById('config-fields-data').textContent);
+        const gitChangelog = JSON.parse(document.getElementById('git-changelog-data').textContent);
 
-      <!-- Health Check Card -->
-      <article class="card" id="health-card">
-        <div>
-          <div class="card-icon">⚡</div>
-          <h2 class="card-title">System Health API</h2>
-          <p class="card-description">Diagnostic endpoint verifying runtime configurations, server environment variables, active debugger settings, and real-time server uptime metrics.</p>
-        </div>
-        <a href="/api/v1/health" class="card-link" id="health-link" target="_blank">
-          Check Health Status
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </a>
-      </article>
-    </section>
-  </main>
+        function showWelcomeGateway() {
+            // Hide all detail panels
+            document.querySelectorAll('.content-panel').forEach(panel => {
+                panel.style.display = 'none';
+            });
+            // Show welcome gateway
+            document.getElementById('welcome-gateway').style.display = 'block';
+            
+            // Reset scroll position to top
+            window.scrollTo(0, 0);
+            
+            // Clean up URL hash
+            if (history.pushState) {
+                history.pushState(null, null, ' ');
+            } else {
+                location.hash = '';
+            }
+        }
 
-  <footer id="footer-main">
-    <p>&copy; 2026 {{ app_name }}. Built on top of FastAPI.</p>
-  </footer>
+        function switchTab(tabId) {
+            // Reset scroll position to top
+            window.scrollTo(0, 0);
 
+            // Hide welcome gateway
+            document.getElementById('welcome-gateway').style.display = 'none';
+
+            // Hide other panels
+            document.querySelectorAll('.content-panel').forEach(panel => {
+                panel.style.display = 'none';
+            });
+
+            // Show active panel
+            const panel = document.getElementById(tabId);
+            if (panel) {
+                panel.style.display = 'block';
+            }
+
+            // Update URL Hash without jumping the page
+            if (history.pushState) {
+                history.pushState(null, null, '#' + tabId);
+            } else {
+                location.hash = '#' + tabId;
+            }
+
+            // Initialize Mermaid when switching to ERD tab
+            if (tabId === 'db-erd') {
+                setTimeout(() => {
+                    if (!window.mermaidRendered) {
+                        window.mermaidRendered = true;
+                        try {
+                            // v9 API call to initialize all .mermaid pre blocks in the active DOM
+                            mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+                        } catch(err) {
+                            console.error("Mermaid init error:", err);
+                            window.mermaidRendered = false;
+                        }
+                    }
+                }, 100);
+            }
+        }
+
+        // Render functions
+        function renderApiList(routes) {
+            const tbody = document.getElementById('api-list-body');
+            tbody.innerHTML = routes.map(r => {
+                const methodsBadges = r.methods.map(m => `<span class="method-badge ${m.toLowerCase()}">${m}</span>`).join(' ');
+                const authBadge = r.auth_required 
+                    ? `<span style="color:#e1c08c; font-weight:600;" title="JWT 토큰 필수"><i class="bi bi-lock-fill"></i> 필수</span>`
+                    : `<span style="color:#8a9488;" title="인증 없이 접근 가능"><i class="bi bi-unlock-fill"></i> 없음</span>`;
+                
+                const testBadge = r.test_exists
+                    ? `<span class="badge-verified"><i class="bi bi-check2-circle"></i> ${r.test_file}</span>`
+                    : `<span class="badge-missing"><i class="bi bi-exclamation-triangle-fill"></i> ${r.test_file}</span>`;
+
+                return `
+                    <tr>
+                        <td>${methodsBadges}</td>
+                        <td style="font-family: monospace; font-weight: 600; color: var(--sage-green);">${r.path}</td>
+                        <td>
+                            <div style="font-weight: 700; margin-bottom:4px;">${r.summary}</div>
+                            <div style="color: var(--text-secondary); font-size:13px;">${r.description || '상세 설명 없음'}</div>
+                        </td>
+                        <td style="text-align: center;">${authBadge}</td>
+                        <td>${testBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterApi() {
+            const search = document.getElementById('api-search').value.toLowerCase();
+            const filtered = backendRoutes.filter(r => 
+                r.path.toLowerCase().includes(search) || 
+                r.summary.toLowerCase().includes(search) || 
+                r.description.toLowerCase().includes(search)
+            );
+            renderApiList(filtered);
+        }
+
+        function renderFeList(pages) {
+            const tbody = document.getElementById('fe-list-body');
+            tbody.innerHTML = pages.map(p => {
+                const testBadge = p.test_exists
+                    ? `<span class="badge-verified"><i class="bi bi-check2-circle"></i> ${p.test_file}</span>`
+                    : p.test_file === 'N/A' 
+                        ? `<span style="color: var(--text-secondary); font-size:13px;">N/A</span>`
+                        : `<span class="badge-missing"><i class="bi bi-exclamation-triangle-fill"></i> ${p.test_file}</span>`;
+
+                return `
+                    <tr>
+                        <td style="font-family: monospace; font-weight: 600; color: var(--sage-green);">${p.route}</td>
+                        <td style="font-family: monospace; font-size: 13px; color: var(--text-secondary);">${p.file_path}</td>
+                        <td>${testBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterFe() {
+            const search = document.getElementById('fe-search').value.toLowerCase();
+            const filtered = frontendPages.filter(p => p.route.toLowerCase().includes(search));
+            renderFeList(filtered);
+        }
+
+        function renderConfigList(fields) {
+            const tbody = document.getElementById('config-list-body');
+            tbody.innerHTML = fields.map(f => {
+                const statusBadge = f.status === 'Configured'
+                    ? `<span class="badge-verified" style="padding: 3px 8px; font-size:11px;">설정됨</span>`
+                    : `<span class="badge-missing" style="padding: 3px 8px; font-size:11px;">미설정</span>`;
+
+                return `
+                    <tr>
+                        <td style="font-family: monospace; font-weight: 700; color: var(--text-primary);">${f.key}</td>
+                        <td style="font-family: monospace; color: var(--text-secondary); font-size: 13px;">${f.type}</td>
+                        <td style="font-family: monospace; font-size: 14px; color: var(--sage-green); word-break: break-all;">${f.value}</td>
+                        <td style="text-align: center;">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderTimeline(changelog) {
+            const timeline = document.getElementById('changelog-timeline');
+            timeline.innerHTML = changelog.map(c => `
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-card">
+                        <div class="timeline-header">
+                            <span class="commit-hash">${c.hash}</span>
+                            <span class="commit-meta"><i class="bi bi-person-fill"></i> ${c.author} &bull; <i class="bi bi-clock-fill"></i> ${c.time}</span>
+                        </div>
+                        <p class="commit-subject">${c.subject}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ERD Zoom/Pan functionality removed for native Mermaid scrollable view
+        let currentErdWidth = 1600;
+        window.zoomErd = function(amount) {
+            currentErdWidth = Math.max(1000, Math.min(3000, currentErdWidth + amount));
+            const svg = document.querySelector('.erd-container svg');
+            if (svg) {
+                svg.style.setProperty('width', currentErdWidth + 'px', 'important');
+            }
+        };
+        window.resetErdZoom = function() {
+            currentErdWidth = 1600;
+            const svg = document.querySelector('.erd-container svg');
+            if (svg) {
+                svg.style.setProperty('width', '1600px', 'important');
+            }
+        };
+
+        // ERD Spacebar grab & drag scroll panning implementation
+        let isSpacePressed = false;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let startScrollLeft = 0;
+        let startScrollTop = 0;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                const dbPanel = document.getElementById('db-erd');
+                if (dbPanel && dbPanel.style.display === 'block') {
+                    // Ignore if typing in input/textarea
+                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                        return;
+                    }
+                    e.preventDefault();
+                    if (!isSpacePressed) {
+                        isSpacePressed = true;
+                        const container = document.querySelector('.erd-container');
+                        if (container) container.classList.add('space-held');
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                isSpacePressed = false;
+                const container = document.querySelector('.erd-container');
+                if (container) {
+                    container.classList.remove('space-held');
+                    container.classList.remove('dragging');
+                }
+                isDragging = false;
+            }
+        });
+
+        // Add mouse event listeners to the ERD container for drag-scroll
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.querySelector('.erd-container');
+            if (container) {
+                container.addEventListener('mousedown', (e) => {
+                    if (isSpacePressed) {
+                        isDragging = true;
+                        container.classList.add('dragging');
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        startScrollLeft = container.scrollLeft;
+                        startScrollTop = container.scrollTop;
+                        e.preventDefault();
+                    }
+                });
+
+                container.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+                        container.scrollLeft = startScrollLeft - dx;
+                        container.scrollTop = startScrollTop - dy;
+                        e.preventDefault();
+                    }
+                });
+
+                window.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        container.classList.remove('dragging');
+                    }
+                });
+            }
+        });
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            renderApiList(backendRoutes);
+            renderFeList(frontendPages);
+            renderConfigList(configFields);
+            renderTimeline(gitChangelog);
+
+            // Initialize Mermaid manually (StartOnLoad set to false for explicit render calls)
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'dark',
+                themeVariables: {
+                    background: 'transparent',
+                    primaryColor: '#1a1f1a',
+                    primaryTextColor: '#f2f5f2',
+                    lineColor: '#97ab90',
+                    secondaryColor: '#121612',
+                    tertiaryColor: '#0b0c0b'
+                }
+            });
+
+            // Handle URL Hash navigation
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                switchTab(hash);
+            } else {
+                showWelcomeGateway();
+            }
+        });
+
+        // Listen for hash changes
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                switchTab(hash);
+            } else {
+                showWelcomeGateway();
+            }
+        });
+    </script>
 </body>
 </html>

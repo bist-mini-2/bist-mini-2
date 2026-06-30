@@ -1,0 +1,93 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 24px;
+  background-color: var(--topbar-bg);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--card-border);
+  z-index: 10;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+}
+
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.breadcrumbParent {
+  font-size: 13px;
+  color: #8A908A;
+  font-weight: 500;
+}
+
+.breadcrumbSeparator {
+  font-size: 11px;
+  color: var(--card-border);
+}
+
+.breadcrumbCurrent {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.statusIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--menu-item-color);
+  background-color: var(--tertiary-color);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--card-border);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  background-color: #55B98A;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px rgba(85, 185, 138, 0.6);
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  color: var(--menu-item-color);
+  font-size: 16px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.iconButton:hover {
+  background-color: rgba(142, 157, 135, 0.12);
+  color: var(--accent-color);
+  transform: scale(1.06);
+}
+
+.iconButton:active {
+  transform: scale(0.96);
+}

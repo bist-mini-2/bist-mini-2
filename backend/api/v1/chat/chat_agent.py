@@ -1,0 +1,448 @@
+import asyncio
+import logging
+from typing import Annotated, TypedDict, Any, cast, AsyncGenerator
+
+from fastapi import Depends
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
+from langgraph.graph import add_messages
+from api.common.rag_pipeline import search_bio_papers, search_astronomy_papers, search_cs_papers
+from api.common.tools import get_current_datetime, search_web
+from api.database.config.psycopg_pool import psycopg_pool as chat_psycopg_pool
+from pydantic import BaseModel, Field
+
+
+class BioAgentState(TypedDict):
+    """생명공학 에이전트의 대화 상태 및 검색된 출처 목록을 저장하는 상태 정의 딕셔너리입니다."""
+    messages: Annotated[list, add_messages]
+    sources: list[dict]   # 검색된 논문 출처 누적
+    web_sources: list[dict]    # 웹 검색 출처 누적
+
+
+logger = logging.getLogger(__name__)
+
+
+class BioPaperRef(BaseModel):
+    """답변 근거가 된 논문 한 편."""
+    arxiv_id: str = Field(description="논문의 arXiv ID (예: 2504.10388)")
+    title: str = Field(description="논문 제목")
+    summary: str = Field(description="이 논문이 질문과 어떻게 관련되는지 한 문장 요약")
+
+
+class BioAnswer(BaseModel):
+    """생명공학 RAG 답변 구조."""
+    explanation: str = Field(
+        description="질문에 대한 자연스러운 설명. 논문 나열이 아니라 질문에 직접 답하는 서술형 설명을 작성한다.")
+    papers: list[BioPaperRef] = Field(
+        default_factory=list, description="답변 근거가 된 논문 목록")
+
+
+class ChatAgent:
+    """대화 히스토리 + 생명공학 논문 RAG를 통합한 에이전트.
+
+    강사 sec06 HistoryPostgreSQLAgent 패턴을 따르되, bio의 search_bio_papers tool을 물려
+    유전체학 질문에 답하면서 출처(sources)를 추적한다.
+    대화 내역은 AsyncPostgresSaver가 thread_id(=conversation_id=session_id)별로 영구 저장한다.
+    """
+
+    def __init__(self, model: str = "openai:gpt-4o-mini"):
+        self.logger = logging.getLogger(f"{__name__}.ChatAgent")
+        self.model = model
+        # checkpointer/agent는 running event loop가 필요하므로 _initialize에서 lazy 생성한다.
+        self.checkpointer = None
+        self.agent = None
+        # 시스템 프롬프트는 bio의 것과 동일 (유전체학 전문가 + 언어 규칙 + 출처 명시)
+        self.system_prompt = """
+        당신은 생명공학·유전체학(q-bio.GN)과 천문학(astro-ph.EP) 논문을 다루는 연구 조력자입니다.
+
+        - 중요: 검색 도구에 전달하는 query는 반드시 영어로 작성하세요.
+            사용자가 한국어로 질문했더라도 핵심 개념을 영어 학술 용어로 번역해 검색합니다.
+            예) "소행성체 형성" → "planetesimal formation"
+                "외계행성 대기" → "exoplanet atmosphere"
+                "행성 이주" → "planetary migration"
+        작업 방식:
+        - 질문 주제를 파악해서 알맞은 검색 도구를 사용합니다.
+          · 생명공학·유전체학(유전자, DNA, 시퀀싱 등) → search_bio_papers
+          · 천문학(외계행성, 행성, 천체물리 등) → search_astronomy_papers
+          · 컴퓨터과학(신경망, 진화 알고리즘, 딥러닝 등) → search_cs_papers
+          · 위 논문 DB로 답할 수 없는 주제(최신 동향, 일반 상식, arXiv 범위 밖) → search_web
+          · 오늘 날짜·현재 시각이 필요한 질문(오늘, 지금, 최근 등) → get_current_datetime
+          
+        - 검색된 논문 내용을 근거로, explanation에 질문에 대한 설명을 마크다운으로 풍부하게 작성합니다.
+          핵심 용어는 **굵게** 강조하고, 내용이 길면 ## 소제목으로 구조를 나눠도 좋습니다.
+          질문에 맞춰 설명 길이를 조절합니다.
+          단, 개별 논문을 "1. 2. 3."처럼 번호로 나열하지는 마세요. 논문 하나하나는 papers가 담당합니다.
+        - papers에는 답변의 근거가 된 논문 각각을 정리합니다(제목, arxiv_id, 한 줄 요약).
+        - 검색 결과에 없는 내용은 지어내지 말고, explanation에 "관련 논문을 찾지 못했습니다"라고 적습니다.
+        - 항상 사용자가 질문한 언어로 답합니다(한국어 질문이면 한국어로).
+        """
+        # 스트리밍 전용 프롬프트 — 구조화 출력이 없으므로 논문을 본문에 나열하지 않게 한다.
+        # (참고 논문은 검색된 출처를 카드로 따로 보여줌)
+        self.stream_system_prompt = """
+        당신은 생명공학·유전체학(q-bio.GN), 천문학(astro-ph.EP), 컴퓨터과학(cs.NE) 논문을 다루는 연구 조력자입니다.
+        
+        - 중요: 검색 도구에 전달하는 query는 반드시 영어로 작성하세요.
+            사용자가 한국어로 질문했더라도 핵심 개념을 영어 학술 용어로 번역해 검색합니다.
+            예) "소행성체 형성" → "planetesimal formation"
+                "외계행성 대기" → "exoplanet atmosphere"
+                "행성 이주" → "planetary migration"
+        
+        작업 방식:
+        - 질문 주제를 파악해서 알맞은 검색 도구를 사용합니다.
+          · 생명공학·유전체학 → search_bio_papers
+          · 천문학 → search_astronomy_papers
+          · 컴퓨터과학 → search_cs_papers
+          · arXiv 범위 밖·최신 정보 → search_web
+          · 오늘 날짜·현재 시각 → get_current_datetime
+          
+        - 검색된 논문 내용을 근거로, 질문에 대한 설명을 마크다운으로 풍부하게 작성합니다.
+          핵심 용어는 **굵게** 강조하고, 길면 ## 소제목으로 나눠도 좋습니다.
+        - 중요: 참고한 논문을 "관련 논문" 같은 별도 목록·섹션으로 나열하지는 마세요.
+          논문 출처 카드는 화면에 따로 표시되므로, 당신은 설명에 집중합니다.
+        - 인용 표시(중요): 검색 도구 결과의 각 논문은 [논문 1], [논문 2], [논문 3]처럼 번호가 매겨져 있습니다.
+          근거가 된 논문 번호를 [1], [2] 형식으로 붙이되, 반드시 문장 중간이 아니라
+          문단(또는 목록 항목)이 완전히 끝나는 맨 끝에 모아서 붙이세요.
+          · 한 문단이 여러 문장이어도, 인용은 그 문단의 마지막 문장 끝에 한 번만 모읍니다.
+          · 여러 논문에 근거하면 문단 끝에 [1][2]처럼 이어서 표시합니다.
+          · 문장 하나하나마다 인용을 흩뿌리지 마세요.
+          · 한 문단이 여러 논문에 근거하면 [1][2]처럼 이어서 표시합니다.
+          · 반드시 검색 결과의 논문 번호와 일치시키세요. 없는 번호를 지어내지 마세요.
+          · 근거가 검색 논문이 아닌 일반 지식이면 번호를 붙이지 않습니다.
+          · 예: "유전체 시퀀싱은 DNA 서열을 결정하는 과정입니다 [1]. 최근에는 메타유전체학 연구가 활발합니다 [2]."
+        - 검색 결과에 없는 내용은 지어내지 말고, 못 찾으면 "관련 논문을 찾지 못했습니다"라고 적습니다.
+        - 항상 사용자가 질문한 언어로 답합니다.
+        - 위 논문 검색 도구로 관련 자료를 찾지 못하거나, 질문이 arXiv 논문(생명공학·천문학·CS)
+          범위 밖이면 search_web으로 웹에서 정보를 찾아 답하세요.
+          웹 정보를 사용한 경우, 그 사실이 드러나게 자연스럽게 서술합니다.
+        """
+        self._initialized = False
+        self._init_lock = asyncio.Lock()
+
+    async def _initialize(self) -> None:
+        """최초 1회 psycopg 풀을 열고 checkpointer 테이블을 생성한다(비동기 lazy 초기화).
+
+        chat_psycopg_pool은 open=False로 생성되므로, setup() 전에 풀을 열어야 한다.
+        FastAPI lifespan을 수정하지 않고 chat 내부에서 풀 생명주기를 자체 관리한다.
+        """
+        if self._initialized:
+            return
+        async with self._init_lock:
+            if self._initialized:
+                return
+            if chat_psycopg_pool.closed:
+                await chat_psycopg_pool.open()
+            # checkpointer/agent는 running event loop 안에서 생성해야 한다.
+            self.checkpointer = AsyncPostgresSaver(
+                cast(Any, chat_psycopg_pool))
+            # 시스템 프롬프트는 create_agent에 전달 — 영구 저장되는 대화 기록에 매 턴 중복 누적되지 않도록.
+            self.agent = create_agent(
+                model=self.model,
+                tools=[search_bio_papers, search_astronomy_papers,
+                       search_cs_papers, search_web, get_current_datetime],
+                system_prompt=self.system_prompt,
+                checkpointer=self.checkpointer,
+                # 출처 추적 위해 bio의 state 패턴 활용
+                state_schema=cast(Any, BioAgentState),
+                response_format=BioAnswer
+            )
+
+            # checkpoint 테이블이 이미 있으면 setup()을 건너뛴다.
+            # (이미 존재하는 테이블에 대해 setup()이 hang 될 수 있으므로 멱등 처리)
+            async with chat_psycopg_pool.connection() as conn:
+                cur = await conn.execute(
+                    "SELECT 1 FROM pg_tables "
+                    "WHERE schemaname='public' AND tablename='checkpoints'"
+                )
+                exists = await cur.fetchone()
+                if not exists:
+                    # checkpoints가 없는데 checkpoint_migrations가 있으면 setup()이 테이블을 생성하지 않으므로
+                    # 관련 테이블을 일괄 삭제하여 setup()이 처음부터 깨끗이 생성하도록 유도합니다.
+                    await conn.execute("DROP TABLE IF EXISTS checkpoint_migrations, checkpoint_blobs, checkpoint_writes CASCADE;")
+            if not exists:
+                assert self.checkpointer is not None
+                await self.checkpointer.setup()
+
+            self._initialized = True
+            self.logger.info("ChatAgent checkpointer 초기화 완료")
+
+    async def run(self, message: str, conversation_id: str) -> dict:
+        """메시지를 처리하여 answer와 sources를 반환한다(대화 기록 자동 저장/복원).
+
+        대화 처리 중 오류(OpenAI 장애, 네트워크 실패 등) 발생 시 예외를 잡아
+        사용자에게 재시도를 안내한다. LangGraph 체크포인터는 단계별 즉시 저장
+        구조라 단일 트랜잭션으로 원자성을 보장하기 어려우므로, 예외 처리로
+        깨진 상태가 사용자에게 노출되지 않게 방어한다.
+        """
+        await self._initialize()
+        assert self.agent is not None
+        try:
+            result = await self.agent.ainvoke(
+                {"messages": [{"role": "user", "content": message}],
+                    "sources": [], "web_sources": []},
+                {"configurable": {"thread_id": conversation_id}},
+            )
+            # 출처 중복 제거 (arxiv_id 기준, 순서 유지) — 실제 검색된 출처
+            seen = set()
+            unique_sources = []
+            for s in result.get("sources", []):
+                if s["arxiv_id"] not in seen:
+                    seen.add(s["arxiv_id"])
+                    unique_sources.append(s)
+
+            # 구조화된 답변(response_format) 꺼내기
+            structured = result.get("structured_response")
+            if structured:
+                answer = structured.explanation
+                papers = [p.model_dump() for p in structured.papers]
+            else:
+                # 혹시 구조화 실패 시 fallback (기존 방식)
+                answer = result["messages"][-1].content
+                papers = []
+
+            return {
+                "answer": answer,
+                "papers": papers,
+                "sources": unique_sources,
+            }
+        except Exception as e:
+            self.logger.error(
+                f"대화 처리 실패 (conversation_id={conversation_id}): {e}")
+            return {
+                "answer": "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                "papers": [],
+                "sources": [],
+            }
+
+    async def run_stream(self, message: str, conversation_id: str) -> AsyncGenerator[dict[str, str], None]:
+        """메시지를 처리하면서 답변 텍스트(explanation)를 토큰 단위로 흘려보낸다(스트리밍).
+
+        run()과 달리 response_format(structured output)을 쓰지 않는다. structured output은
+        JSON이 완성돼야 파싱되므로 스트리밍과 충돌하기 때문이다. 그래서 response_format을 뺀
+        스트리밍 전용 에이전트(_stream_agent)를 최초 1회만 lazy 생성해 재사용한다.
+        도구/system_prompt/checkpointer/state_schema는 메인 에이전트와 동일하다.
+
+        astream(stream_mode=["messages"])은 답변 토큰과 함께 도구 호출/도구 결과 토큰도 섞어
+        내보내므로, 실제 답변 텍스트 토큰만 골라 yield 한다. 출처(sources)는 여기서 yield하지
+        않고 state(checkpointer)에 누적되며, 스트리밍 종료 후 get_latest_sources()로 조회한다.
+        """
+        await self._initialize()
+
+        if not hasattr(self, "_stream_agent") or self._stream_agent is None:
+            self._stream_agent = create_agent(
+                model=self.model,
+                tools=[search_bio_papers, search_astronomy_papers,
+                       search_cs_papers, search_web, get_current_datetime],
+                system_prompt=self.stream_system_prompt,
+                checkpointer=self.checkpointer,
+                state_schema=cast(Any, BioAgentState),
+                # response_format 없음 — 스트리밍 위해 일반 마크다운 텍스트로 출력
+            )
+
+        assert self._stream_agent is not None
+
+        # 도구 이름 → 프론트 상태값 매핑
+        TOOL_STATUS = {
+            "search_web": "web_search",
+            "search_bio_papers": "paper_search",
+            "search_astronomy_papers": "paper_search",
+            "search_cs_papers": "paper_search",
+            "get_current_datetime": "datetime",
+        }
+        announced_tools = set()   # 같은 도구 상태를 두 번 보내지 않도록
+
+        try:
+            async for stream_mode, chunk in self._stream_agent.astream(
+                {"messages": [{"role": "user", "content": message}],
+                    "sources": [], "web_sources": []},
+                {"configurable": {"thread_id": conversation_id}},
+                stream_mode=cast(Any, ["messages"]),
+            ):
+                token, metadata = chunk
+
+                # 도구 호출 시작 감지 → 상태 이벤트 (도구 이름이 처음 등장할 때 1회)
+                names = []
+                for tc in (getattr(token, "tool_call_chunks", None) or []):
+                    if tc.get("name"):
+                        names.append(tc["name"])
+                for tc in (getattr(token, "tool_calls", None) or []):
+                    if tc.get("name"):
+                        names.append(tc["name"])
+                for name in names:
+                    if name not in announced_tools:
+                        announced_tools.add(name)
+                        yield {"type": "status", "data": TOOL_STATUS.get(name, "tool")}
+
+                # 도구 노드 토큰(검색 결과)은 답변이 아니므로 건너뛴다.
+                if isinstance(metadata, dict) and metadata.get("langgraph_node") == "tools":
+                    continue
+                # 도구 호출만 담은 AI 토큰도 답변 텍스트가 아니므로 건너뛴다.
+                if getattr(token, "tool_calls", None):
+                    continue
+                content = getattr(token, "content", "")
+                if not content:
+                    continue
+                yield {"type": "token", "data": content}
+        except Exception as e:
+            self.logger.error(f"스트리밍 처리 중 오류 발생 (conversation_id={conversation_id}): {e}")
+            yield {"type": "token", "data": "\n\n[오류 발생] OpenAI API 호출 중 오류가 발생했습니다. API 키의 할당량(Quota)이나 상태를 확인해 주세요."}
+
+    async def get_latest_sources(self, conversation_id: str) -> list[dict]:
+        """스트리밍 종료 후 state(checkpointer)에 누적된 검색 출처를 중복 제거하여 반환한다.
+
+        run_stream의 도구가 state.sources에 기록한 실제 검색 결과를 꺼낸다.
+        arxiv_id 기준으로 중복을 제거하고 순서를 유지한다(run()과 동일한 규칙).
+        """
+        await self._initialize()
+        agent = getattr(self, "_stream_agent", None) or self.agent
+        assert agent is not None
+        state = await agent.aget_state(
+            {"configurable": {"thread_id": conversation_id}}
+        )
+        raw_sources = state.values.get("sources", []) if state.values else []
+        seen = set()
+        unique_sources = []
+        for s in raw_sources:
+            if s["arxiv_id"] not in seen:
+                seen.add(s["arxiv_id"])
+                unique_sources.append(s)
+        return unique_sources
+
+    async def get_latest_web_sources(self, conversation_id: str) -> list[dict]:
+        """스트리밍 종료 후 state에 누적된 웹 검색 출처를 중복 제거(url 기준)하여 반환한다."""
+        await self._initialize()
+        agent = getattr(self, "_stream_agent", None) or self.agent
+        assert agent is not None
+        state = await agent.aget_state(
+            {"configurable": {"thread_id": conversation_id}}
+        )
+        raw = state.values.get("web_sources", []) if state.values else []
+        seen = set()
+        unique = []
+        for s in raw:
+            if s["url"] not in seen:
+                seen.add(s["url"])
+                unique.append(s)
+        return unique
+
+    async def get_history(self, conversation_id: str) -> list[dict]:
+        """대화 스레드의 사용자/어시스턴트 메시지 내역을 순서대로 반환한다.
+
+        시스템 메시지·도구 호출 메시지는 제외하고, 사용자(user)와 어시스턴트(assistant)
+        실제 발화만 [{role, content}] 리스트로 정리한다.
+        """
+        await self._initialize()
+        assert self.agent is not None
+        state = await self.agent.aget_state(
+            {"configurable": {"thread_id": conversation_id}}
+        )
+        messages = state.values.get("messages", []) if state.values else []
+
+        history = []
+        for msg in messages:
+            msg_type = getattr(msg, "type", None)
+            content = getattr(msg, "content", "")
+            if msg_type == "human":
+                history.append({"role": "user", "content": content})
+            elif msg_type == "ai" and content:
+                # 도구 호출만 있는(content 비어있는) AI 메시지는 제외
+                history.append({"role": "assistant", "content": content})
+        return history
+
+    async def clear_history(self, conversation_id: str) -> None:
+        """대화 스레드의 모든 기록을 삭제한다(방 삭제 시 대화 내용도 함께 제거)."""
+        await self._initialize()
+        assert self.checkpointer is not None
+        await self.checkpointer.adelete_thread(conversation_id)
+
+    async def generate_title(self, question: str) -> str:
+        """사용자의 첫 질문을 바탕으로 간결한 채팅방 제목을 생성한다.
+
+        답변 생성과 동일한 모델(gpt-4o-mini)을 재사용하되, 제목 생성용
+        경량 LLM 객체는 최초 1회만 만들어 보관한다. 도구 호출이나 대화
+        기록이 필요 없는 단순 변환이므로 에이전트가 아니라 모델을 직접 호출한다.
+        """
+        # 제목 생성용 LLM은 최초 1회만 생성해 재사용
+        if not hasattr(self, "_title_model") or self._title_model is None:
+            self._title_model = init_chat_model(self.model)
+
+        assert self._title_model is not None
+        prompt = (
+            "다음 질문을 한국어로 6~20자의 간결한 채팅방 제목으로 만들어줘.\n"
+            "- 제목만 출력하고 따옴표나 군더더기 설명은 붙이지 마.\n"
+            "- 질문의 핵심 주제를 자연스럽게 요약해.\n\n"
+            f"질문: {question}"
+        )
+        try:
+            response = await self._title_model.ainvoke(prompt)
+            content = response.content
+            if isinstance(content, str):
+                title = content.strip().strip('"').strip("'")
+            else:
+                title = ""
+            # 혹시 너무 길면 잘라서 안전하게
+            return title[:30] if title else question[:30]
+        except Exception as e:
+            self.logger.error(f"제목 생성 실패: {e}")
+            # 실패 시 질문 앞부분으로 폴백
+            return question[:30]
+
+    async def generate_suggestions(self, question: str, answer: str) -> list[str]:
+        """직전 질문·답변 맥락을 바탕으로 이어서 물어볼 만한 추천 후속 질문 3개를 생성한다.
+
+        제목 생성과 동일한 경량 모델(gpt-4o-mini)을 재사용한다. 도구 호출이나 대화
+        기록이 필요 없는 단순 변환이므로 에이전트가 아니라 모델을 직접 호출하고,
+        결과를 JSON 배열로만 받아 파싱한다. 실패 시 빈 리스트를 반환한다(대화엔 영향 없음).
+
+        Args:
+            question (str): 사용자의 직전 질문.
+            answer (str): AI의 직전 답변 본문.
+
+        Returns:
+            list[str]: 추천 후속 질문 문자열 리스트(최대 3개). 실패 시 빈 리스트.
+        """
+        import json
+
+        if not hasattr(self, "_title_model") or self._title_model is None:
+            self._title_model = init_chat_model(self.model)
+
+        assert self._title_model is not None
+        # 답변이 너무 길면 앞부분만 사용(토큰 절약)
+        answer_excerpt = (answer or "")[:1200]
+        prompt = (
+            "당신은 생명공학·천문학·컴퓨터과학 논문 연구 조력자입니다.\n"
+            "아래 [질문]과 [답변]을 읽고, 사용자가 자연스럽게 이어서 물어볼 만한 "
+            "후속 질문 3개를 만들어 주세요.\n"
+            "- 답변 내용에서 더 깊이 파고들거나, 관련된 다음 주제로 확장하는 질문이 좋습니다.\n"
+            "- 각 질문은 한국어로 간결하게(10~40자), 물음표로 끝나게 작성하세요.\n"
+            "- 반드시 JSON 배열 형식으로만 출력하세요. 예: [\"질문1?\", \"질문2?\", \"질문3?\"]\n"
+            "- 코드블록(```)이나 다른 설명은 절대 붙이지 마세요.\n\n"
+            f"[질문]\n{question}\n\n[답변]\n{answer_excerpt}"
+        )
+        try:
+            response = await self._title_model.ainvoke(prompt)
+            content = response.content if isinstance(response.content, str) else ""
+            # 혹시 코드블록으로 감싸여 오면 벗겨낸다.
+            cleaned = content.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, list):
+                # 문자열만, 최대 3개, 공백 제거
+                result = [str(q).strip() for q in parsed if str(q).strip()][:3]
+                return result
+            return []
+        except Exception as e:
+            self.logger.error(f"추천 질문 생성 실패: {e}")
+            return []
+
+
+# 싱글톤으로 관리 — _initialized 플래그와 풀 생명주기를 요청 간에 유지하기 위함.
+_chat_agent = ChatAgent()
+
+
+def get_chat_agent() -> ChatAgent:
+    """ChatAgent 싱글톤 인스턴스를 반환하는 의존성 제공자."""
+    return _chat_agent
+
+
+ChatAgentDep = Annotated[ChatAgent, Depends(get_chat_agent)]

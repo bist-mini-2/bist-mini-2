@@ -140,11 +140,23 @@
   color: #8A908A !important;
 }
 
-[data-theme="dark"] .border {
+[data-theme="dark"] .border,
+[data-theme="dark"] .border-top,
+[data-theme="dark"] .border-bottom,
+[data-theme="dark"] .border-start,
+[data-theme="dark"] .border-end {
   border-color: var(--card-border) !important;
 }
 
 [data-theme="dark"] .card {
   background-color: var(--card-bg) !important;
   border-color: var(--card-border) !important;
+}
+
+[data-theme="dark"] .gem-editor-file-name {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .gem-paper-card:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
 }
