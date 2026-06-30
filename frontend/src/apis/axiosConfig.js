@@ -18,6 +18,23 @@ const apiClient = axios.create({
 // Request Interceptor: 모든 요청 전 로컬스토리지에서 토큰을 추출하여 Authorization 헤더에 실어 보냅니다.
 apiClient.interceptors.request.use(
   (config) => {
+    // Mock 모드일 경우 네트워크 요청을 가로채서 즉시 성공 응답을 반환합니다.
+    const { isMockMode } = require("./mockConfig");
+    if (isMockMode) {
+      if (config.url === "/auth/me") {
+        const username = typeof window !== "undefined" ? localStorage.getItem("user") || "admin" : "admin";
+        config.adapter = () => {
+          return Promise.resolve({
+            data: { status: "success", username, role: "ROLE_USER" },
+            status: 200,
+            statusText: "OK",
+            headers: {},
+            config,
+          });
+        };
+      }
+    }
+    
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("accessToken");
       if (token) {

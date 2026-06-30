@@ -1,4 +1,6 @@
 import { apiClient } from "./axiosConfig";
+import { isMockMode } from "./mockConfig";
+import * as mockService from "./mockService";
 
 /**
  * PDF 파일을 보안 격리 샌드박스 영역에 업로드하고 세션을 시작합니다.
@@ -7,6 +9,9 @@ import { apiClient } from "./axiosConfig";
  * @returns {Promise<object>} API 응답 객체 (session_id, file_name, chunk_count 포함)
  */
 export async function uploadIsolatedPdf(file) {
+  if (isMockMode) {
+    return mockService.uploadIsolatedPdf(file?.name);
+  }
   const formData = new FormData();
   formData.append("file", file);
   const response = await apiClient.post("/defense-arena/upload-isolated", formData, {
@@ -25,6 +30,9 @@ export async function uploadIsolatedPdf(file) {
  * @returns {Promise<object>} API 응답 객체 (PeerReviewReport DTO)
  */
 export async function runAcademicPeerReview(sessionId, targetJournal) {
+  if (isMockMode) {
+    return mockService.runAcademicPeerReview(sessionId, targetJournal);
+  }
   const formData = new FormData();
   formData.append("session_id", sessionId);
   formData.append("target_journal", targetJournal);
@@ -44,6 +52,9 @@ export async function runAcademicPeerReview(sessionId, targetJournal) {
  * @returns {Promise<object>} API 응답 객체 (HypothesisVerificationResult DTO)
  */
 export async function verifyHypothesis(sessionId, hypothesis) {
+  if (isMockMode) {
+    return mockService.verifyHypothesis(sessionId, hypothesis);
+  }
   const formData = new FormData();
   formData.append("session_id", sessionId);
   formData.append("hypothesis", hypothesis);
@@ -63,6 +74,9 @@ export async function verifyHypothesis(sessionId, hypothesis) {
  * @returns {Promise<object>} API 응답 객체 (DefenseChatResponse DTO)
  */
 export async function defenseChatArena(sessionId, userResponse) {
+  if (isMockMode) {
+    return mockService.defenseChatArena(sessionId, userResponse);
+  }
   const formData = new FormData();
   formData.append("session_id", sessionId);
   if (userResponse !== undefined && userResponse !== null) {
@@ -83,6 +97,9 @@ export async function defenseChatArena(sessionId, userResponse) {
  * @returns {Promise<object>} API 응답 객체
  */
 export async function keepAliveDefenseSession(sessionId) {
+  if (isMockMode) {
+    return { status: "success", message: "session kept alive (mock)" };
+  }
   const formData = new FormData();
   formData.append("session_id", sessionId);
   const response = await apiClient.post("/defense-arena/keep-alive", formData, {
@@ -100,6 +117,9 @@ export async function keepAliveDefenseSession(sessionId) {
  * @returns {Promise<object>} 번역 결과 응답 객체 (translated_text 포함)
  */
 export async function translateText(text) {
+  if (isMockMode) {
+    return mockService.translateText(text);
+  }
   const formData = new FormData();
   formData.append("text", text);
   const response = await apiClient.post("/defense-arena/translate", formData, {
@@ -116,6 +136,9 @@ export async function translateText(text) {
  * @returns {Promise<object>} API 응답 객체 (SavedSessionDTO 배열 포함)
  */
 export async function getDefenseHistoryList() {
+  if (isMockMode) {
+    return mockService.getDefenseHistoryList();
+  }
   const response = await apiClient.get("/defense-arena/history");
   return response.data;
 }
@@ -127,6 +150,9 @@ export async function getDefenseHistoryList() {
  * @returns {Promise<object>} API 응답 객체 (SavedSessionDetailResponse DTO)
  */
 export async function getDefenseSessionDetail(sessionId) {
+  if (isMockMode) {
+    return mockService.getDefenseSessionDetail(sessionId);
+  }
   const response = await apiClient.get(`/defense-arena/history/${sessionId}`);
   return response.data;
 }
@@ -138,9 +164,9 @@ export async function getDefenseSessionDetail(sessionId) {
  * @returns {Promise<object>} API 응답 객체
  */
 export async function deleteDefenseSession(sessionId) {
+  if (isMockMode) {
+    return mockService.deleteDefenseSession(sessionId);
+  }
   const response = await apiClient.delete(`/defense-arena/history/${sessionId}`);
   return response.data;
 }
-
-
-

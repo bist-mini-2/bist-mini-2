@@ -1,4 +1,6 @@
 import { apiClient, backendUrl } from "./axiosConfig";
+import { isMockMode } from "./mockConfig";
+import * as mockService from "./mockService";
 
 /**
  * 새로운 채팅방(세션)을 생성합니다.
@@ -7,6 +9,9 @@ import { apiClient, backendUrl } from "./axiosConfig";
  * @returns {Promise<object>} API 응답 객체 (data: { session_id, title, created_at })
  */
 export async function createSession(title) {
+  if (isMockMode) {
+    return mockService.createSession(title);
+  }
   const response = await apiClient.post("/chat/sessions", { title });
   return response.data;
 }
@@ -17,6 +22,9 @@ export async function createSession(title) {
  * @returns {Promise<object>} API 응답 객체 (data: [{ session_id, title, created_at }])
  */
 export async function getSessions() {
+  if (isMockMode) {
+    return mockService.getSessions();
+  }
   const response = await apiClient.get("/chat/sessions");
   return response.data;
 }
@@ -28,6 +36,9 @@ export async function getSessions() {
  * @returns {Promise<object>} API 응답 객체
  */
 export async function deleteSession(sessionId) {
+  if (isMockMode) {
+    return mockService.deleteSession(sessionId);
+  }
   const response = await apiClient.delete(`/chat/sessions/${sessionId}`);
   return response.data;
 }
@@ -40,6 +51,9 @@ export async function deleteSession(sessionId) {
  * @returns {Promise<object>} API 응답 객체 (data: { answer, sources: [{ arxiv_id, title }] })
  */
 export async function sendMessage(sessionId, message) {
+  if (isMockMode) {
+    return mockService.sendMessage(sessionId, message);
+  }
   const response = await apiClient.post(`/chat/sessions/${sessionId}/messages`, { message });
   return response.data;
 }
@@ -52,6 +66,9 @@ export async function sendMessage(sessionId, message) {
  * @returns {Promise<object>} API 응답 객체 (data: { session_id, title, created_at })
  */
 export async function renameSession(sessionId, title) {
+  if (isMockMode) {
+    return mockService.renameSession(sessionId, title);
+  }
   const response = await apiClient.patch(`/chat/sessions/${sessionId}`, { title });
   return response.data;
 }
@@ -63,17 +80,15 @@ export async function renameSession(sessionId, title) {
  * @returns {Promise<object>} API 응답 객체 (data: [{ role, content }])
  */
 export async function getMessages(sessionId) {
+  if (isMockMode) {
+    return mockService.getMessages(sessionId);
+  }
   const response = await apiClient.get(`/chat/sessions/${sessionId}/messages`);
   return response.data;
 }
 
-
 /**
  * 채팅방에 메시지를 전송하고 답변을 토큰 단위로 스트리밍 수신합니다(타이핑 효과).
- *
- * axios(apiClient)는 스트리밍 응답에 부적합하므로 fetch + ReadableStream을 사용합니다.
- * baseURL은 axiosConfig.js(http://localhost:8000/api/v1)와 동일하게 맞춥니다.
- * 인증 토큰은 axiosConfig와 동일하게 localStorage의 accessToken을 Bearer로 전달합니다.
  *
  * @param {string} sessionId 채팅방 고유 ID
  * @param {string} message 사용자 질문 내용
@@ -81,6 +96,9 @@ export async function getMessages(sessionId) {
  * @returns {Promise<void>} 스트리밍이 끝나면 resolve됩니다.
  */
 export async function sendMessageStream(sessionId, message, onToken, onStatus, image) {
+  if (isMockMode) {
+    return mockService.sendMessageStream(sessionId, message, onToken, onStatus, image);
+  }
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
   const res = await fetch(
@@ -100,7 +118,6 @@ export async function sendMessageStream(sessionId, message, onToken, onStatus, i
   const decoder = new TextDecoder();
   let buffer = "";
 
-  // JSON 한 줄을 파싱해 타입별로 콜백 분기
   const handleLine = (line) => {
     const trimmed = line.trim();
     if (!trimmed) return;
@@ -108,7 +125,7 @@ export async function sendMessageStream(sessionId, message, onToken, onStatus, i
     try {
       event = JSON.parse(trimmed);
     } catch {
-      return; // 깨진 줄은 무시
+      return;
     }
     if (event.type === "token") onToken?.(event.data);
     else if (event.type === "status") onStatus?.(event.data);
@@ -118,16 +135,14 @@ export async function sendMessageStream(sessionId, message, onToken, onStatus, i
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-    // 완성된 줄(개행 기준)만 처리하고, 나머지는 버퍼에 남긴다
     let nl;
     while ((nl = buffer.indexOf("\n")) >= 0) {
       handleLine(buffer.slice(0, nl));
       buffer = buffer.slice(nl + 1);
     }
   }
-  handleLine(buffer); // 개행 없이 끝난 마지막 줄 처리
+  handleLine(buffer);
 }
-
 
 /**
  * 첫 질문을 바탕으로 AI가 채팅방 제목을 생성하고 적용합니다.
@@ -137,6 +152,9 @@ export async function sendMessageStream(sessionId, message, onToken, onStatus, i
  * @returns {Promise<object>} API 응답 객체 (data: { title })
  */
 export async function generateTitle(sessionId, message) {
+  if (isMockMode) {
+    return { data: { title: message.substring(0, 15) + "..." } };
+  }
   const response = await apiClient.post(`/chat/sessions/${sessionId}/generate-title`, { message });
   return response.data;
 }

@@ -1,4 +1,6 @@
 import { apiClient } from "./axiosConfig";
+import { isMockMode } from "./mockConfig";
+import * as mockService from "./mockService";
 
 /**
  * 대규모 문헌 비교 분석 비동기 작업 요청을 보냅니다.
@@ -8,6 +10,9 @@ import { apiClient } from "./axiosConfig";
  * @returns {Promise<object>} API 응답 객체 (task_id 포함)
  */
 export async function startAnalysis(domain, query) {
+  if (isMockMode) {
+    return mockService.startAnalysis(domain, query);
+  }
   const response = await apiClient.post("/research-gap/analyze", { domain, query });
   return response.data;
 }
@@ -19,6 +24,9 @@ export async function startAnalysis(domain, query) {
  * @returns {Promise<object>} API 응답 객체 (상태 및 진행률 %)
  */
 export async function getTaskStatus(taskId) {
+  if (isMockMode) {
+    return mockService.getTaskStatus(taskId);
+  }
   const response = await apiClient.get(`/research-gap/tasks/${taskId}`);
   return response.data;
 }
@@ -30,6 +38,9 @@ export async function getTaskStatus(taskId) {
  * @returns {Promise<object>} API 응답 객체 (최종 분석 결과)
  */
 export async function getTaskResult(taskId) {
+  if (isMockMode) {
+    return mockService.getTaskResult(taskId);
+  }
   const response = await apiClient.get(`/research-gap/tasks/${taskId}/result`);
   return response.data;
 }
@@ -41,6 +52,9 @@ export async function getTaskResult(taskId) {
  * @returns {Promise<object>} 번역된 매트릭스 데이터
  */
 export async function translateMatrix(taskId) {
+  if (isMockMode) {
+    return mockService.translateMatrix(taskId);
+  }
   const response = await apiClient.post(`/research-gap/tasks/${taskId}/translate`);
   return response.data;
 }
@@ -51,6 +65,9 @@ export async function translateMatrix(taskId) {
  * @returns {Promise<object>} API 응답 객체 (태스크 리스트)
  */
 export async function listUserTasks() {
+  if (isMockMode) {
+    return mockService.listUserTasks();
+  }
   const response = await apiClient.get("/research-gap/tasks");
   return response.data;
 }
@@ -62,6 +79,9 @@ export async function listUserTasks() {
  * @returns {Promise<object>} API 응답 객체 (삭제 여부)
  */
 export async function deleteTask(taskId) {
+  if (isMockMode) {
+    return mockService.deleteTask(taskId);
+  }
   const response = await apiClient.delete(`/research-gap/tasks/${taskId}`);
   return response.data;
 }
@@ -73,10 +93,9 @@ export async function deleteTask(taskId) {
  * @returns {Promise<object>} API 응답 객체 (deleted_count 포함)
  */
 export async function bulkDeleteTasks(taskIds) {
+  if (isMockMode) {
+    return mockService.bulkDeleteTasks(taskIds);
+  }
   const response = await apiClient.post("/research-gap/tasks/bulk-delete", { task_ids: taskIds });
   return response.data;
 }
-
-
-
-

@@ -40,6 +40,7 @@ class NoCacheStaticFiles(StaticFiles):
 # ============================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logging.getLogger("uvicorn").info(f"Connecting to DATABASE_URL: {settings.DATABASE_URL}")
     logging.getLogger("uvicorn").info("Application Starting Up...")
     
     # Uvicorn 핫리로드 시 SSE 커넥션 교착(hang) 방지를 위한 시그널 핸들러 체이닝
@@ -84,6 +85,13 @@ async def lifespan(app: FastAPI):
             if "postgresql" in settings.DATABASE_URL:
                 from sqlalchemy import text
                 await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            
+            # 테이블을 먼저 생성합니다.
+            await conn.run_sync(Base.metadata.create_all)
+            
+            # 테이블 생성 후에 기존 테이블 컬럼 확장 마이그레이션을 처리합니다.
+            if "postgresql" in settings.DATABASE_URL:
+                from sqlalchemy import text
                 await conn.execute(text("ALTER TABLE research_gap_task ADD COLUMN IF NOT EXISTS translated_result JSON;"))
                 # Defense Arena Session Archive columns
                 await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS is_saved BOOLEAN DEFAULT TRUE;"))
@@ -92,7 +100,6 @@ async def lifespan(app: FastAPI):
                 await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS final_report TEXT;"))
                 await conn.execute(text("ALTER TABLE defense_arena_session ADD COLUMN IF NOT EXISTS defense_score DOUBLE PRECISION;"))
                 await conn.execute(text("ALTER TABLE paper_full_text_cache ADD COLUMN IF NOT EXISTS is_vectorized BOOLEAN DEFAULT FALSE;"))
-            await conn.run_sync(Base.metadata.create_all)
 
         logging.getLogger("uvicorn").info("Database tables initialized successfully.")
     except Exception as e:

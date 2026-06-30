@@ -1,4 +1,6 @@
 import { apiClient } from "./axiosConfig";
+import { isMockMode } from "./mockConfig";
+import * as mockService from "./mockService";
 
 /**
  * 사용자의 모든 알림 목록을 최신순으로 조회합니다.
@@ -6,6 +8,9 @@ import { apiClient } from "./axiosConfig";
  * @returns {Promise<object>} API 응답 객체 (알림 목록 포함)
  */
 export async function listNotifications() {
+  if (isMockMode) {
+    return mockService.listNotifications();
+  }
   const response = await apiClient.get("/notification");
   return response.data;
 }
@@ -17,6 +22,9 @@ export async function listNotifications() {
  * @returns {Promise<object>} API 응답 객체 (성공 여부 포함)
  */
 export async function markNotificationAsRead(id) {
+  if (isMockMode) {
+    return mockService.markNotificationAsRead(id);
+  }
   const response = await apiClient.put(`/notification/${id}/read`);
   return response.data;
 }
@@ -27,6 +35,9 @@ export async function markNotificationAsRead(id) {
  * @returns {Promise<object>} API 응답 객체 (성공 여부 포함)
  */
 export async function markAllNotificationsAsRead() {
+  if (isMockMode) {
+    return mockService.markAllNotificationsAsRead();
+  }
   const response = await apiClient.put("/notification/read-all");
   return response.data;
 }
@@ -38,6 +49,9 @@ export async function markAllNotificationsAsRead() {
  * @returns {Promise<object>} API 응답 객체 (성공 여부 포함)
  */
 export async function deleteNotification(id) {
+  if (isMockMode) {
+    return mockService.deleteNotification(id);
+  }
   const response = await apiClient.delete(`/notification/${id}`);
   return response.data;
 }
@@ -48,6 +62,9 @@ export async function deleteNotification(id) {
  * @returns {Promise<object>} API 응답 객체 (성공 여부 포함)
  */
 export async function deleteAllNotifications() {
+  if (isMockMode) {
+    return mockService.deleteAllNotifications();
+  }
   const response = await apiClient.delete("/notification");
   return response.data;
 }

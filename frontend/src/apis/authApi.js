@@ -1,4 +1,6 @@
 import { apiClient } from "./axiosConfig";
+import { isMockMode } from "./mockConfig";
+import * as mockService from "./mockService";
 
 /**
  * 사용자 자격 증명(ID, 비밀번호)을 기반으로 로그인을 수행하여 토큰을 발급받습니다.
@@ -8,6 +10,9 @@ import { apiClient } from "./axiosConfig";
  * @returns {Promise<object>} JWT 토큰 및 사용자 정보 데이터
  */
 async function login(mid, mpassword) {
+  if (isMockMode) {
+    return mockService.login(mid, mpassword);
+  }
   const params = new URLSearchParams();
   params.append("username", mid);
   params.append("password", mpassword);

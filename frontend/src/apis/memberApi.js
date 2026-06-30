@@ -1,4 +1,6 @@
 import { apiClient } from "./axiosConfig";
+import { isMockMode } from "./mockConfig";
+import * as mockService from "./mockService";
 
 /**
  * 신규 회원을 플랫폼에 가입시킵니다.
@@ -7,6 +9,9 @@ import { apiClient } from "./axiosConfig";
  * @returns {Promise<object>} 회원 가입 성공 응답 데이터
  */
 async function join(joinData) {
+  if (isMockMode) {
+    return mockService.join(joinData);
+  }
   const response = await apiClient.post("/member/join", joinData);
   return response.data;
 }
