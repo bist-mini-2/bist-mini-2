@@ -71,14 +71,14 @@ graph LR
 ---
 
 ### [UC-01] 일반 챗 허브: 듀얼 트랙 병렬 RAG 스트리밍 대화
-![UC-01 Flow Diagram](usecase_hubs_rag_flow.png)
+![UC-01 Flow Diagram](images/usecase_hubs_rag_flow.png)
 
 *   **목적**: 사용자가 특정 학술 주제나 기술에 대해 질문했을 때, 신뢰할 수 있는 학술 이론과 최신 시장/오픈소스 동향을 결합한 풍부한 답변을 실시간으로 제공합니다.
 *   **주요 행위자**: 전문 연구원 (User)
 *   **사전 조건**: 사용자가 인증을 거쳐 대화방(Session)에 입장해 있어야 합니다.
 *   **기본 흐름 (Basic Flow)**:
     1. 사용자가 질문(예: "CRISPR-Cas9 기법의 전달 바이러스(AAV) 포장 한계와 최근 동향 알려줘")을 입력합니다.
-    2. `AnalysisNode`가 유저의 한글 질문에서 학술 RAG용 영어 키워드(`"CRISPR-Cas9 AAV packaging limitations"`)와 실시간 웹 검색어(`"recent developments in CRISPR AAV delivery vectors"`)를 동시에 동기식 `ainvoke`로 빠르게 추출합니다.
+    2. 질문 수신 시 `paper_agent`와 `web_agent`로 즉시 이관하여 비동기 병렬 검색을 기동하고, `paper_agent` 내부에서 영어 학술 키워드(`"CRISPR-Cas9 AAV packaging limitations"`)로 자율 변환해 pgvector RAG를 타격합니다.
     3. LangGraph 오케스트레이터가 추출된 두 쿼리를 활용하여 `paper_node`와 `web_node`를 무조건적으로 병렬 비동기 가동(`asyncio.gather`)시킵니다.
     4. `paper_node`는 `bio_embeddings` pgvector DB에서 유사 초록 정보를 가져와 `sources`에 누적하고, `web_node`는 Tavily Web Search API를 구동하여 최신 기사 및 웹 내용을 `web_sources`에 누적합니다.
     5. `synthesis_node`가 수집된 두 영역의 지식 풀을 크로스-참조로 정밀 결합하여, 학계의 기본 한계 수치와 최근 연구소들의 새로운 바이러스 포장 돌파구 동향을 융합한 풍부한 마크다운 답변을 토큰 단위로 실시간 방출합니다.
@@ -87,7 +87,7 @@ graph LR
     *   *RAG 데이터셋 내 관련 문헌 미존재 시*: 외부 실시간 웹 검색(`search_web`)에서 얻어온 결과만으로 답변을 합성하고, "관련 논문을 찾지 못했습니다" 문구를 포함하여 정보를 정제해 전달합니다.
 
 ### [UC-02] 대규모 문헌 스펙 비교 및 공백(Research Gap) 분석기
-![UC-02 Flow Diagram](usecase_gap_analysis_flow.png)
+![UC-02 Flow Diagram](images/usecase_gap_analysis_flow.png)
 
 *   **목적**: 특정 기술 주제에 대해 수십 편의 논문을 한꺼번에 메타 분석하여, 선행 연구의 Problems/Limitations 비교 표를 도출하고 향후 미개척 연구 영역(Research Gap)에 대응하는 로드맵 제안서를 비동기적으로 완성합니다.
 *   **주요 행위자**: 전문 연구원 (User)
@@ -103,7 +103,7 @@ graph LR
     8. 사용자가 리포트 조회를 누르면, 영문으로 작성된 리포트를 아카데믹 가이드라인에 입각해 매끄러운 한글로 번역하는 `translate_matrix`가 작동하여 DB에 저장 및 캐싱된 한글 보고서를 보여줍니다. (단, 팩트 확인용 `source_quote` 필드는 영문 그대로 유지)
 
 ### [UC-03] 보안 피어 리뷰 및 디펜스 아레나 (향후 개발 로드맵 - 미구현)
-![UC-03 Flow Diagram](usecase_arena_defense_flow.png)
+![UC-03 Flow Diagram](images/usecase_arena_defense_flow.png)
 
 *   **목적**: 외부 유출이 절대 안 되는 기밀 연구용 PDF 문서를 임시로 올려 다중 에이전트의 피드백을 받고, 가상의 학회 심사위원 에이전트와 모의 질의응답을 거쳐 논리적 허점을 철저히 자가 디펜스 및 평가합니다.
 *   **주요 행위자**: 전문 연구원 (User)
@@ -117,7 +117,7 @@ graph LR
     6. 대화 세션이 종료되거나 사용자가 30분 동안 아무런 입력을 주지 않으면, 데몬이 작동하여 PDF 원본 파일 시스템 삭제 및 임시 pgvector 테이블 공간을 흔적 없이 영구 파쇄(Wipe Out)합니다.
 
 ### [UC-04] 맞춤형 연구 비서 (Research Gem) 팩토리 & 스토어
-![UC-04 Flow Diagram](usecase_gem_factory_flow.png)
+![UC-04 Flow Diagram](images/usecase_gem_factory_flow.png)
 
 *   **목적**: 사용자가 본인이 선호하는 특정 RAG 소스 참조 영역과 전용 페르소나 지침을 조합하여 나만의 독립된 특화 에이전트(Gem)를 만들고, 본인 연구용 PDF를 젬에 영구 주입하여 전용 1:1 RAG 대화를 수행합니다.
 *   **주요 행위자**: 전문 연구원 (User)

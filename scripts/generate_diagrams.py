@@ -237,8 +237,8 @@ def generate_tier2(output_png, output_svg):
     draw.text((150 * SCALE, 55 * SCALE), "LangGraph Multi-Agent Engine (Shared State: MultiAgentState)", fill=ACCENT_PURPLE, font=card_title_font)
     
     draw_shadow_rect(draw, (180, 250, 430, 370), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
-    draw.text((200 * SCALE, 265 * SCALE), "AnalysisNode", fill=TEXT_CARD_TITLE, font=card_title_font)
-    draw.text((200 * SCALE, 300 * SCALE), "Intent Analysis &\nDual Query Optimizer", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((200 * SCALE, 265 * SCALE), "Supervisor", fill=TEXT_CARD_TITLE, font=card_title_font)
+    draw.text((200 * SCALE, 300 * SCALE), "Parallel Routing &\nOrchestrator (gather)", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_shadow_rect(draw, (550, 110, 800, 230), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
     draw.text((570 * SCALE, 125 * SCALE), "PaperNode", fill=TEXT_CARD_TITLE, font=card_title_font)
@@ -271,15 +271,15 @@ def generate_tier2(output_png, output_svg):
     draw.text((1180 * SCALE, 280 * SCALE), "Yield", fill=FLOW_RED, font=flow_font)
     
     img.save(output_png)
-
+ 
     # --- SVG ---
     svg = SVGBuilder(1200, 600)
     svg.add_rect((120, 30, 1080, 570), rx=12, fill=GROUP_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=2)
     svg.add_text((150, 55), "LangGraph Multi-Agent Engine (Shared State: MultiAgentState)", font_size=20, font_weight="bold", fill=ACCENT_PURPLE)
     
     svg.add_rect((180, 250, 430, 370), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
-    svg.add_text((200, 265), "AnalysisNode", font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
-    svg.add_text((200, 300), "Intent Analysis &\nDual Query Optimizer", font_size=14, fill=TEXT_CARD_BODY)
+    svg.add_text((200, 265), "Supervisor", font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
+    svg.add_text((200, 300), "Parallel Routing &\nOrchestrator (gather)", font_size=14, fill=TEXT_CARD_BODY)
     
     svg.add_rect((550, 110, 800, 230), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
     svg.add_text((570, 125), "PaperNode", font_size=20, font_weight="bold", fill=TEXT_CARD_TITLE)
@@ -515,8 +515,8 @@ def generate_agent_workflow(output_png, output_svg):
     draw.text((80 * SCALE, 160 * SCALE), "자연어 질의 수신", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_shadow_rect(draw, (290, 90, 520, 210), 8, fill=CARD_BG, outline=ACCENT_PURPLE, width=1)
-    draw.text((310 * SCALE, 110 * SCALE), "AnalysisNode", fill=ACCENT_PURPLE, font=card_title_font)
-    draw.text((310 * SCALE, 140 * SCALE), "의도 분석 & 키워드 최적화\n(gpt-4o-mini 기용)", fill=TEXT_CARD_BODY, font=card_body_font)
+    draw.text((310 * SCALE, 110 * SCALE), "Supervisor", fill=ACCENT_PURPLE, font=card_title_font)
+    draw.text((310 * SCALE, 140 * SCALE), "비동기 병렬 호출 제어\n(asyncio.gather 기용)", fill=TEXT_CARD_BODY, font=card_body_font)
     
     draw_shadow_rect(draw, (620, 20, 840, 130), 8, fill=CARD_BG, outline=BORDER_COLOR, width=1)
     draw.text((640 * SCALE, 40 * SCALE), "PaperNode", fill=TEXT_CARD_TITLE, font=card_title_font)
@@ -557,8 +557,8 @@ def generate_agent_workflow(output_png, output_svg):
     svg.add_text((80, 160), "자연어 질의 수신", font_size=13, fill=TEXT_CARD_BODY)
     
     svg.add_rect((290, 90, 520, 210), rx=8, fill=CARD_BG_HEX, stroke=ACCENT_PURPLE, stroke_width=1, shadow=True)
-    svg.add_text((310, 110), "AnalysisNode", font_size=18, font_weight="bold", fill=ACCENT_PURPLE)
-    svg.add_text((310, 140), "의도 분석 & 키워드 최적화\n(gpt-4o-mini 기용)", font_size=13, fill=TEXT_CARD_BODY)
+    svg.add_text((310, 110), "Supervisor", font_size=18, font_weight="bold", fill=ACCENT_PURPLE)
+    svg.add_text((310, 140), "비동기 병렬 호출 제어\n(asyncio.gather 기용)", font_size=13, fill=TEXT_CARD_BODY)
     
     svg.add_rect((620, 20, 840, 130), rx=8, fill=CARD_BG_HEX, stroke=BORDER_COLOR, stroke_width=1, shadow=True)
     svg.add_text((640, 40), "PaperNode", font_size=18, font_weight="bold", fill=TEXT_CARD_TITLE)
@@ -605,9 +605,9 @@ def generate_usecase_hubs_rag_flow(output_png, output_svg):
     
     steps = [
         ("Step 01", "한글 질문 입력", "사용자가 의문이 제기된\n학술 분야 및 신기술 관련\n한글 질문을 창에 입력"),
-        ("Step 02", "쿼리 최적화 분해", "AnalysisNode 가 가동되어\n학술 RAG용 영어 키워드와\n실시간 Web 검색어 동시 추출"),
-        ("Step 03", "병렬 RAG 타격", "asyncio.gather 에 의해\npaper_node 와 web_node 가\n비동기 병렬 방식으로 동시 실행"),
-        ("Step 04", "지식 크로스 융합", "SynthesisNode 가 논문 이론과\n실시간 웹 동향 지식을 결합해\n인라인 인용이 담긴 리포트 합성"),
+        ("Step 02", "질문 수신 및 이관", "질문을 수신한 뒤\npaper_agent 와\nweb_agent 에 즉시 이관"),
+        ("Step 03", "병렬 RAG 타격", "asyncio.gather 에 의해\n논문 RAG(영어 자동변환)\n및 웹 검색을 병렬 동시 실행"),
+        ("Step 04", "지식 크로스 융합", "SynthesisAgent 가 논문 이론과\n실시간 웹 동향 지식을 결합해\n인라인 인용이 담긴 리포트 합성"),
         ("Step 05", "실시간 스트리밍", "완성된 리포트를 실시간 토큰\n스트리밍으로 화면 출력 및\n출처와 후속 질문 정보 DB 적재")
     ]
     

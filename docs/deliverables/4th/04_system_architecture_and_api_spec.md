@@ -9,22 +9,22 @@
 본 시스템은 기밀 데이터 보호와 대규모 병렬 AI 연산의 과부하를 방지하기 위해 **프론트엔드-애플리케이션-데이터 저장소의 3-Tier 아키텍처**로 완결성 있게 격리 구축되었습니다.
 
 ### A. 전체 시스템 아키텍처 구성도
-![System Architecture Diagram](system_architecture.png)
+![System Architecture Diagram](images/system_architecture.png)
 
 ### B. 계층별 상세 아키텍처 다이어그램 (Tiered Deep-Dive)
 가독성 개선 및 상세 기능 모니터링을 위해 시스템 아키텍처를 3가지 핵심 계층으로 분할하여 도식화했습니다.
 
 #### 1) Tier 1: Frontend & Authentication
 프론트엔드 내의 UI 뷰, 전역 인증 Context 및 Axios API 연동 클라이언트에서부터, 백엔드의 Bearer JWT Security Guard를 통과하는 보안 게이트웨이 흐름을 묘사합니다.
-![Tier 1 Diagram](system_architecture_tier1.png)
+![Tier 1 Diagram](images/system_architecture_tier1.png)
 
 #### 2) Tier 2: LangGraph Multi-Agent Engine
 LangGraph 엔진 내부의 인텐트 분석, 듀얼 트랙 병렬 RAG(학술 논문 및 실시간 웹 검색) Concurrent 처리, 그리고 최종 SynthesisNode에서의 크로스오버 조인 융합 워크플로우를 보여줍니다.
-![Tier 2 Diagram](system_architecture_tier2.png)
+![Tier 2 Diagram](images/system_architecture_tier2.png)
 
 #### 3) Tier 3: Database & Cache (Storage Layer)
 LangGraph 에이전트의 대화 히스토리 영구 적재(PostgresSaver checkpointer), 유사도 기반 RAG 임베딩(pgvector HNSW), 비동기 배치 작업 상태 보존(PostgreSQL) 및 중복 조회 방지 인메모리 캐싱(Redis)의 데이터 상호작용을 보여줍니다.
-![Tier 3 Diagram](system_architecture_tier3.png)
+![Tier 3 Diagram](images/system_architecture_tier3.png)
 
 ### C. 아키텍처 데이터 흐름 제어 (Mermaid 구조)
 
@@ -43,7 +43,7 @@ graph TD
         BGTask["BackgroundTasks Workers (Async Task Offloader)"]
         
         subgraph LangGraph_Agent_Engine ["LangGraph Multi-Agent Engine"]
-            AnalysisNode[AnalysisNode: Intent & Query Optimizer]
+            Supervisor[Supervisor: Parallel Routing & Orchestrator]
             
             subgraph Parallel_Workers [병렬 작업 에이전트]
                 PaperNode[PaperNode: RAG Query Engine]
@@ -52,8 +52,8 @@ graph TD
             
             SynthesisNode[SynthesisNode: Cross-Reference Context Joins]
             
-            AnalysisNode -->|Parallel Broadcast| PaperNode
-            AnalysisNode -->|Parallel Broadcast| WebNode
+            Supervisor -->|Parallel Broadcast| PaperNode
+            Supervisor -->|Parallel Broadcast| WebNode
             PaperNode -->|Merge Contexts| SynthesisNode
             WebNode -->|Merge Contexts| SynthesisNode
         end
