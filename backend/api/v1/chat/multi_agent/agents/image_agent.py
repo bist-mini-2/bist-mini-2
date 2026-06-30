@@ -27,6 +27,11 @@ class ImageAgent:
 
     # 초기화 메소드
     def __init__(self, model: str = "openai:gpt-4o-mini"):
+        """이미지 분석 에이전트를 초기화합니다.
+
+        Args:
+            model (str, optional): 사용할 에이전트 인공지능 모델 코드. Defaults to "openai:gpt-4o-mini".
+        """
         self.logger = logging.getLogger(f"{__name__}.ImageAgent")
         system_prompt = """
             당신은 사용자가 올린 이미지(그래프, 도표, 다이어그램, 수식 등)와 질문을 함께
@@ -52,14 +57,14 @@ class ImageAgent:
 
     # 에이전트 실행 메소드
     async def run(self, image_data_url: str, query: str) -> dict:
-        """이미지(data URL)와 질문을 분석해 검색 쿼리를 dict로 반환한다.
+        """이미지(data URL)와 질문을 분석해 검색 쿼리를 사전 형식으로 반환합니다.
 
         Args:
-            image_data_url: "data:image/png;base64,..." 형식의 이미지 data URL 통째.
-            query: 사용자 질문 텍스트.
+            image_data_url (str): "data:image/png;base64,..." 형식의 이미지 data URL 전체 문자열.
+            query (str): 사용자 자연어 질문 텍스트.
 
         Returns:
-            dict: {"query": "<생성된 검색 쿼리>"}
+            dict: 생성된 검색 쿼리 정보가 담긴 딕셔너리. {"query": "<생성된 검색 쿼리>"}
         """
         self.logger.info("이미지 분석 에이전트 실행")
         result = await self.agent.ainvoke(

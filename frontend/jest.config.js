@@ -12,6 +12,8 @@ const customJestConfig = {
   moduleNameMapper: {
     // Handle module aliases
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^remark-gfm$': '<rootDir>/tests/mocks/remarkGfmMock.js',
+    '^react-markdown$': '<rootDir>/tests/mocks/reactMarkdownMock.js',
   }
 }
 

@@ -240,4 +240,50 @@ def test_send_message_multi_stream_endpoint(mock_send_multi_stream):
     assert response.status_code == 200
     assert response.headers["Content-Type"].startswith("text/plain")
     assert response.text == '{"type": "status", "data": "paper_search"}\n{"type": "token", "data": "답변"}\n{"type": "route", "data": "paper"}\n'
-    mock_send_multi_stream.assert_called_once_with("test-user", "session-1", "인사")
+    mock_send_multi_stream.assert_called_once_with("test-user", "session-1", "인사", None)
+
+
+# =====================================================================
+# Image Agent and Image Multi Agent Endpoint Tests
+# =====================================================================
+
+@pytest.mark.anyio
+async def test_image_agent_run():
+    """ImageAgent가 이미지와 질문을 인가받아 검색어 쿼리를 정상 도출하는지 테스트합니다."""
+    from api.v1.chat.multi_agent.agents.image_agent import ImageAgent, SearchQuery
+    
+    agent_instance = ImageAgent()
+    mock_response = {
+        "structured_response": SearchQuery(query="단일세포 RNA UMAP 분석")
+    }
+    
+    with patch.object(agent_instance.agent, "ainvoke", new_callable=AsyncMock) as mock_ainvoke:
+        mock_ainvoke.return_value = mock_response
+        
+        result = await agent_instance.run("data:image/png;base64,iVBORw0KGgo...", "이 이미지 분석해줘")
+        
+        assert result == {"query": "단일세포 RNA UMAP 분석"}
+        mock_ainvoke.assert_called_once()
+
+
+@patch("api.v1.chat.services.ChatService.send_message_multi_stream")
+def test_send_message_multi_stream_with_image_endpoint(mock_send_multi_stream):
+    """이미지가 포함된 멀티 에이전트 스트리밍 메시지 전송 API를 검증합니다."""
+    async def mock_generator(*args, **kwargs):
+        yield '{"type": "status", "data": "image_analysis"}\n'
+        yield '{"type": "status", "data": "paper_search"}\n'
+        yield '{"type": "token", "data": "답변"}\n'
+
+    mock_send_multi_stream.return_value = mock_generator()
+    
+    image_url = "data:image/png;base64,iVBORw0KGgo..."
+
+    response = client.post(
+        "/api/v1/chat/sessions/session-1/messages/multi/stream",
+        json={"message": "인사", "image": image_url}
+    )
+    assert response.status_code == 200
+    assert response.headers["Content-Type"].startswith("text/plain")
+    assert "image_analysis" in response.text
+    mock_send_multi_stream.assert_called_once_with("test-user", "session-1", "인사", image_url)
+

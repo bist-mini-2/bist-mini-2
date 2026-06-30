@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="740" viewBox="0 0 1600 740">
+  <!-- Transparent Background -->
+  <rect width="100%" height="100%" fill="none" />
+  <rect x="40" y="20" width="710" height="690" rx="12" fill="#F8FAFC" stroke="#7C3AED" stroke-width="2" />
+  <text x="60" y="35.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#7C3AED" text-anchor="start" font-weight="bold">비즈니스 &amp; 메타데이터 영역 (PostgreSQL)</text>
+  <rect x="790" y="20" width="380" height="690" rx="12" fill="#F8FAFC" stroke="#059669" stroke-width="2" />
+  <text x="810" y="35.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#059669" text-anchor="start" font-weight="bold">벡터 저장소 영역 (pgvector)</text>
+  <rect x="1210" y="20" width="350" height="690" rx="12" fill="#F8FAFC" stroke="#E11D48" stroke-width="2" />
+  <text x="1230" y="35.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#E11D48" text-anchor="start" font-weight="bold">보안 디펜스 아레나 (향후 로드맵)</text>
+  <rect x="85" y="95" width="240" height="170" rx="8" fill="#E2E8F0" />
+  <rect x="80" y="90" width="240" height="170" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" />
+  <text x="95" y="105.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">member (회원 정보)</text>
+  <text x="95" y="135.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">mid VARCHAR(20) [PK]</text>
+  <text x="95" y="151.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">mname VARCHAR(20)</text>
+  <text x="95" y="168.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">mpassword VARCHAR(255)</text>
+  <text x="95" y="185.39999999999998" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">memail VARCHAR(255) [UQ]</text>
+  <text x="95" y="202.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">mrole VARCHAR(20)</text>
+  <rect x="85" y="305" width="240" height="140" rx="8" fill="#E2E8F0" />
+  <rect x="80" y="300" width="240" height="140" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" />
+  <text x="95" y="315.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">chat_session (대화방)</text>
+  <text x="95" y="345.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">session_id VARCHAR(36) [PK]</text>
+  <text x="95" y="361.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">member_id VARCHAR(20) [FK]</text>
+  <text x="95" y="378.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">title VARCHAR(100)</text>
+  <text x="95" y="395.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">created_at TIMESTAMP</text>
+  <rect x="85" y="485" width="240" height="160" rx="8" fill="#E2E8F0" />
+  <rect x="80" y="480" width="240" height="160" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" />
+  <text x="95" y="495.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">chat_source (참조 출처)</text>
+  <text x="95" y="525.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">id SERIAL [PK]</text>
+  <text x="95" y="541.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">session_id VARCHAR(36) [FK]</text>
+  <text x="95" y="558.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">message_index INTEGER</text>
+  <text x="95" y="575.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">arxiv_id VARCHAR(50)</text>
+  <text x="95" y="592.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">title VARCHAR(500)</text>
+  <rect x="425" y="95" width="290" height="170" rx="8" fill="#E2E8F0" />
+  <rect x="420" y="90" width="290" height="170" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" />
+  <text x="435" y="105.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">gem (특화 연구 비서)</text>
+  <text x="435" y="135.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">gem_id VARCHAR(36) [PK]</text>
+  <text x="435" y="151.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">member_id VARCHAR(20) [FK]</text>
+  <text x="435" y="168.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">name VARCHAR(100)</text>
+  <text x="435" y="185.39999999999998" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">db_sources VARCHAR(50)</text>
+  <text x="435" y="202.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">system_prompt TEXT</text>
+  <rect x="425" y="305" width="290" height="220" rx="8" fill="#E2E8F0" />
+  <rect x="420" y="300" width="290" height="220" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" />
+  <text x="435" y="315.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">research_gap_task (공백 분석)</text>
+  <text x="435" y="345.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">task_id VARCHAR(50) [PK]</text>
+  <text x="435" y="361.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">mid VARCHAR(20) [FK]</text>
+  <text x="435" y="378.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">domain VARCHAR(50)</text>
+  <text x="435" y="395.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">query TEXT</text>
+  <text x="435" y="412.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">status VARCHAR(20)</text>
+  <text x="435" y="429.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">progress INTEGER</text>
+  <text x="435" y="445.79999999999995" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">result JSONB</text>
+  <text x="435" y="462.59999999999997" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">translated_result JSONB</text>
+  <rect x="425" y="555" width="290" height="140" rx="8" fill="#E2E8F0" />
+  <rect x="420" y="550" width="290" height="140" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" />
+  <text x="435" y="565.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#1E293B" text-anchor="start" font-weight="bold">notification (알림 수신함)</text>
+  <text x="435" y="595.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">id VARCHAR(50) [PK]</text>
+  <text x="435" y="611.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">mid VARCHAR(20) [FK]</text>
+  <text x="435" y="628.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">title VARCHAR(200)</text>
+  <text x="435" y="645.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">read BOOLEAN</text>
+  <rect x="835" y="125" width="300" height="140" rx="8" fill="#E2E8F0" />
+  <rect x="830" y="120" width="300" height="140" rx="8" fill="#FFFFFF" stroke="#059669" stroke-width="1" />
+  <text x="845" y="135.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#059669" text-anchor="start" font-weight="bold">langchain_pg_collection</text>
+  <text x="845" y="165.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">uuid UUID [PK]</text>
+  <text x="845" y="181.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">name VARCHAR</text>
+  <text x="845" y="198.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">cmetadata JSONB</text>
+  <rect x="835" y="345" width="300" height="210" rx="8" fill="#E2E8F0" />
+  <rect x="830" y="340" width="300" height="210" rx="8" fill="#FFFFFF" stroke="#059669" stroke-width="1" />
+  <text x="845" y="355.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#059669" text-anchor="start" font-weight="bold">langchain_pg_embedding</text>
+  <text x="845" y="385.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">id VARCHAR [PK]</text>
+  <text x="845" y="401.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">collection_id UUID [FK]</text>
+  <text x="845" y="418.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">embedding vector(3072)</text>
+  <text x="845" y="435.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">document TEXT</text>
+  <text x="845" y="452.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">cmetadata JSONB</text>
+  <rect x="1255" y="95" width="270" height="170" rx="8" fill="#E2E8F0" />
+  <rect x="1250" y="90" width="270" height="170" rx="8" fill="#FFFFFF" stroke="#E11D48" stroke-width="1" />
+  <text x="1265" y="105.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#E11D48" text-anchor="start" font-weight="bold">defense_arena_session</text>
+  <text x="1265" y="135.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">session_id VARCHAR(36) [PK]</text>
+  <text x="1265" y="151.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">member_id VARCHAR(20)</text>
+  <text x="1265" y="168.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">file_name VARCHAR(255)</text>
+  <text x="1265" y="185.39999999999998" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">file_path VARCHAR(500)</text>
+  <text x="1265" y="202.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">chunk_count INTEGER</text>
+  <rect x="1255" y="305" width="270" height="150" rx="8" fill="#E2E8F0" />
+  <rect x="1250" y="300" width="270" height="150" rx="8" fill="#FFFFFF" stroke="#E11D48" stroke-width="1" />
+  <text x="1265" y="315.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#E11D48" text-anchor="start" font-weight="bold">defense_arena_chunk</text>
+  <text x="1265" y="345.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">id SERIAL [PK]</text>
+  <text x="1265" y="361.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">session_id VARCHAR(36) [FK]</text>
+  <text x="1265" y="378.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">chunk_index INTEGER</text>
+  <text x="1265" y="395.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">text_chunk TEXT</text>
+  <text x="1265" y="412.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">embedding vector(3072)</text>
+  <rect x="1255" y="485" width="270" height="200" rx="8" fill="#E2E8F0" />
+  <rect x="1250" y="480" width="270" height="200" rx="8" fill="#FFFFFF" stroke="#E11D48" stroke-width="1" />
+  <text x="1265" y="495.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="18" fill="#E11D48" text-anchor="start" font-weight="bold">defense_history</text>
+  <text x="1265" y="525.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">id SERIAL [PK]</text>
+  <text x="1265" y="541.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">session_id VARCHAR(36) [FK]</text>
+  <text x="1265" y="558.6" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">turn INTEGER</text>
+  <text x="1265" y="575.4" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">question TEXT</text>
+  <text x="1265" y="592.2" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">answer TEXT</text>
+  <text x="1265" y="609.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">score INTEGER</text>
+  <text x="1265" y="625.8" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#516075" text-anchor="start">feedback TEXT</text>
+  <line x1="200" y1="260" x2="200" y2="300" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" />
+  <polygon points="200,300 194.0,289.60769515458674 206.0,289.60769515458674" fill="#4F46E5" />
+  <text x="210" y="275.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#1E293B" text-anchor="start">1 : N owns</text>
+  <line x1="200" y1="440" x2="200" y2="480" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" />
+  <polygon points="200,480 194.0,469.60769515458674 206.0,469.60769515458674" fill="#4F46E5" />
+  <text x="210" y="455.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#1E293B" text-anchor="start">1 : N contains</text>
+  <line x1="320" y1="175" x2="420" y2="175" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" />
+  <polygon points="420,175 409.60769515458674,181.0 409.60769515458674,169.0" fill="#4F46E5" />
+  <text x="330" y="160.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#1E293B" text-anchor="start">1 : N</text>
+  <line x1="320" y1="220" x2="420" y2="320" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" />
+  <polygon points="420,320 408.4088900845312,316.89417145876973 416.89417145876973,308.4088900845312" fill="#4F46E5" />
+  <line x1="320" y1="240" x2="420" y2="570" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" />
+  <polygon points="420,570 411.2440083141953,561.7943550163245 422.728301167397,558.31426627293" fill="#4F46E5" />
+  <line x1="980" y1="260" x2="980" y2="340" stroke="#16A34A" stroke-width="2" stroke-linecap="round" />
+  <polygon points="980,340 974.0,329.60769515458674 986.0,329.60769515458674" fill="#16A34A" />
+  <text x="990" y="295.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#1E293B" text-anchor="start">1 : N</text>
+  <line x1="320" y1="130" x2="1250" y2="130" stroke="#E11D48" stroke-width="2" stroke-linecap="round" />
+  <polygon points="1250,130 1239.6076951545867,136.0 1239.6076951545867,124.0" fill="#E11D48" />
+  <line x1="1380" y1="260" x2="1380" y2="300" stroke="#E11D48" stroke-width="2" stroke-linecap="round" />
+  <polygon points="1380,300 1374.0,289.60769515458674 1386.0,289.60769515458674" fill="#E11D48" />
+  <text x="1395" y="275.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#1E293B" text-anchor="start">1 : N</text>
+  <line x1="1385" y1="260" x2="1385" y2="480" stroke="#E11D48" stroke-width="2" stroke-linecap="round" />
+  <polygon points="1385,480 1379.0,469.60769515458674 1391.0,469.60769515458674" fill="#E11D48" />
+  <text x="1395" y="455.0" font-family="Apple SD Gothic Neo, Arial, sans-serif" font-size="12" fill="#1E293B" text-anchor="start">1 : N</text>
+</svg>
