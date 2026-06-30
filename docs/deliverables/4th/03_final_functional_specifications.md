@@ -52,7 +52,7 @@
 
 | 기능 코드 | 상세 기능명 | 상태 | 백엔드 엔드포인트 / 기술 | Input 스펙 | Output 스펙 | 기능 상세 및 DB 연동 명세 |
 | :---: | :--- | :---: | :--- | :--- | :--- | :--- |
-| **F-01-01** | 쿼리 최적화 분석기 | **완료** | gpt-4o-mini / `AnalysisNode` | • `user_question` (str) | • `paper_query` (str)<br>• `web_query` (str) | • 자연어 발화에서 영어 학술 최적 키워드와 웹 타겟 서치 쿼리를 분리 인출. |
+| **F-01-01** | 병렬 융합 검색 제어 | **완료** | Supervisor / asyncio.gather | • `user_question` (str) | • `sources` (list)<br>• `web_sources` (list) | • 논문 RAG 검색과 실시간 웹 검색을 무조건적으로 병렬 호출하여 컨텍스트 수집. |
 | **F-01-02** | 듀얼 트랙 병렬 가동 | **완료** | `asyncio.gather` 비동기 태스크 | • `paper_query` (str)<br>• `web_query` (str) | • `paper_res` (dict)<br>• `web_res` (dict) | • `paper_node`와 `web_node`를 조건부 분기 없이 무조건 동시 가동하여 입체적 지식풀 확보. |
 | **F-01-03** | 융합 답변 합성 엔진 | **완료** | OpenAI gpt-4o / `SynthesisNode` | • `paper_context` (str)<br>• `web_context` (str) | • `final_response` (str: MD) | • 학술 팩트(논문)와 상용화 동향(웹)을 한 문맥 내에 크로스-참조 결합하여 리포트형 답변 렌더링. |
 | **F-01-04** | 토큰 단위 스트리밍 | **완료** | FastAPI `StreamingResponse` | • `session_id` (str)<br>• `message` (str) | • `SSE Token Stream`<br>(JSON lines) | • `synthesis` 노드의 텍스트 토큰을 실시간으로 프론트엔드로 푸시. |

@@ -7,6 +7,12 @@
 ## 1. 📂 오프라인 로컬 파일 기반 배치 임베딩 및 DB 적재 파이프라인
 *ArXiv 전체 스냅샷 및 개별 raw JSON 파일에서 도메인별 미적재 데이터를 추출하여 `langchain_postgres` PGVector 벌크 인덱싱을 진행하는 흐름입니다.*
 
+> 📢 **[구글 독스 이미지 삽입 안내 - ARCHITECTURE]**
+> *   구글 독스 메뉴의 `삽입 ➡️ 이미지 ➡️ 컴퓨터에서 업로드`를 통해 아래 이미지 파일을 본문에 넣어주세요.
+> *   **삽입 파일**: `docs/deliverables/4th/images/07_system_sequence_diagrams_architecture.png`
+
+![07_system_sequence_diagrams_architecture](images/07_system_sequence_diagrams_architecture.png)
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -44,6 +50,12 @@ sequenceDiagram
 ## 2. ⚡ 실시간 병렬 융합 RAG 에이전트 스트리밍 (SSE 스트리밍)
 *사용자의 학술 질문에 대해 최적화 쿼리를 생성하고, pgvector HNSW RAG와 Tavily 실시간 검색 노드를 무조건 병렬로 동시 수행하여, 최종 합성 노드에서 교차 융합된 답변을 SSE로 스트리밍하는 흐름입니다.*
 
+> 📢 **[구글 독스 이미지 삽입 안내 - SEQUENCE]**
+> *   구글 독스 메뉴의 `삽입 ➡️ 이미지 ➡️ 컴퓨터에서 업로드`를 통해 아래 이미지 파일을 본문에 넣어주세요.
+> *   **삽입 파일**: `docs/deliverables/4th/images/07_system_sequence_diagrams_sequence.png`
+
+![07_system_sequence_diagrams_sequence](images/07_system_sequence_diagrams_sequence.png)
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -63,7 +75,7 @@ sequenceDiagram
     
     BE->>SPV: 3. run_stream(message, session_id)
     activate SPV
-    SPV->>SPV: 4. AnalysisNode에서 쿼리 최적화 (paper_query & web_query 추출)
+    SPV->>SPV: 4. 질문 수신 및 작업 위임
     
     Note over SPV, WEB: 두 노드를 무조건 병렬(Parallel) 비동기 호출
     par 학술 RAG 검색 실행

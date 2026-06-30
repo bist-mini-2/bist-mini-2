@@ -16,7 +16,7 @@
 
 ### 🛠️ 1.2 [2단계] 기능별 1인 전담 개발 (6/18 ~ 6/26, 7일) - **[구현 완료 및 일부 이월]**
 *   **Case A: 일반 챗 허브 (General Chat Hub) [완료]**
-    *   쿼리 최적화 분석 노드(`AnalysisNode`), 듀얼 트랙 병렬 비동기 가동 모듈(`asyncio.gather`), 지식 융합 답변 합성 노드(`SynthesisNode`), Pydantic Structured Output 인용 출처 매핑, 대화 이력 PostgresSaver 스레드 체크포인팅 및 사후 추천 질문 자동 적재 로직 개발.
+    *   듀얼 트랙 병렬 비동기 가동 모듈(`asyncio.gather`), 지식 융합 답변 합성 노드(`SynthesisNode`), Pydantic Structured Output 인용 출처 매핑, 대화 이력 PostgresSaver 스레드 체크포인팅 및 사후 추천 질문 자동 적재 로직 개발.
 *   **Case B: 대규모 문헌 비교 분석기 (Research Gap) [완료]**
     *   FastAPI BackgroundTasks 비동기 비교 분석 큐, 중복 논문 선출 가공, 논문 한계점/해결과제 DTO 구조화 추출, LLM Synthesis 기반 학술 공백 추론 및 미래 혁신 연구 로드맵 제안, 다국어 번역 캐싱 및 SSE 실시간 알림 연동 개발.
 *   **Case C: 보안 피어 리뷰 및 가설 디펜스 아레나 [향후 개발 스프린트로 이월 - 미구현]**
