@@ -42,26 +42,26 @@ export default function PaperPanel({ open, papers, onClose }) {
           <div className={styles.paperPanelList}>
             {papers.map((paper, i) => (
               <a
-              key = { i }
-                className = { styles.paperCard }
-                href = {`https://arxiv.org/abs/${paper.arxiv_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
+                key={paper.arxiv_id}
+                className={styles.paperCard}
+                href={`https://arxiv.org/abs/${paper.arxiv_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-            <div className={styles.paperCardHead}>
-              <i className={`bi bi-file-earmark-text ${styles.paperCardIcon}`}></i>
-              <span className={styles.paperCardTitle}>{paper.title}</span>
-              <i className={`bi bi-box-arrow-up-right ${styles.paperCardLink}`}></i>
-            </div>
-            <span className={styles.paperCardArxiv}>{paper.arxiv_id}</span>
-            {paper.summary && (
-              <p className={styles.paperCardSummary}>{paper.summary}</p>
-            )}
-          </a>
-        ))}
-      </div>
+                <div className={styles.paperCardHead}>
+                  <i className={`bi bi-file-earmark-text ${styles.paperCardIcon}`}></i>
+                  <span className={styles.paperCardTitle}>{paper.title}</span>
+                  <i className={`bi bi-box-arrow-up-right ${styles.paperCardLink}`}></i>
+                </div>
+                <span className={styles.paperCardArxiv}>{paper.arxiv_id}</span>
+                {paper.summary && (
+                  <p className={styles.paperCardSummary}>{paper.summary}</p>
+                )}
+              </a>
+            ))}
+          </div>
         )}
-    </div>
+      </div>
     </aside >
   );
 }
