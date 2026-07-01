@@ -6,6 +6,7 @@ from typing import Annotated, Any, cast, AsyncGenerator
 
 from fastapi import Depends
 from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import SummarizationMiddleware
 from langchain.tools import tool, ToolRuntime
 from langchain_core.messages import ToolMessage, SystemMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -258,6 +259,13 @@ class GemAgent:
             checkpointer=self.checkpointer,
             state_schema=GemAgentState,
             response_format=GemAnswer,
+            middleware=[
+                SummarizationMiddleware(
+                    model="gpt-4o-mini",
+                    trigger=("tokens", 4000),
+                    keep=("messages", 20)
+                )
+            ]
         )
 
     def _build_stream_agent(
@@ -284,6 +292,13 @@ class GemAgent:
             checkpointer=self.checkpointer,
             state_schema=GemAgentState,
             # response_format 없음 — 스트리밍은 JSON 완성 전까지 파싱 불가
+            middleware=[
+                SummarizationMiddleware(
+                    model="gpt-4o-mini",
+                    trigger=("tokens", 4000),
+                    keep=("messages", 20)
+                )
+            ]
         )
 
     async def run_stream(

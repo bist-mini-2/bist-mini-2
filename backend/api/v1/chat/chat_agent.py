@@ -4,6 +4,7 @@ from typing import Annotated, TypedDict, Any, cast, AsyncGenerator
 
 from fastapi import Depends
 from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
@@ -145,7 +146,14 @@ class ChatAgent:
                 checkpointer=self.checkpointer,
                 # 출처 추적 위해 bio의 state 패턴 활용
                 state_schema=cast(Any, BioAgentState),
-                response_format=BioAnswer
+                response_format=BioAnswer,
+                middleware=[
+                    SummarizationMiddleware(
+                        model="gpt-4o-mini",
+                        trigger=("tokens", 4000),
+                        keep=("messages", 20)
+                    )
+                ]
             )
 
             # checkpoint 테이블이 이미 있으면 setup()을 건너뛴다.
@@ -238,6 +246,13 @@ class ChatAgent:
                 checkpointer=self.checkpointer,
                 state_schema=cast(Any, BioAgentState),
                 # response_format 없음 — 스트리밍 위해 일반 마크다운 텍스트로 출력
+                middleware=[
+                    SummarizationMiddleware(
+                        model="gpt-4o-mini",
+                        trigger=("tokens", 4000),
+                        keep=("messages", 20)
+                    )
+                ]
             )
 
         assert self._stream_agent is not None
