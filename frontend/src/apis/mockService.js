@@ -411,9 +411,11 @@ export function createGem(gemData) {
     name: gemData.name,
     db_sources: gemData.db_sources,
     system_prompt: gemData.system_prompt,
-    has_files: false,
+    has_files: true,
     created_at: new Date().toISOString(),
-    files: [],
+    files: [
+      { file_id: "file-" + Date.now(), filename: "astro_background_cmb.pdf", chunk_count: 34, uploaded_at: new Date().toISOString() }
+    ],
     sessions: []
   };
   db.gems.unshift(newGem);

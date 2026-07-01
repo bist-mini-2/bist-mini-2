@@ -96,13 +96,15 @@ export async function getGemMessages(gemId, threadId) {
  */
 export async function chatWithGemStream(gemId, payload, onToken, onStatus, onPapers) {
   if (isMockMode) {
-    onStatus?.("gem_searching");
-    await new Promise(r => setTimeout(r, 600));
+    onStatus?.("paper_search");
+    await new Promise(r => setTimeout(r, 800));
+    onStatus?.("file_search");
+    await new Promise(r => setTimeout(r, 800));
     onStatus?.("generating");
     
     const text = `사용자 정의 Gem 비서 [NASA JPL 우주론 튜터]의 분석 답변입니다:
 
-업로드해주신 파일(astro.pdf)의 8장에 명시된 고전적인 우주 구성 정보(암흑 물질 27%, 암흑 에너지 68%)와, 최근 천문학 학계(제임스 웹 망원경 관측 및 DESI 등)가 논의하는 우주 팽창 속도 데이터는 매우 흥미로운 상호 대조군을 형성합니다:
+업로드해주신 파일(astro_background_cmb.pdf)의 8장에 명시된 고전적인 우주 구성 정보(암흑 물질 27%, 암흑 에너지 68%)와, 최근 천문학 학계(제임스 웹 망원경 관측 및 DESI 등)가 논의하는 우주 팽창 속도 데이터는 매우 흥미로운 상호 대조군을 형성합니다:
 
 1. **시간에 따른 가변성**: 개론서의 68% 암흑 기여도는 우주 상수(Lambda)를 상정하고 있으나, 최근 관측은 상태 방정식 파라미터 $w(z)$ 가 동적으로 진동할 가능성(Dynamic Dark Energy)을 강하게 암시합니다.
 2. **CMB와 국소 관측의 Tension**: 우주배경복사 기반 예측값과 초신성 사다리 관측값 간의 허블 상수 불일치(Hubble Tension)에 따라 우주 구성 모델이 미세 조정되고 있습니다.
@@ -116,7 +118,8 @@ export async function chatWithGemStream(gemId, payload, onToken, onStatus, onPap
     }
     
     onPapers?.([
-      { arxiv_id: "2401.0345", title: "Observational Constraints on Time-varying Dark Energy", summary: "CMB and supernova data comparison." }
+      { arxiv_id: "2401.0345", title: "Observational Constraints on Time-varying Dark Energy", summary: "CMB and supernova data comparison.", type: "arxiv" },
+      { title: "astro_background_cmb.pdf", summary: "우주 배경 복사(CMB) 및 암흑 에너지 밀도 상태 방정식 분석.", type: "file", score: 0.89 }
     ]);
     return;
   }
