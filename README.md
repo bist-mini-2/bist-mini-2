@@ -21,7 +21,7 @@
 ### 3. 맞춤형 R&D 비서 Gem 팩토리 & 격리 스토어
 연구 목적에 맞는 특정 학술 도메인 RAG와 고유 페르소나 지침(System Prompt)을 바인딩한 독립형 가상 연구 비서(Gem)를 개설하고 특화 대화를 수행할 수 있습니다.
 
-![Gems Factory Demo](docs/deliverables/final/demo_feature3.gif)
+![Gems Factory Demo](docs/deliverables/final/demo_feature3.gif?v=2)
 
 ---
 
